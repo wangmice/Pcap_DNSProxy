@@ -1,7 +1,7 @@
-﻿Pcap_DNSProxy 專案的 GitHub 頁面：
+﻿Pcap_DNSProxy project in GitHub:
 https://github.com/chengr28/Pcap_DNSProxy
 
-Pcap_DNSProxy 專案的 Sourceforge 頁面：
+Pcap_DNSProxy project in Sourceforge:
 https://sourceforge.net/projects/pcap-dnsproxy
 
 
@@ -344,7 +344,7 @@ Base - the basic parameter area
     * When you fill in both IPv4 and IPv6 or do not fill in any network layer agreements, the program will automatically select the protocol to be used according to the web environment
     * At the same time fill in TCP and UDP is equal to only fill in TCP because UDP is the standard network layer protocol for DNS, so even when the TCP fails to fill the UDP request
     * Fill in Force TCP to prevent TCP requests from failing to use UDP to retry requests
-  * Direct Request - Direct connection mode, enable the system will use the system directly request the remote server and enable the use of the tool only Hosts function: can fill in IPv4 and IPv6 and 0, turn off to 0
+  * Direct Request - Direct connection mode, enable the system will use the system directly request the remote server: can fill in IPv4 and IPv6 and 0, turn off to 0
     * It is recommended when the system uses the global proxy function, the program will be in addition to all the requests outside the domestic server directly to the system without any filtering and other processing, the system will automatically send the request to the remote server for analysis
     * When you fill in IPv4 or IPv6, you will enable the Direct Request function of the corresponding protocol. Filling in IPv4 + IPv6 will enable all protocol functions
   * Cache Type - the type of DNS cache: sub-Timer / Chrono, Queue / Queue type and their mixed type, fill in 0 to turn off this feature
@@ -617,23 +617,17 @@ Base - the basic parameter area
   * DNSSEC Request - DNSSEC request, after opening will try to add DNSSEC request for all requests: open to 1 / off to 0
     * This feature requires the EDNS Label parameter to be enabled
     * This feature does not have any ability to verify DNSSEC records, a separate open theory can not avoid the problem of DNS poisoning
-  * DNSSEC Validation - DNSSEC record verification function, will check all the functional variables with DNSSEC record name resolution, verification failure will be discarded: open to 1 / off to 0
-    * This feature requires EDNS Label and DNSSEC Request parameters to be enabled
+  * DNSSEC Force Record - Force DNSSEC record function, will discard all functions without any DNSSEC records: On for 1 / off to 0
+    * This feature requires EDNS Label and DNSSEC Request parameters
     * This function does not have the full DNSSEC record test capability, a separate open theory can not avoid the problem of DNS poisoning
-    * This function does not check the function variable name resolution that does not exist for DNSSEC records
-  * DNSSEC Force Validation - Force DNSSEC record verification function, will discard all functions without DNSSEC record Variable name resolution: On for 1 / off to 0
-    * This feature requires EDNS Label, DNSSEC Request, and DNSSEC Validation parameters
-    * This function does not have the full DNSSEC record test capability, a separate open theory can not avoid the problem of DNS poisoning
-    * Warning: Due to the small number of functional variable names currently deployed DNSSEC, there is no DNSSEC function variable name resolution without DNSSEC records, which will cause all undeployed DNSSEC function variable name resolution failure, do not open this function at this stage!
+    * Warning: Due to the small number of functional variable names currently deployed DNSSEC, there is no DNSSEC function variable name resolution without DNSSEC records, which will cause all undeployed DNSSEC function variable name resolution failure!
   * Alternate Multiple Request - The standby server requests parameters at the same time, and requests the server that responds to the primary and standby servers at the same time with the fastest response: On 1 / Off is 0
     * This request is enforced when multiple requests are enabled by the multi-server, and all servers that are present in the manifest are requested at the same time and the results of the fastest response server are used
   * IPv4 Do Not Fragment - IPv4 packet header Do Not Fragment flag: On 1 / off is 0
     * This feature does not support the macOS platform, this platform will directly ignore this parameter
-  * IPv4 Data Filter - IPv4 header detection: On 1 / off is 0
   * TCP Data Filter - TCP packet header detection: On for 1 / off to 0
   * DNS Data Filter - DNS header detection: On to 1 / off to 0
   * Blacklist Filter - Resolve the results of the blacklist filter: open to 1 / off to 0
-  * Strict Resource Record TTL Filter - Strict resource record retention time filtering, the standard requires the same name and type of resource records must have the same retention time: open for 1 / off to 0
 
 * Data - data area
   * ICMP ID - ICMP / Ping packet header ID: hexadecimal character in the format 0x ****, if left blank, the thread ID of the thread is used as the request id
@@ -721,7 +715,7 @@ Base - the basic parameter area
     * Fill in Force TCP to prevent TCP requests from failing to use UDP to retry requests
   * DNSCurve Payload Size - The maximum payload length that is included with the DNSCurve tag, as well as the total length of the request sent and the requested fill length: in bytes
     * Minimum for the DNS protocol to achieve the requirements of 512, leaving 512
-    * Maximum of 1500 minus the DNSCurve header length, it is recommended not to exceed 1220
+    * Maximum of Ethernet MTU minus the DNSCurve header length, it is recommended not to exceed 1220
     * The DNSCurve protocol requires this value to be a multiple of 64
   * DNSCurve Reliable Socket Timeout - Reliable DNSCurve Protocol Port Timeout, Reliable Port TCP Protocol: in milliseconds, minimum to 500, can be left blank, leave space for 3000
   * DNSCurve Unreliable Socket Timeout - unreliable DNSCurve protocol port timeout time, unreliable port refers to the UDP protocol: in milliseconds, the minimum is 500, can be left blank, leave the time for the 2000
@@ -1047,10 +1041,8 @@ Auto-refresh support profile list:
 * Multiple Request Times
 * Domain Case Conversion
 * IPv4 Do Not Fragment
-* IPv4 Data Filter
 * TCP Data Filter
 * DNS Data Filter
-* Strict Resource Record TTL Filter
 * Domain Test Protocol
 * SOCKS Target Server
 * SOCKS Username

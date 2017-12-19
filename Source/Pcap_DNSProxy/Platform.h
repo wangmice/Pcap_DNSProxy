@@ -25,7 +25,7 @@
 // 
 /* This code is from Qt source, which in /src/corelib/global/qsystemdetection.h header file, please visit https://www.qt.io/developers.
 
-   The operating system, must be one of: (PLATFOEM_x)
+   The operating system, must be one of: (PLATFORM_x)
 
      DARWIN   - Any Darwin system (macOS, iOS, watchOS, tvOS)
      MACOS    - macOS
@@ -599,7 +599,6 @@
 #endif
 	#define SOCKET_ERROR             (-1)
 	#define TRUE                     1U
-	#define RETURN_ERROR             (-1)
 	#define SD_BOTH                  SHUT_RDWR
 	#define SD_RECV                  SHUT_RD
 	#define SD_SEND                  SHUT_WR
@@ -610,17 +609,17 @@
 	#define WSAETIMEDOUT             ETIMEDOUT
 
 //Function definitions(Part 1)
-	#define closesocket                                                  close
-	#define fwprintf_s                                                   fwprintf
-	#define strnlen_s                                                    strnlen
-	#define vfwprintf_s                                                  vfwprintf
-	#define wcsnlen_s                                                    wcsnlen
-	#define WSAGetLastError()                                            errno
-	#define _set_errno(Value)                                            errno = (Value)
-	#define fread_s(Dst, DstSize, ElementSize, Count, File)              fread((Dst), (ElementSize), (Count), (File))
-	#define memcpy_s(Dst, DstSize, Src, Size)                            memcpy((Dst), (Src), (Size))
-	#define memmove_s(Dst, DstSize, Src, Size)                           memmove((Dst), (Src), (Size))
-	#define strncpy_s(Dst, DstSize, Src, Size)                           strncpy((Dst), (Src), (Size))
-	#define wcsncpy_s(Dst, DstSize, Src, Size)                           wcsncpy((Dst), (Src), (Size))
+	#define closesocket                                                       close
+	#define fwprintf_s                                                        fwprintf
+	#define strnlen_s                                                         strnlen
+	#define vfwprintf_s                                                       vfwprintf
+	#define wcsnlen_s                                                         wcsnlen
+	#define WSAGetLastError()                                                 errno
+	#define _set_errno(Value)                                                 errno = (Value)
+	#define fread_s(Destination, DestinationSize, ElementSize, Count, File)   fread((Destination), (ElementSize), (Count), (File))
+	#define memcpy_s(Destination, DestinationSize, Source, Size)              memcpy((Destination), (Source), (Size))
+	#define memmove_s(Destination, DestinationSize, Source, Size)             memmove((Destination), (Source), (Size))
+	#define strncpy_s(Destination, DestinationSize, Source, Size)             strncpy((Destination), (Source), (Size))
+	#define wcsncpy_s(Destination, DestinationSize, Source, Size)              wcsncpy((Destination), (Source), (Size))
 #endif
 #endif

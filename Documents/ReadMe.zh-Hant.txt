@@ -344,7 +344,7 @@ https://sourceforge.net/projects/pcap-dnsproxy
     * 同時填入 IPv4 和 IPv6 或直接不填任何網路層協定時，程式將根據網路環境自動選擇所使用的協定
     * 同時填入 TCP 和 UDP 等於只填入 TCP 因為 UDP 為 DNS 的標準網路層協定，所以即使填入 TCP 失敗時也會使用 UDP 請求
     * 填入 Force TCP 可阻止 TCP 請求失敗後使用 UDP 重新嘗試請求
-  * Direct Request - 直連模式，啟用後將使用系統的 API 直接請求遠端伺服器而啟用只使用本工具的 Hosts 功能：可填入 IPv4 和 IPv6 和 0，關閉為 0
+  * Direct Request - 直連模式，啟用後將使用系統的 API 直接請求遠端伺服器：可填入 IPv4 和 IPv6 和 0，關閉為 0
     * 建議當系統使用全域代理功能時啟用，程式將除境內服務器外的所有請求直接交給系統而不作任何過濾等處理，系統會將請求自動發往遠端伺服器進行解析
     * 填入 IPv4 或 IPv6 時將會啟用對應協定的 Direct Request 功能，填入 IPv4 + IPv6 將會啟用所有協定的功能
   * Cache Type - DNS 緩存的類型：分 Timer/計時型、Queue/佇列型以及它們的混合類型，填入 0 為關閉此功能
@@ -604,7 +604,7 @@ https://sourceforge.net/projects/pcap-dnsproxy
 * Switches - 控制開關區域
   * Domain Case Conversion - 隨機轉換網域名稱請求大小寫：開啟為 1 /關閉為 0
   * Compression Pointer Mutation - 隨機添加壓縮指標：可填入 1 (+ 2 + 3)，關閉為 0 
-    * 隨機添加壓縮指標有3種不同的類型，對應 1 和 2 和 3
+    * 隨機添加壓縮指標有 3 種不同的類型，對應 1 和 2 和 3
     * 可單獨使用其中一個，即只填一個數位，或填入多個，中間使用 + 號連接
     * 填入多個時，當實際需要使用隨機添加壓縮指標時將隨機使用其中的一種，每個請求都有可能不相同
   * EDNS Label - EDNS 標籤支援，開啟後將為請求添加 EDNS 標籤：全部開啟為 1 /關閉為 0
@@ -617,23 +617,17 @@ https://sourceforge.net/projects/pcap-dnsproxy
   * DNSSEC Request - DNSSEC 請求，開啟後將嘗試為所有請求添加 DNSSEC 請求：開啟為 1 /關閉為 0
     * 本功能要求啟用 EDNS Label 參數
     * 此功能不具備任何驗證 DNSSEC 記錄的能力，單獨開啟理論上並不能避免 DNS 投毒污染的問題
-  * DNSSEC Validation - DNSSEC 記錄驗證功能，將檢查所有帶有 DNSSEC 記錄的網域名稱解析，驗證失敗將被丟棄：開啟為 1 /關閉為 0
+  * DNSSEC Force Record - 強制 DNSSEC 記錄驗證功能，將丟棄所有支援 DNSSEC 功能但是沒有任何 DNSSEC 記錄的網域名稱解析：開啟為 1 /關閉為 0
     * 本功能要求啟用 EDNS Label 和 DNSSEC Request 參數
     * 此功能不具備完整的 DNSSEC 記錄檢驗的能力，單獨開啟理論上不能避免 DNS 投毒污染的問題
-    * 本功能不檢查不存在 DNSSEC 記錄的網域名稱解析
-  * DNSSEC Force Validation - 強制 DNSSEC 記錄驗證功能，將丟棄所有沒有 DNSSEC 記錄的網域名稱解析：開啟為 1 /關閉為 0
-    * 本功能要求啟用 EDNS Label、DNSSEC Request 和 DNSSEC Validation 參數
-    * 此功能不具備完整的 DNSSEC 記錄檢驗的能力，單獨開啟理論上不能避免 DNS 投毒污染的問題
-    * 警告：由於現時已經部署 DNSSEC 的網域名稱數量極少，未部署 DNSSEC 的網域名稱解析沒有 DNSSEC 記錄，這將導致所有未部署 DNSSEC 的網域名稱解析失敗，現階段切勿開啟本功能！
+    * 警告：由於現時已經部署 DNSSEC 的網域名稱數量極少，未部署 DNSSEC 的網域名稱解析沒有 DNSSEC 記錄，這將導致所有未部署 DNSSEC 的網域名稱解析失敗！
   * Alternate Multiple Request - 待命伺服器同時請求參數，開啟後將同時請求主要伺服器和待命伺服器並採用最快回應的伺服器的結果：開啟為 1 /關閉為 0
     * 同時請求多伺服器啟用後本參數將強制啟用，將同時請求所有存在於清單中的伺服器，並採用最快回應的伺服器的結果
   * IPv4 Do Not Fragment - IPv4 資料包頭部 Do Not Fragment 標誌：開啟為 1 /關閉為 0
     * 目前本功能不支援 macOS 平臺，此平臺將直接忽略此參數
-  * IPv4 Data Filter - IPv4 資料包頭檢測：開啟為 1 /關閉為 0
   * TCP Data Filter - TCP 資料包頭檢測：開啟為 1 /關閉為 0
   * DNS Data Filter - DNS 資料包頭檢測：開啟為 1 /關閉為 0
   * Blacklist Filter - 解析結果黑名單過濾：開啟為 1 /關閉為 0
-  * Strict Resource Record TTL Filter - 嚴格的資源記錄存留時間過濾，標準要求同一名稱和類型的資源記錄必須具有相同的存留時間：開啟為 1/關閉為 0
 
 * Data - 資料區域
   * ICMP ID - ICMP/Ping 資料包頭部 ID 的值：格式為 0x**** 的十六進位字元，如果留空則獲取執行緒的 ID 作為請求用 ID
@@ -721,7 +715,7 @@ https://sourceforge.net/projects/pcap-dnsproxy
     * 填入 Force TCP 可阻止 TCP 請求失敗後使用 UDP 重新嘗試請求
   * DNSCurve Payload Size - DNSCurve 標籤附帶使用的最大載荷長度，同時亦為發送請求的總長度，並決定請求的填充長度：單位為位元組
     * 最小為 DNS 協定實現要求的 512，留空則為 512
-    * 最大為 1500 減去 DNSCurve 頭長度，建議不要超過 1220
+    * 最大為 Ethernet MTU 減去 DNSCurve 頭長度，建議不要超過 1220
     * DNSCurve 協定要求此值必須為 64 的倍數
   * DNSCurve Reliable Socket Timeout - 可靠 DNSCurve 協定埠超時時間，可靠埠指 TCP 協定：單位為毫秒，最小為 500，可留空，留空時為 3000
   * DNSCurve Unreliable Socket Timeout - 不可靠 DNSCurve 協定埠超時時間，不可靠埠指 UDP 協定：單位為毫秒，最小為 500，可留空，留空時為 2000
@@ -1050,10 +1044,8 @@ IPFilter 設定檔分為 Blacklist/黑名單區域 和 IPFilter/位址過濾區�
 * Multiple Request Times
 * Domain Case Conversion
 * IPv4 Do Not Fragment
-* IPv4 Data Filter
 * TCP Data Filter
 * DNS Data Filter
-* Strict Resource Record TTL Filter
 * Domain Test Protocol
 * SOCKS Target Server
 * SOCKS Username

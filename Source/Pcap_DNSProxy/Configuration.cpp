@@ -28,13 +28,6 @@ bool ReadText(
 	const READ_TEXT_TYPE InputType, 
 	const size_t FileIndex)
 {
-//Reset global variables.
-	if (InputType == READ_TEXT_TYPE::PARAMETER_NORMAL || InputType == READ_TEXT_TYPE::PARAMETER_MONITOR)
-	{
-		ParameterHopLimitsIndex[NETWORK_LAYER_TYPE_IPV6] = 0;
-		ParameterHopLimitsIndex[NETWORK_LAYER_TYPE_IPV4] = 0;
-	}
-
 //Initialization
 	std::unique_ptr<uint8_t[]> FileBuffer(new uint8_t[FILE_BUFFER_SIZE + PADDING_RESERVED_BYTES]());
 	std::unique_ptr<uint8_t[]> TextBuffer(new uint8_t[FILE_BUFFER_SIZE + PADDING_RESERVED_BYTES]());
@@ -45,6 +38,13 @@ bool ReadText(
 	auto LabelType_Hosts = LABEL_HOSTS_TYPE::NONE;
 	size_t Encoding = 0, Index = 0, Line = 0;
 	auto IsEraseBOM = true, NewLinePoint = false, IsStopLabel = false;
+
+//Reset global variables.
+	if (InputType == READ_TEXT_TYPE::PARAMETER_NORMAL || InputType == READ_TEXT_TYPE::PARAMETER_MONITOR)
+	{
+		ParameterHopLimitsIndex[NETWORK_LAYER_TYPE_IPV6] = 0;
+		ParameterHopLimitsIndex[NETWORK_LAYER_TYPE_IPV4] = 0;
+	}
 
 //Read data.
 	while (!feof(const_cast<FILE *>(FileHandle)))
@@ -528,7 +528,7 @@ bool ReadParameter(
 				}
 				else {
 					FileList_Config.at(FileIndex).ModificationTime = 0;
-					continue;
+//					continue;
 				}
 			}
 			else {
@@ -540,8 +540,8 @@ bool ReadParameter(
 				//Stop reading.
 					if (IsFirstRead)
 						return false;
-					else 
-						continue;
+//					else 
+//						continue;
 				}
 				else {
 					fclose(FileHandle);
@@ -627,7 +627,7 @@ bool ReadParameter(
 					if (!IsFirstRead)
 						FileList_DNSCurveDatabase.at(FileIndex).ModificationTime = 0;
 
-					continue;
+//					continue;
 				}
 				else {
 					if (!ReadText(FileHandle, ReadDNSCurveTextType, FileIndex))
@@ -635,7 +635,7 @@ bool ReadParameter(
 						fclose(FileHandle);
 						FileHandle = nullptr;
 
-						continue;
+//						continue;
 					}
 					else {
 						fclose(FileHandle);
@@ -740,6 +740,7 @@ void ReadIPFilter(
 //File Monitor
 	for (;;)
 	{
+	//Reset parameters.
 		IsFileModified = false;
 
 	//Check file list.

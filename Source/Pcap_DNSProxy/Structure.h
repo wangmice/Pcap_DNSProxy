@@ -615,7 +615,7 @@ typedef struct _ppp_hdr_
 
 */
 #define IPV4_IHL_STANDARD               0x05     //Standard IPv4 header length(0x05/20 bytes)
-#define IPV4_IHL_BYTES_TIMES            4U       //IHL is number of 32-bit words(4 bytes).
+#define IPV4_IHL_BYTES_SET              4U       //IHL is set number of 32-bit words(4 bytes).
 #define IPV4_FLAG_GET_BIT_MF            0x2000   //Get More Fragment bit in Flags.
 #define IPV4_FLAG_GET_FRAGMENT_OFFSET   0x1FFF   //Get Fragment Offset bits in Flags.
 typedef struct _ipv4_hdr_
@@ -911,13 +911,13 @@ typedef struct _ipv6_extension_mobility_
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |           Checksum            |           Controls            |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                                                               |
 |               Sender's Host Identity Tag (HIT)                |
 |                                                               |
 |                                                               |
-|                                                               |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|              Receiver's Host Identity Tag (HIT)               |
 |                                                               |
+|              Receiver's Host Identity Tag (HIT)               |
 |                                                               |
 |                                                               |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -1078,7 +1078,7 @@ typedef struct _icmpv6_hdr_
 
 */
 #define TCP_IHL_STANDARD        5U       //Standard TCP header length
-#define TCP_IHL_BYTES_TIMES     4U       //IHL is number of 32-bit words(4 bytes).
+#define TCP_IHL_BYTES_SET       4U       //IHL is set of 32-bit words(4 bytes).
 #define TCP_FLAG_GET_BIT_IHL    0xF000   //Get data offset in TCP IHL
 #define TCP_FLAG_GET_BIT_FLAG   0x0FFF   //Get bits in TCP flag
 #define TCP_FLAG_GET_BIT_CWR    0x0080   //Get Congestion Window Reduced bit in TCP flags
@@ -1550,10 +1550,13 @@ typedef struct _ipv6_psd_hdr_
 * RFC 6698, The DNS-Based Authentication of Named Entities (DANE) Transport Layer Security (TLS) Protocol: TLSA(https://tools.ietf.org/html/rfc6698)
 * RFC 6742, DNS Resource Records for the Identifier-Locator Network Protocol (ILNP)(https://tools.ietf.org/html/rfc6742)
 * RFC 6844, DNS Certification Authority Authorization (CAA) Resource Record(https://tools.ietf.org/html/rfc6844)
+* RFC 6891, Extension Mechanisms for DNS (EDNS(0))(https://tools.ietf.org/html/rfc6891)
 * RFC 6975, Signaling Cryptographic Algorithm Understanding in DNS Security Extensions (DNSSEC)(https://tools.ietf.org/html/rfc6975)
 * RFC 7043, Resource Records for EUI-48 and EUI-64 Addresses in the DNS(https://tools.ietf.org/html/rfc7043)
 * RFC 7314, Extension Mechanisms for DNS (EDNS) EXPIRE Option(https://tools.ietf.org/html/rfc7314)
 * RFC 7766, DNS Transport over TCP - Implementation Requirements(https://tools.ietf.org/html/rfc7766)
+* RFC 7871, Client Subnet in DNS Queries(https://tools.ietf.org/html/rfc7871)
+* RFC 7873, Domain Name System (DNS) Cookies(https://tools.ietf.org/html/rfc7873)
 */
 
 //About this list, please visit IANA Domain Name System (DNS) Parameters(https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml)
@@ -1567,7 +1570,7 @@ typedef struct _ipv6_psd_hdr_
 #ifndef IPPORT_LLMNR
 	#define IPPORT_LLMNR                  5355U      //Link-Local Multicast Name Resolution/LLMNR Port
 #endif
-#define DNS_FLAG_STANDARD                0x0100       //System Standard query
+#define DNS_FLAG_REQUEST_STANDARD        0x0100       //Standard request
 #define DNS_FLAG_SQR_NE                  0x8180       //Standard query response and No Error.
 #define DNS_FLAG_SQR_NEA                 0x8580       //Standard query response, No Error and Authoritative.
 #define DNS_FLAG_SQR_NETC                0x8380       //Standard query response and No Error, but Truncated.
@@ -1583,6 +1586,7 @@ typedef struct _ipv6_psd_hdr_
 #define DNS_FLAG_GET_BIT_AD              0x0020       //Get Authentic Data bit in DNS flags.
 #define DNS_FLAG_GET_BIT_CD              0x0010       //Get Checking Disabled bit in DNS flags.
 #define DNS_FLAG_GET_BIT_RCODE           0x000F       //Get RCode in DNS flags.
+#define DNS_FLAG_GET_BIT_SERVER_FIXED    0xF8C0       //Get all bits without AA/Authoritative Answer, TC/Truncated, RD/Recursion Desired, AD/Authenticated Data, CD/Checking Disabled, and RCode/Return Code in DNS flags.
 #define DNS_FLAG_SET_R                   0x8000       //Set Response bit in DNS flags.
 #define DNS_FLAG_SET_R_TC                0x8200       //Set Response bit and Truncated bit in DNS flags.
 #define DNS_FLAG_SET_R_A                 0x8580       //Set Response bit and Authoritative bit in DNS flags.
@@ -1698,6 +1702,9 @@ typedef struct _ipv6_psd_hdr_
 #endif
 #ifndef DNS_RCODE_BADTRUNC
 	#define DNS_RCODE_BADTRUNC      0x0016           //RCode Bad Truncation is 22.
+#endif
+#ifndef DNS_RCODE_BADCOOKIE
+	#define DNS_RCODE_BADCOOKIE     0x0017           //RCode Bad Cookie is 23.
 #endif
 #ifndef DNS_RCODE_PRIVATE_A
 	#define DNS_RCODE_PRIVATE_A     0xFF00           //DNS Reserved Private use RCode is begin at 3841.
@@ -1962,7 +1969,6 @@ typedef struct _ipv6_psd_hdr_
 #ifndef DNS_TYPE_RESERVED
 	#define DNS_TYPE_RESERVED     0xFFFF             //DNS Reserved records is 65535.
 #endif
-
 
 /* Domain Name System/DNS header
 //With User Datagram Protocol/UDP
@@ -2360,10 +2366,27 @@ typedef struct _dns_record_srv_
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
 */
-#define EDNS_VERSION_ZERO           0
-#define EDNS_PACKET_MINSIZE         1220U
-#define EDNS_PACKET_MAXSIZE         4096U
-#define EDNS_FLAG_GET_BIT_DO        0x8000        //Get DO bit in Z field.
+//Code definitions
+#define EDNS_VERSION_ZERO          0
+#define EDNS_PACKET_MINSIZE        1220U
+#define EDNS_PACKET_MAXSIZE        4096U
+#define EDNS_FLAG_GET_BIT_DO       0x8000        //Get DO bit in Z field.
+
+//EDNS Code definitions
+#define EDNS_CODE_LLQ              0x0001   //Long-lived query
+#define EDNS_CODE_UL               0x0002   //Update lease
+#define EDNS_CODE_NSID             0x0003   //Name Server Identifier (RFC 5001)
+#define EDNS_CODE_OWNER            0x0004   //Owner, reserved
+#define EDNS_CODE_DAU              0x0005   //DNSSEC Algorithm Understood (RFC 6975)
+#define EDNS_CODE_DHU              0x0006   //DS Hash Understood (RFC 6975)
+#define EDNS_CODE_N3U              0x0007   //DSEC3 Hash Understood (RFC 6975)
+#define EDNS_CODE_CSUBNET          0x0008   //Client subnet (RFC 7871)
+#define EDNS_CODE_EDNS_EXPIRE      0x0009   //EDNS Expire (RFC 7314)
+#define EDNS_CODE_COOKIES          0x000A   //DNS Cookies (RFC 7873)
+
+//Address Family Numbers, please visit https://www.iana.org/assignments/address-family-numbers/address-family-numbers.xhtml.
+#define EDNS_ADDRESS_FAMILY_IPV4   0x0001
+#define EDNS_ADDRESS_FAMILY_IPV6   0x0002
 typedef struct _dns_record_opt_
 {
 	uint8_t               Name;
@@ -2407,7 +2430,7 @@ typedef struct _edns_data_option_
 //	uint8_t               *Data;
 }edns_data_option;
 
-/* Extension Mechanisms for Domain Name System/DNS, Client subnet in EDNS requests
+/* Extension Mechanisms for Domain Name System/DNS, Client Subnet in EDNS request
 * RFC 7871, Client Subnet in DNS Queries(https://tools.ietf.org/html/rfc7871)
 
                     1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 3 3 3
@@ -2423,20 +2446,6 @@ typedef struct _edns_data_option_
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
 */
-#define EDNS_CODE_LLQ                            0x0001   //Long-lived query
-#define EDNS_CODE_UL                             0x0002   //Update lease
-#define EDNS_CODE_NSID                           0x0003   //Name Server Identifier (RFC 5001)
-#define EDNS_CODE_OWNER                          0x0004   //Owner, reserved
-#define EDNS_CODE_DAU                            0x0005   //DNSSEC Algorithm Understood (RFC 6975)
-#define EDNS_CODE_DHU                            0x0006   //DS Hash Understood (RFC 6975)
-#define EDNS_CODE_N3U                            0x0007   //DSEC3 Hash Understood (RFC 6975)
-#define EDNS_CODE_CSUBNET                        0x0008   //Client subnet as assigned by IANA
-#define EDNS_CODE_EDNS_EXPIRE                    0x0009   //EDNS Expire (RFC 7314)
-
-//About Address Family Numbers, please visit https://www.iana.org/assignments/address-family-numbers/address-family-numbers.xhtml.
-#define EDNS_ADDRESS_FAMILY_IPV4                 0x0001
-#define EDNS_ADDRESS_FAMILY_IPV6                 0x0002
-
 //Source prefix bits
 #define EDNS_CLIENT_SUBNET_SOURCE_PREFIX_IPV6    56U
 #define EDNS_CLIENT_SUBNET_SOURCE_PREFIX_IPV4    24U
@@ -2449,6 +2458,33 @@ typedef struct _edns_client_subnet_
 	uint8_t               Netmask_Scope;
 //	uint8_t               *Address;
 }edns_client_subnet;
+
+/* Extension Mechanisms for Domain Name System/DNS, Cookies in EDNS request
+* RFC 7873, Domain Name System (DNS) Cookies(https://tools.ietf.org/html/rfc7873)
+
+                    1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 3 3 3
+0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|             Code              |            Length             |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                         Client Cookie                         |
+|                                                               |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                                                               |
+/                         Server Cookie                         /
+/                                                               /
+/                                                               /
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+*/
+typedef struct _edns_cookies_
+{
+	uint16_t              Code;
+	uint16_t              Length;
+	uint64_t              ClientCookie;
+//	uint64_t              ServerCookie_A;
+//	uint8_t               *ServerCookie_B;
+}edns_cookies;
 
 /* Domain Name System/DNS Delegation Signer/DS Resource Records
 
@@ -2469,7 +2505,7 @@ typedef struct _edns_client_subnet_
 #define DNSSEC_DIGEST_DS_GOST                  3U       //RFC 5933, Use of GOST Signature Algorithms in DNSKEY and RRSIG Resource Records for DNSSEC(https://tools.ietf.org/html/rfc5933)
 #define DNSSEC_DIGEST_DS_SHA384                4U       //RFC 6605, Elliptic Curve Digital Signature Algorithm (DSA) for DNSSEC(https://tools.ietf.org/html/rfc6605)
 
-//About this list, please visit https://www.iana.org/assignments/ds-rr-types/ds-rr-types.xhtml
+//About this list, please visit https://www.iana.org/assignments/ds-rr-types/ds-rr-types.xhtml.
 #define DNSSEC_DS_TYPE_RESERVED                0
 #define DNSSEC_DS_TYPE_SHA1                    1U
 #define DNSSEC_DS_TYPE_SHA256                  2U
@@ -2738,7 +2774,7 @@ typedef struct _dns_record_caa_
 #define DNSCURVE_PAYLOAD_MULTIPLE_TIME    64U
 #define DNSCRYPT_RECEIVE_MAGIC            ("r6fnvWj8")                   //Receive Magic Number
 #define DNSCRYPT_CERT_MAGIC               ("DNSC")                       //Signature Magic Number
-#define DNSCRYPT_PADDING_SIGN             0x80
+#define DNSCRYPT_PADDING_SIGN_HEX         0x80
 #define DNSCRYPT_PADDING_SIGN_STRING      ('\x80')
 // Function definitions
 #define crypto_box                        crypto_box_curve25519xsalsa20poly1305
@@ -2761,8 +2797,8 @@ typedef struct _dns_record_caa_
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
 */
-#define DNSCURVE_ES_X25519_XSALSA20_POLY1305     0x0001   //DNSCurve es version of X25519-XSalsa20Poly1305
-#define DNSCURVE_ES_X25519_XCHACHA20_POLY1305    0x0002   //DNSCurve es version of X25519-XChacha20Poly1305
+#define DNSCURVE_ES_X25519_XSALSA20_POLY1305     0x0001   //DNSCurve ES version of X25519-XSalsa20Poly1305
+#define DNSCURVE_ES_X25519_XCHACHA20_POLY1305    0x0002   //DNSCurve ES version of X25519-XChacha20Poly1305
 #define DNSCURVE_VERSION_MINOR                   0        //DNSCurve minor version
 typedef struct _dnscurve_txt_hdr_
 {
@@ -3049,12 +3085,12 @@ typedef struct _socks_udp_relay_request_
 #if defined(ENABLE_TLS)
 #if defined(PLATFORM_WIN)
 #if !defined(PLATFORM_WIN_XP)
-#define HTTP_1_TLS_ALPN_STRING                      ("http/1.1")
-#define HTTP_2_TLS_ALPN_STRING                      ("h2")
+	#define HTTP_1_TLS_ALPN_STRING                      ("http/1.1")
+	#define HTTP_2_TLS_ALPN_STRING                      ("h2")
 #endif
 #elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-#define HTTP_1_TLS_ALPN_STRING                      {8U, 'h', 't', 't', 'p', '/', '1', '.', '1'}
-#define HTTP_2_TLS_ALPN_STRING                      {2U, 'h', '2'}
+	#define HTTP_1_TLS_ALPN_STRING                      {8U, 'h', 't', 't', 'p', '/', '1', '.', '1'}
+	#define HTTP_2_TLS_ALPN_STRING                      {2U, 'h', '2'}
 #endif
 #endif
 /* Hypertext Transfer Protocol Version 2 (HTTP/2) frame header

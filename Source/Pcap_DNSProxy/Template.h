@@ -20,12 +20,12 @@
 #ifndef PCAP_DNSPROXY_TEMPLATE_H
 #define PCAP_DNSPROXY_TEMPLATE_H
 
-#include "Definition.h"
+#include "Type.h"
 
 //////////////////////////////////////////////////
 // Template definitions
 // 
-//Blocking queue class, please visit https://senlinzhan.github.io/2015/08/24/C-11%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E5%85%AD.
+//Blocking queue class
 template<typename Ty, typename Container = std::queue<Ty>> class BlockingQueue
 {
 public:

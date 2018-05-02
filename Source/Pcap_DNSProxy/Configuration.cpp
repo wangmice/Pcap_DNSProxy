@@ -29,10 +29,10 @@ bool ReadText(
 	const size_t FileIndex)
 {
 //Initialization
-	const auto FileBuffer = std::make_unique<uint8_t[]>(FILE_BUFFER_SIZE + PADDING_RESERVED_BYTES);
-	const auto TextBuffer = std::make_unique<uint8_t[]>(FILE_BUFFER_SIZE + PADDING_RESERVED_BYTES);
-	memset(FileBuffer.get(), 0, FILE_BUFFER_SIZE + PADDING_RESERVED_BYTES);
-	memset(TextBuffer.get(), 0, FILE_BUFFER_SIZE + PADDING_RESERVED_BYTES);
+	const auto FileBuffer = std::make_unique<uint8_t[]>(FILE_BUFFER_SIZE + MEMORY_RESERVED_BYTES);
+	const auto TextBuffer = std::make_unique<uint8_t[]>(FILE_BUFFER_SIZE + MEMORY_RESERVED_BYTES);
+	memset(FileBuffer.get(), 0, FILE_BUFFER_SIZE + MEMORY_RESERVED_BYTES);
+	memset(TextBuffer.get(), 0, FILE_BUFFER_SIZE + MEMORY_RESERVED_BYTES);
 	std::string TextData;
 	auto LabelType_IPFilter = LABEL_IPFILTER_TYPE::NONE;
 	auto LabelType_Hosts = LABEL_HOSTS_TYPE::NONE;
@@ -136,7 +136,8 @@ bool ReadText(
 					SingleText = ((static_cast<uint16_t>(FileBuffer.get()[Index] & 0x0F)) << 12U) + ((static_cast<uint16_t>(FileBuffer.get()[Index + 1U] & 0x3F)) << 6U) + static_cast<uint16_t>(FileBuffer.get()[Index + 2U] & 0x3F);
 
 				//Next line format
-					if (SingleText == UNICODE_LINE_SEPARATOR || SingleText == UNICODE_PARAGRAPH_SEPARATOR)
+					if (SingleText == UNICODE_LINE_SEPARATOR || 
+						SingleText == UNICODE_PARAGRAPH_SEPARATOR)
 					{
 						FileBuffer.get()[Index] = 0;
 						FileBuffer.get()[Index + 1U] = 0;
@@ -145,12 +146,23 @@ bool ReadText(
 						continue;
 					}
 				//Space format
-					else if (SingleText == UNICODE_MONGOLIAN_VOWEL_SEPARATOR || SingleText == UNICODE_EN_SPACE || SingleText == UNICODE_EM_SPACE || 
-						SingleText == UNICODE_THICK_SPACE || SingleText == UNICODE_MID_SPACE || SingleText == UNICODE_SIX_PER_EM_SPACE || 
-						SingleText == UNICODE_FIGURE_SPACE || SingleText == UNICODE_PUNCTUATION_SPACE || SingleText == UNICODE_THIN_SPACE || 
-						SingleText == UNICODE_HAIR_SPACE || SingleText == UNICODE_ZERO_WIDTH_SPACE || SingleText == UNICODE_ZERO_WIDTH_NON_JOINER || 
-						SingleText == UNICODE_ZERO_WIDTH_JOINER || SingleText == UNICODE_NARROW_NO_BREAK_SPACE || SingleText == UNICODE_MEDIUM_MATHEMATICAL_SPACE || 
-						SingleText == UNICODE_WORD_JOINER || SingleText == UNICODE_IDEOGRAPHIC_SPACE)
+					else if (SingleText == UNICODE_MONGOLIAN_VOWEL_SEPARATOR || 
+						SingleText == UNICODE_EN_SPACE || 
+						SingleText == UNICODE_EM_SPACE || 
+						SingleText == UNICODE_THICK_SPACE || 
+						SingleText == UNICODE_MID_SPACE || 
+						SingleText == UNICODE_SIX_PER_EM_SPACE || 
+						SingleText == UNICODE_FIGURE_SPACE || 
+						SingleText == UNICODE_PUNCTUATION_SPACE || 
+						SingleText == UNICODE_THIN_SPACE || 
+						SingleText == UNICODE_HAIR_SPACE || 
+						SingleText == UNICODE_ZERO_WIDTH_SPACE || 
+						SingleText == UNICODE_ZERO_WIDTH_NON_JOINER || 
+						SingleText == UNICODE_ZERO_WIDTH_JOINER || 
+						SingleText == UNICODE_NARROW_NO_BREAK_SPACE || 
+						SingleText == UNICODE_MEDIUM_MATHEMATICAL_SPACE || 
+						SingleText == UNICODE_WORD_JOINER || 
+						SingleText == UNICODE_IDEOGRAPHIC_SPACE)
 					{
 						FileBuffer.get()[Index] = ASCII_SPACE;
 						FileBuffer.get()[Index + 1U] = 0;
@@ -181,7 +193,7 @@ bool ReadText(
 					}
 				}
 
-			//Delete all Non-ASCII.
+			//Remove all Non-ASCII.
 				if (FileBuffer.get()[Index] > ASCII_MAX_NUM)
 					FileBuffer.get()[Index] = 0;
 			//Next line format
@@ -211,18 +223,34 @@ bool ReadText(
 			//Next line format
 				if (*SingleText == ASCII_CR)
 					*SingleText = 0;
-				else if (*SingleText == ASCII_CR || *SingleText == ASCII_VT || *SingleText == ASCII_FF || *SingleText == UNICODE_NEXT_LINE || 
-					*SingleText == UNICODE_LINE_SEPARATOR || *SingleText == UNICODE_PARAGRAPH_SEPARATOR)
+				else if (*SingleText == ASCII_CR || 
+					*SingleText == ASCII_VT || 
+					*SingleText == ASCII_FF || 
+					*SingleText == UNICODE_NEXT_LINE || 
+					*SingleText == UNICODE_LINE_SEPARATOR || 
+					*SingleText == UNICODE_PARAGRAPH_SEPARATOR)
 						*SingleText = ASCII_LF;
 			//Space format
-				else if (*SingleText == UNICODE_NO_BREAK_SPACE || *SingleText == UNICODE_MONGOLIAN_VOWEL_SEPARATOR || *SingleText == UNICODE_EN_SPACE || 
-					*SingleText == UNICODE_EM_SPACE || *SingleText == UNICODE_THICK_SPACE || *SingleText == UNICODE_MID_SPACE || 
-					*SingleText == UNICODE_SIX_PER_EM_SPACE || *SingleText == UNICODE_FIGURE_SPACE || *SingleText == UNICODE_PUNCTUATION_SPACE || 
-					*SingleText == UNICODE_THIN_SPACE || *SingleText == UNICODE_HAIR_SPACE || *SingleText == UNICODE_ZERO_WIDTH_SPACE || 
-					*SingleText == UNICODE_ZERO_WIDTH_NON_JOINER || *SingleText == UNICODE_ZERO_WIDTH_JOINER || *SingleText == UNICODE_NARROW_NO_BREAK_SPACE || 
-					*SingleText == UNICODE_MEDIUM_MATHEMATICAL_SPACE || *SingleText == UNICODE_WORD_JOINER || *SingleText == UNICODE_IDEOGRAPHIC_SPACE)
+				else if (*SingleText == UNICODE_NO_BREAK_SPACE || 
+					*SingleText == UNICODE_MONGOLIAN_VOWEL_SEPARATOR || 
+					*SingleText == UNICODE_EN_SPACE || 
+					*SingleText == UNICODE_EM_SPACE || 
+					*SingleText == UNICODE_THICK_SPACE || 
+					*SingleText == UNICODE_MID_SPACE || 
+					*SingleText == UNICODE_SIX_PER_EM_SPACE || 
+					*SingleText == UNICODE_FIGURE_SPACE || 
+					*SingleText == UNICODE_PUNCTUATION_SPACE || 
+					*SingleText == UNICODE_THIN_SPACE || 
+					*SingleText == UNICODE_HAIR_SPACE || 
+					*SingleText == UNICODE_ZERO_WIDTH_SPACE || 
+					*SingleText == UNICODE_ZERO_WIDTH_NON_JOINER || 
+					*SingleText == UNICODE_ZERO_WIDTH_JOINER || 
+					*SingleText == UNICODE_NARROW_NO_BREAK_SPACE || 
+					*SingleText == UNICODE_MEDIUM_MATHEMATICAL_SPACE || 
+					*SingleText == UNICODE_WORD_JOINER || 
+					*SingleText == UNICODE_IDEOGRAPHIC_SPACE)
 						*SingleText = ASCII_SPACE;
-			//Delete all Non-ASCII.
+			//Remove all Non-ASCII.
 				else if (*SingleText > ASCII_MAX_NUM)
 					*SingleText = 0;
 			}
@@ -244,18 +272,34 @@ bool ReadText(
 			//Next line format
 				if (*SingleText == ASCII_CR)
 					*SingleText = 0;
-				else if (*SingleText == ASCII_CR || *SingleText == ASCII_VT || *SingleText == ASCII_FF || *SingleText == UNICODE_NEXT_LINE || 
-					*SingleText == UNICODE_LINE_SEPARATOR || *SingleText == UNICODE_PARAGRAPH_SEPARATOR)
+				else if (*SingleText == ASCII_CR || 
+					*SingleText == ASCII_VT || 
+					*SingleText == ASCII_FF || 
+					*SingleText == UNICODE_NEXT_LINE || 
+					*SingleText == UNICODE_LINE_SEPARATOR || 
+					*SingleText == UNICODE_PARAGRAPH_SEPARATOR)
 						*SingleText = ASCII_LF;
 			//Space format
-				else if (*SingleText == UNICODE_NO_BREAK_SPACE || *SingleText == UNICODE_MONGOLIAN_VOWEL_SEPARATOR || *SingleText == UNICODE_EN_SPACE || 
-					*SingleText == UNICODE_EM_SPACE || *SingleText == UNICODE_THICK_SPACE || *SingleText == UNICODE_MID_SPACE || 
-					*SingleText == UNICODE_SIX_PER_EM_SPACE || *SingleText == UNICODE_FIGURE_SPACE || *SingleText == UNICODE_PUNCTUATION_SPACE || 
-					*SingleText == UNICODE_THIN_SPACE || *SingleText == UNICODE_HAIR_SPACE || *SingleText == UNICODE_ZERO_WIDTH_SPACE || 
-					*SingleText == UNICODE_ZERO_WIDTH_NON_JOINER || *SingleText == UNICODE_ZERO_WIDTH_JOINER || *SingleText == UNICODE_NARROW_NO_BREAK_SPACE || 
-					*SingleText == UNICODE_MEDIUM_MATHEMATICAL_SPACE || *SingleText == UNICODE_WORD_JOINER || *SingleText == UNICODE_IDEOGRAPHIC_SPACE)
+				else if (*SingleText == UNICODE_NO_BREAK_SPACE || 
+					*SingleText == UNICODE_MONGOLIAN_VOWEL_SEPARATOR || 
+					*SingleText == UNICODE_EN_SPACE || 
+					*SingleText == UNICODE_EM_SPACE || 
+					*SingleText == UNICODE_THICK_SPACE || 
+					*SingleText == UNICODE_MID_SPACE || 
+					*SingleText == UNICODE_SIX_PER_EM_SPACE || 
+					*SingleText == UNICODE_FIGURE_SPACE || 
+					*SingleText == UNICODE_PUNCTUATION_SPACE || 
+					*SingleText == UNICODE_THIN_SPACE || 
+					*SingleText == UNICODE_HAIR_SPACE || 
+					*SingleText == UNICODE_ZERO_WIDTH_SPACE || 
+					*SingleText == UNICODE_ZERO_WIDTH_NON_JOINER || 
+					*SingleText == UNICODE_ZERO_WIDTH_JOINER || 
+					*SingleText == UNICODE_NARROW_NO_BREAK_SPACE || 
+					*SingleText == UNICODE_MEDIUM_MATHEMATICAL_SPACE || 
+					*SingleText == UNICODE_WORD_JOINER || 
+					*SingleText == UNICODE_IDEOGRAPHIC_SPACE)
 						*SingleText = ASCII_SPACE;
-			//Delete all Non-ASCII.
+			//Remove all Non-ASCII.
 				else if (*SingleText > ASCII_MAX_NUM)
 					*SingleText = 0;
 			}
@@ -294,7 +338,7 @@ bool ReadText(
 			return false;
 		}
 
-	//Delete all null characters.
+	//Remove all null characters.
 		for (Index = 0;Index < ReadLength;++Index)
 		{
 			if (FileBuffer.get()[Index] > 0)
@@ -307,7 +351,7 @@ bool ReadText(
 			}
 		}
 
-		memset(FileBuffer.get(), 0, FILE_BUFFER_SIZE + PADDING_RESERVED_BYTES);
+		memset(FileBuffer.get(), 0, FILE_BUFFER_SIZE + MEMORY_RESERVED_BYTES);
 
 	//Line length check
 		if (!NewLinePoint && ReadLength == FILE_BUFFER_SIZE)
@@ -375,12 +419,12 @@ bool ReadText(
 						}break;
 						case READ_TEXT_TYPE::PARAMETER_NORMAL: //ReadParameter
 						{
-							if (!ReadParameterData(TextData, FileIndex, true, Line))
+							if (!ReadParameterData_Whole(TextData, FileIndex, true, Line))
 								return false;
 						}break;
 						case READ_TEXT_TYPE::PARAMETER_MONITOR: //ReadParameter(Monitor mode)
 						{
-							if (!ReadParameterData(TextData, FileIndex, false, Line))
+							if (!ReadParameterData_Whole(TextData, FileIndex, false, Line))
 								return false;
 						}break;
 					#if defined(ENABLE_LIBSODIUM)
@@ -407,7 +451,7 @@ bool ReadText(
 			}
 		}
 
-		memset(TextBuffer.get(), 0, FILE_BUFFER_SIZE + PADDING_RESERVED_BYTES);
+		memset(TextBuffer.get(), 0, FILE_BUFFER_SIZE + MEMORY_RESERVED_BYTES);
 	}
 
 	return true;
@@ -427,7 +471,7 @@ bool ReadParameter(
 		FILE_DATA FileDataTemp;
 
 	//Create file list.
-		const wchar_t *WCS_ConfigFileNameList[] = CONFIG_FILE_NAME_LIST;
+		const wchar_t *WCS_ConfigFileNameList[] = CONFIG_FILE_NAME_LIST_WCS;
 	#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 		const char *MBS_ConfigFileNameList[] = CONFIG_FILE_NAME_LIST_MBS;
 	#endif
@@ -792,7 +836,7 @@ void ReadIPFilter(
 			FileHandle = nullptr;
 		}
 
-	//Mark to global list.
+	//Register to global list.
 		if (!IsFileModified)
 		{
 			Sleep(Parameter.FileRefreshTime);
@@ -950,7 +994,7 @@ bool ReadFileAttributesLoop(
 	if (GetFileAttributesExW(
 			FileListIter.FileName.c_str(), 
 			GetFileExInfoStandard, 
-			&FileAttributeData) == FALSE)
+			&FileAttributeData) == 0)
 #elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 	if (stat(FileListIter.MBS_FileName.c_str(), &FileStatData) != 0)
 #endif

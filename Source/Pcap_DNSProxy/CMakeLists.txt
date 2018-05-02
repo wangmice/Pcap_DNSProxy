@@ -28,8 +28,9 @@ set(MAIN_SRC_FILES
 		"Capture.h"
 		"Configuration.h"
 		"Definition.h"
-		"DNSCurve.h"
+		"DNSCurveControl.h"
 		"DNSCurveRequest.h"
+		"Include.h"
 		"Initialization.h"
 		"Main.h"
 		"Monitor.h"
@@ -45,10 +46,11 @@ set(MAIN_SRC_FILES
 		"Structure.h"
 		"Template.h"
 		"TransportSecurity.h"
+		"Type.h"
 		"Base.cpp"
 		"Capture.cpp"
 		"Configuration.cpp"
-		"DNSCurve.cpp"
+		"DNSCurveControl.cpp"
 		"DNSCurveRequest.cpp"
 		"Initialization.cpp"
 		"Main.cpp"
@@ -100,6 +102,7 @@ ENDIF(PLATFORM_OPENWRT)
 # Libraries linking
 find_package(Threads REQUIRED)
 target_link_libraries(Pcap_DNSProxy ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(Pcap_DNSProxy event)
 IF(ENABLE_LIBSODIUM)
 	target_link_libraries(Pcap_DNSProxy sodium)
 ENDIF(ENABLE_LIBSODIUM)

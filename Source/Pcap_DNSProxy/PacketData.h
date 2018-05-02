@@ -20,9 +20,24 @@
 #ifndef PCAP_DNSPROXY_PACKETDATA_H
 #define PCAP_DNSPROXY_PACKETDATA_H
 
-#include "Base.h"
+#include "Include.h"
+
+//Structure definitions
+typedef enum _cpm_pointer_type_
+{
+	CPM_POINTER_TYPE_HEADER, 
+	CPM_POINTER_TYPE_RR, 
+	CPM_POINTER_TYPE_ADDITIONAL
+}CPM_POINTER_TYPE;
 
 //Global variables
 extern CONFIGURATION_TABLE Parameter;
 extern GLOBAL_STATUS GlobalRunningStatus;
+extern std::list<DNS_CACHE_DATA> DNSCacheList;
+extern std::unordered_multimap<std::string, std::list<DNS_CACHE_DATA>::iterator> DNSCacheIndexList;
+extern std::mutex DNSCacheListLock;
+
+//Functions
+void AutoRemoveExpired_DNS_Cache(
+	void);
 #endif

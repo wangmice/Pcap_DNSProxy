@@ -53,7 +53,7 @@ bool PrintError(
 		FileNameString.append(FileName);
 	#if defined(PLATFORM_WIN)
 		while (FileNameString.find(L"\\\\") != std::wstring::npos)
-			FileNameString.erase(FileNameString.find(L"\\\\"), wcslen(L"\\")); //Delete double backslash.
+			FileNameString.erase(FileNameString.find(L"\\\\"), wcslen(L"\\")); //Remove double backslash.
 	#endif
 
 	//Add line number.
@@ -61,7 +61,7 @@ bool PrintError(
 			FileNameString.append(L"(Line %u)");
 	}
 
-//Add log error type.
+//Log type
 	switch (ErrorType)
 	{
 	//Message Notice
@@ -109,6 +109,7 @@ bool PrintError(
 		//There are no any error codes or file names to be reported in LOG_ERROR_TYPE::PCAP.
 			ErrorMessage.append(L"[Pcap Error] ");
 			ErrorMessage.append(Message);
+			ErrorMessage.append(L"\n");
 
 			return WriteMessage_ScreenFile(ErrorMessage, ErrorCode, Line);
 		}break;
@@ -240,7 +241,7 @@ bool WriteMessage_ScreenFile(
 	if (GetFileAttributesExW(
 		GlobalRunningStatus.Path_ErrorLog->c_str(), 
 		GetFileExInfoStandard, 
-		&FileAttributeData) != FALSE)
+		&FileAttributeData) != 0)
 	{
 		LARGE_INTEGER ErrorFileSize;
 		memset(&ErrorFileSize, 0, sizeof(ErrorFileSize));
@@ -249,7 +250,7 @@ bool WriteMessage_ScreenFile(
 		if (ErrorFileSize.QuadPart > 0 && static_cast<uint64_t>(ErrorFileSize.QuadPart) >= Parameter.LogMaxSize)
 		{
 			if (DeleteFileW(
-				GlobalRunningStatus.Path_ErrorLog->c_str()) != FALSE)
+				GlobalRunningStatus.Path_ErrorLog->c_str()) != 0)
 					IsFileDeleted = true;
 			else 
 				return false;
@@ -398,9 +399,9 @@ void ErrorCodeToMessage(
 	//Write error code message.
 		Message.append(InnerMessage);
 		if (Message.back() == ASCII_SPACE)
-			Message.pop_back(); //Delete space.
+			Message.pop_back(); //Remove space.
 		if (Message.back() == ASCII_PERIOD)
-			Message.pop_back(); //Delete period.
+			Message.pop_back(); //Remove period.
 
 	//Define error code format.
 	#if defined(ENABLE_TLS)

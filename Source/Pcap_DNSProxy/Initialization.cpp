@@ -22,6 +22,7 @@
 //Preferred name syntax(Section 2.3.1 in RFC 1035)
 static const uint8_t DomainTable_Initialization[] = (".-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
 
+#if !defined(ENABLE_LIBSODIUM)
 //RFC domain and Base64 encoding table
 static const uint8_t Base64_EncodeTable_Initialization[] = 
 {
@@ -59,11 +60,29 @@ static const int8_t Base64_DecodeTable_Initialization[] =
 	('s'), ('t'), ('u'), ('v'), ('w'), ('x'), ('y'), ('z'), 
 	44,  45,  46,  47,  48,  49,  50,  51
 };
+#endif
 
 //ConfigurationTable class constructor
 ConfigurationTable::ConfigurationTable(
 	void)
 {
+//Libraries initialization
+#if defined(ENABLE_LIBSODIUM)
+//Libsodium Random Number Generator/RNG initialization
+//No need to set a custom RNG, please visit https://download.libsodium.org/doc/advanced/custom_rng.html.
+//	randombytes_set_implementation(&randombytes_salsa20_implementation);
+//	randombytes_stir();
+
+//Libsodium main initialization
+//randombytes_set_implementation function should only be called once, before sodium_init().
+	if (sodium_init() == LIBSODIUM_ERROR)
+	{
+		exit(EXIT_FAILURE);
+//		return;
+	}
+#endif
+
+//Class constructor
 	memset(this, 0, sizeof(CONFIGURATION_TABLE));
 	try {
 	//[Listen] block
@@ -89,13 +108,18 @@ ConfigurationTable::ConfigurationTable(
 		Local_FQDN_String = new std::string();
 		Local_FQDN_Response = new uint8_t[DOMAIN_MAXSIZE]();
 	#if (defined(PLATFORM_WIN) || defined(PLATFORM_LINUX))
-		LocalServer_Response = new uint8_t[NORMAL_PACKET_MAXSIZE + PADDING_RESERVED_BYTES]();
+		LocalServer_Response = new uint8_t[PACKET_NORMAL_MAXSIZE + MEMORY_RESERVED_BYTES]();
 	#endif
 
 	//[Proxy] block
 		SOCKS_TargetDomain = new std::string();
-		SOCKS_Username = new std::string();
-		SOCKS_Password = new std::string();
+	#if defined(ENABLE_LIBSODIUM)
+		SOCKS_Username = reinterpret_cast<uint8_t *>(sodium_malloc(SOCKS_USERNAME_PASSWORD_MAXNUM + MEMORY_RESERVED_BYTES));
+		SOCKS_Password = reinterpret_cast<uint8_t *>(sodium_malloc(SOCKS_USERNAME_PASSWORD_MAXNUM + MEMORY_RESERVED_BYTES));
+	#else
+		SOCKS_Username = new uint8_t[SOCKS_USERNAME_PASSWORD_MAXNUM + MEMORY_RESERVED_BYTES]();
+		SOCKS_Password = new uint8_t[SOCKS_USERNAME_PASSWORD_MAXNUM + MEMORY_RESERVED_BYTES]();
+	#endif
 	#if defined(ENABLE_TLS)
 		HTTP_CONNECT_TLS_SNI = new std::wstring();
 		MBS_HTTP_CONNECT_TLS_SNI = new std::string();
@@ -106,7 +130,11 @@ ConfigurationTable::ConfigurationTable(
 	#endif
 		HTTP_CONNECT_TargetDomain = new std::string();
 		HTTP_CONNECT_HeaderField = new std::vector<std::string>();
-		HTTP_CONNECT_ProxyAuthorization = new std::string();
+	#if defined(ENABLE_LIBSODIUM)
+		HTTP_CONNECT_ProxyAuthorization = reinterpret_cast<uint8_t *>(sodium_malloc(HTTP_AUTHORIZATION_MAXSIZE + MEMORY_RESERVED_BYTES));
+	#else
+		HTTP_CONNECT_ProxyAuthorization = new uint8_t[HTTP_AUTHORIZATION_MAXSIZE + MEMORY_RESERVED_BYTES]();
+	#endif
 	}
 	catch (std::bad_alloc)
 	{
@@ -152,8 +180,13 @@ ConfigurationTable::ConfigurationTable(
 
 	//[Proxy] block
 		delete SOCKS_TargetDomain;
-		delete SOCKS_Username;
-		delete SOCKS_Password;
+	#if defined(ENABLE_LIBSODIUM)
+		sodium_free(SOCKS_Username);
+		sodium_free(SOCKS_Password);
+	#else
+		delete[] SOCKS_Username;
+		delete[] SOCKS_Password;
+	#endif
 	#if defined(ENABLE_TLS)
 		delete HTTP_CONNECT_TLS_SNI;
 		delete MBS_HTTP_CONNECT_TLS_SNI;
@@ -164,7 +197,11 @@ ConfigurationTable::ConfigurationTable(
 	#endif
 		delete HTTP_CONNECT_TargetDomain;
 		delete HTTP_CONNECT_HeaderField;
-		delete HTTP_CONNECT_ProxyAuthorization;
+	#if defined(ENABLE_LIBSODIUM)
+		sodium_free(HTTP_CONNECT_ProxyAuthorization);
+	#else
+		delete[] HTTP_CONNECT_ProxyAuthorization;
+	#endif
 		SOCKS_TargetDomain = nullptr;
 		SOCKS_Username = nullptr;
 		SOCKS_Password = nullptr;
@@ -225,13 +262,18 @@ void ConfigurationTable::CopyMemberOperator(
 		Local_FQDN_String = new std::string();
 		Local_FQDN_Response = new uint8_t[DOMAIN_MAXSIZE]();
 	#if (defined(PLATFORM_WIN) || defined(PLATFORM_LINUX))
-		LocalServer_Response = new uint8_t[NORMAL_PACKET_MAXSIZE + PADDING_RESERVED_BYTES]();
+		LocalServer_Response = new uint8_t[PACKET_NORMAL_MAXSIZE + MEMORY_RESERVED_BYTES]();
 	#endif
 
 	//[Proxy] block
 		SOCKS_TargetDomain = new std::string();
-		SOCKS_Username = new std::string();
-		SOCKS_Password = new std::string();
+	#if defined(ENABLE_LIBSODIUM)
+		SOCKS_Username = reinterpret_cast<uint8_t *>(sodium_malloc(SOCKS_USERNAME_PASSWORD_MAXNUM + MEMORY_RESERVED_BYTES));
+		SOCKS_Password = reinterpret_cast<uint8_t *>(sodium_malloc(SOCKS_USERNAME_PASSWORD_MAXNUM + MEMORY_RESERVED_BYTES));
+	#else
+		SOCKS_Username = new uint8_t[SOCKS_USERNAME_PASSWORD_MAXNUM + MEMORY_RESERVED_BYTES]();
+		SOCKS_Password = new uint8_t[SOCKS_USERNAME_PASSWORD_MAXNUM + MEMORY_RESERVED_BYTES]();
+	#endif
 	#if defined(ENABLE_TLS)
 		HTTP_CONNECT_TLS_SNI = new std::wstring();
 		MBS_HTTP_CONNECT_TLS_SNI = new std::string();
@@ -242,7 +284,11 @@ void ConfigurationTable::CopyMemberOperator(
 	#endif
 		HTTP_CONNECT_TargetDomain = new std::string();
 		HTTP_CONNECT_HeaderField = new std::vector<std::string>();
-		HTTP_CONNECT_ProxyAuthorization = new std::string();
+	#if defined(ENABLE_LIBSODIUM)
+		HTTP_CONNECT_ProxyAuthorization = reinterpret_cast<uint8_t *>(sodium_malloc(HTTP_AUTHORIZATION_MAXSIZE + MEMORY_RESERVED_BYTES));
+	#else
+		HTTP_CONNECT_ProxyAuthorization = new uint8_t[HTTP_AUTHORIZATION_MAXSIZE + MEMORY_RESERVED_BYTES]();
+	#endif
 	}
 	catch (std::bad_alloc)
 	{
@@ -288,8 +334,13 @@ void ConfigurationTable::CopyMemberOperator(
 
 	//[Proxy] block
 		delete SOCKS_TargetDomain;
-		delete SOCKS_Username;
-		delete SOCKS_Password;
+	#if defined(ENABLE_LIBSODIUM)
+		sodium_free(SOCKS_Username);
+		sodium_free(SOCKS_Password);
+	#else
+		delete[] SOCKS_Username;
+		delete[] SOCKS_Password;
+	#endif
 	#if defined(ENABLE_TLS)
 		delete HTTP_CONNECT_TLS_SNI;
 		delete MBS_HTTP_CONNECT_TLS_SNI;
@@ -300,7 +351,11 @@ void ConfigurationTable::CopyMemberOperator(
 	#endif
 		delete HTTP_CONNECT_TargetDomain;
 		delete HTTP_CONNECT_HeaderField;
-		delete HTTP_CONNECT_ProxyAuthorization;
+	#if defined(ENABLE_LIBSODIUM)
+		sodium_free(HTTP_CONNECT_ProxyAuthorization);
+	#else
+		delete[] HTTP_CONNECT_ProxyAuthorization;
+	#endif
 		SOCKS_TargetDomain = nullptr;
 		SOCKS_Username = nullptr;
 		SOCKS_Password = nullptr;
@@ -495,6 +550,7 @@ void ConfigurationTable::CopyMemberOperator(
 #endif
 	PacketCheck_DNS = Reference.PacketCheck_DNS;
 	DataCheck_Blacklist = Reference.DataCheck_Blacklist;
+	DataCheck_RRSetTTL = Reference.DataCheck_RRSetTTL;
 
 	//[Data] block
 #if defined(ENABLE_PCAP)
@@ -533,7 +589,7 @@ void ConfigurationTable::CopyMemberOperator(
 	memcpy_s(Local_FQDN_Response, DOMAIN_MAXSIZE, Reference.Local_FQDN_Response, DOMAIN_MAXSIZE);
 	Local_FQDN_Length = Reference.Local_FQDN_Length;
 #if (defined(PLATFORM_WIN) || defined(PLATFORM_LINUX))
-	memcpy_s(LocalServer_Response, NORMAL_PACKET_MAXSIZE, Reference.LocalServer_Response, NORMAL_PACKET_MAXSIZE);
+	memcpy_s(LocalServer_Response, PACKET_NORMAL_MAXSIZE, Reference.LocalServer_Response, PACKET_NORMAL_MAXSIZE);
 	LocalServer_Length = Reference.LocalServer_Length;
 #endif
 
@@ -558,20 +614,31 @@ void ConfigurationTable::CopyMemberOperator(
 	SOCKS_TargetDomain_Port = Reference.SOCKS_TargetDomain_Port;
 	if (Reference.SOCKS_Username != nullptr)
 	{
-		*SOCKS_Username = *Reference.SOCKS_Username;
+		memcpy_s(SOCKS_Username, SOCKS_USERNAME_PASSWORD_MAXNUM, Reference.SOCKS_Username, SOCKS_USERNAME_PASSWORD_MAXNUM);
 	}
 	else {
-		delete SOCKS_Username;
+	#if defined(ENABLE_LIBSODIUM)
+		sodium_free(SOCKS_Username);
+	#else
+		delete[] SOCKS_Username;
+	#endif
 		SOCKS_Username = nullptr;
 	}
+	SOCKS_UsernameLength = Reference.SOCKS_UsernameLength;
 	if (Reference.SOCKS_Password != nullptr)
 	{
-		*SOCKS_Password = *Reference.SOCKS_Password;
+		memcpy_s(SOCKS_Password, SOCKS_USERNAME_PASSWORD_MAXNUM, Reference.SOCKS_Password, SOCKS_USERNAME_PASSWORD_MAXNUM);
 	}
 	else {
-		delete SOCKS_Password;
+	#if defined(ENABLE_LIBSODIUM)
+		sodium_free(SOCKS_Password);
+	#else
+		delete[] SOCKS_Password;
+	#endif
 		SOCKS_Password = nullptr;
 	}
+	SOCKS_PasswordLength = Reference.SOCKS_PasswordLength;
+
 	HTTP_CONNECT_Proxy = Reference.HTTP_CONNECT_Proxy;
 	HTTP_CONNECT_Protocol = Reference.HTTP_CONNECT_Protocol;
 	HTTP_CONNECT_Only = Reference.HTTP_CONNECT_Only;
@@ -638,12 +705,18 @@ void ConfigurationTable::CopyMemberOperator(
 	}
 	if (Reference.HTTP_CONNECT_ProxyAuthorization != nullptr)
 	{
-		*HTTP_CONNECT_ProxyAuthorization = *Reference.HTTP_CONNECT_ProxyAuthorization;
+		memcpy_s(HTTP_CONNECT_ProxyAuthorization, HTTP_AUTHORIZATION_MAXSIZE, Reference.HTTP_CONNECT_ProxyAuthorization, HTTP_AUTHORIZATION_MAXSIZE);
 	}
 	else {
-		delete HTTP_CONNECT_ProxyAuthorization;
+	#if defined(ENABLE_LIBSODIUM)
+		sodium_free(HTTP_CONNECT_ProxyAuthorization);
+	#else
+		delete[] HTTP_CONNECT_ProxyAuthorization;
+	#endif
 		HTTP_CONNECT_ProxyAuthorization = nullptr;
 	}
+	HTTP_CONNECT_ProxyAuthorizationLength = Reference.HTTP_CONNECT_ProxyAuthorizationLength;
+
 
 	//[DNSCurve] block
 #if defined(ENABLE_LIBSODIUM)
@@ -681,7 +754,16 @@ void ConfigurationTableSetting(
 #endif
 	memset(ConfigurationParameter->Local_FQDN_Response, 0, DOMAIN_MAXSIZE);
 #if (defined(PLATFORM_WIN) || defined(PLATFORM_LINUX))
-	memset(ConfigurationParameter->LocalServer_Response, 0, NORMAL_PACKET_MAXSIZE + PADDING_RESERVED_BYTES);
+	memset(ConfigurationParameter->LocalServer_Response, 0, PACKET_NORMAL_MAXSIZE + MEMORY_RESERVED_BYTES);
+#endif
+#if defined(ENABLE_LIBSODIUM)
+	sodium_memzero(ConfigurationParameter->SOCKS_Username, SOCKS_USERNAME_PASSWORD_MAXNUM + MEMORY_RESERVED_BYTES);
+	sodium_memzero(ConfigurationParameter->SOCKS_Password, SOCKS_USERNAME_PASSWORD_MAXNUM + MEMORY_RESERVED_BYTES);
+	sodium_memzero(ConfigurationParameter->HTTP_CONNECT_ProxyAuthorization, HTTP_AUTHORIZATION_MAXSIZE + MEMORY_RESERVED_BYTES);
+#else
+	memset(ConfigurationParameter->SOCKS_Username, 0, SOCKS_USERNAME_PASSWORD_MAXNUM + MEMORY_RESERVED_BYTES);
+	memset(ConfigurationParameter->SOCKS_Password, 0, SOCKS_USERNAME_PASSWORD_MAXNUM + MEMORY_RESERVED_BYTES);
+	memset(ConfigurationParameter->HTTP_CONNECT_ProxyAuthorization, 0, HTTP_AUTHORIZATION_MAXSIZE + MEMORY_RESERVED_BYTES);
 #endif
 
 //Default value settings
@@ -829,8 +911,13 @@ ConfigurationTable::~ConfigurationTable(
 
 //[Proxy] block
 	delete SOCKS_TargetDomain;
-	delete SOCKS_Username;
-	delete SOCKS_Password;
+#if defined(ENABLE_LIBSODIUM)
+	sodium_free(SOCKS_Username);
+	sodium_free(SOCKS_Password);
+#else
+	delete[] SOCKS_Username;
+	delete[] SOCKS_Password;
+#endif
 #if defined(ENABLE_TLS)
 	delete HTTP_CONNECT_TLS_SNI;
 	delete MBS_HTTP_CONNECT_TLS_SNI;
@@ -841,7 +928,11 @@ ConfigurationTable::~ConfigurationTable(
 #endif
 	delete HTTP_CONNECT_TargetDomain;
 	delete HTTP_CONNECT_HeaderField;
-	delete HTTP_CONNECT_ProxyAuthorization;
+#if defined(ENABLE_LIBSODIUM)
+	sodium_free(HTTP_CONNECT_ProxyAuthorization);
+#else
+	delete[] HTTP_CONNECT_ProxyAuthorization;
+#endif
 	SOCKS_TargetDomain = nullptr;
 	SOCKS_Username = nullptr;
 	SOCKS_Password = nullptr;
@@ -935,14 +1026,14 @@ void ConfigurationTable::MonitorItemToUsing(
 //[Values] block
 	ConfigurationParameter->ThreadPoolResetTime = ThreadPoolResetTime;
 #if defined(ENABLE_PCAP)
-	ConfigurationParameter->Target_Server_Main_IPv6.ServerPacketStatus.NetworkLayerStatus.IPv6_HeaderStatus.HopLimit_Assign = Target_Server_Main_IPv6.ServerPacketStatus.NetworkLayerStatus.IPv6_HeaderStatus.HopLimit_Assign;
-	ConfigurationParameter->Target_Server_Main_IPv4.ServerPacketStatus.NetworkLayerStatus.IPv4_HeaderStatus.TTL_Assign = Target_Server_Main_IPv4.ServerPacketStatus.NetworkLayerStatus.IPv4_HeaderStatus.TTL_Assign;
-	ConfigurationParameter->Target_Server_Main_IPv6.ServerPacketStatus.NetworkLayerStatus.IPv6_HeaderStatus.HopLimit_Mark = Target_Server_Main_IPv6.ServerPacketStatus.NetworkLayerStatus.IPv6_HeaderStatus.HopLimit_Mark;
-	ConfigurationParameter->Target_Server_Main_IPv4.ServerPacketStatus.NetworkLayerStatus.IPv4_HeaderStatus.TTL_Mark = Target_Server_Main_IPv4.ServerPacketStatus.NetworkLayerStatus.IPv4_HeaderStatus.TTL_Mark;
-	ConfigurationParameter->Target_Server_Alternate_IPv6.ServerPacketStatus.NetworkLayerStatus.IPv6_HeaderStatus.HopLimit_Assign = Target_Server_Alternate_IPv6.ServerPacketStatus.NetworkLayerStatus.IPv6_HeaderStatus.HopLimit_Assign;
-	ConfigurationParameter->Target_Server_Alternate_IPv4.ServerPacketStatus.NetworkLayerStatus.IPv4_HeaderStatus.TTL_Assign = Target_Server_Alternate_IPv4.ServerPacketStatus.NetworkLayerStatus.IPv4_HeaderStatus.TTL_Assign;
-	ConfigurationParameter->Target_Server_Alternate_IPv6.ServerPacketStatus.NetworkLayerStatus.IPv6_HeaderStatus.HopLimit_Mark = Target_Server_Alternate_IPv6.ServerPacketStatus.NetworkLayerStatus.IPv6_HeaderStatus.HopLimit_Mark;
-	ConfigurationParameter->Target_Server_Alternate_IPv4.ServerPacketStatus.NetworkLayerStatus.IPv4_HeaderStatus.TTL_Mark = Target_Server_Alternate_IPv4.ServerPacketStatus.NetworkLayerStatus.IPv4_HeaderStatus.TTL_Mark;
+	ConfigurationParameter->Target_Server_Main_IPv6.ServerPacketStatus.NetworkLayerStatus.IPv6_HeaderStatus.HopLimit_StaticLoad = Target_Server_Main_IPv6.ServerPacketStatus.NetworkLayerStatus.IPv6_HeaderStatus.HopLimit_StaticLoad;
+	ConfigurationParameter->Target_Server_Main_IPv4.ServerPacketStatus.NetworkLayerStatus.IPv4_HeaderStatus.TTL_StaticLoad = Target_Server_Main_IPv4.ServerPacketStatus.NetworkLayerStatus.IPv4_HeaderStatus.TTL_StaticLoad;
+	ConfigurationParameter->Target_Server_Main_IPv6.ServerPacketStatus.NetworkLayerStatus.IPv6_HeaderStatus.HopLimit_DynamicMark = Target_Server_Main_IPv6.ServerPacketStatus.NetworkLayerStatus.IPv6_HeaderStatus.HopLimit_DynamicMark;
+	ConfigurationParameter->Target_Server_Main_IPv4.ServerPacketStatus.NetworkLayerStatus.IPv4_HeaderStatus.TTL_DynamicMark = Target_Server_Main_IPv4.ServerPacketStatus.NetworkLayerStatus.IPv4_HeaderStatus.TTL_DynamicMark;
+	ConfigurationParameter->Target_Server_Alternate_IPv6.ServerPacketStatus.NetworkLayerStatus.IPv6_HeaderStatus.HopLimit_StaticLoad = Target_Server_Alternate_IPv6.ServerPacketStatus.NetworkLayerStatus.IPv6_HeaderStatus.HopLimit_StaticLoad;
+	ConfigurationParameter->Target_Server_Alternate_IPv4.ServerPacketStatus.NetworkLayerStatus.IPv4_HeaderStatus.TTL_StaticLoad = Target_Server_Alternate_IPv4.ServerPacketStatus.NetworkLayerStatus.IPv4_HeaderStatus.TTL_StaticLoad;
+	ConfigurationParameter->Target_Server_Alternate_IPv6.ServerPacketStatus.NetworkLayerStatus.IPv6_HeaderStatus.HopLimit_DynamicMark = Target_Server_Alternate_IPv6.ServerPacketStatus.NetworkLayerStatus.IPv6_HeaderStatus.HopLimit_DynamicMark;
+	ConfigurationParameter->Target_Server_Alternate_IPv4.ServerPacketStatus.NetworkLayerStatus.IPv4_HeaderStatus.TTL_DynamicMark = Target_Server_Alternate_IPv4.ServerPacketStatus.NetworkLayerStatus.IPv4_HeaderStatus.TTL_DynamicMark;
 #endif
 	ConfigurationParameter->SocketTimeout_Reliable_Once = SocketTimeout_Reliable_Once;
 	ConfigurationParameter->SocketTimeout_Reliable_Serial = SocketTimeout_Reliable_Serial;
@@ -962,6 +1053,7 @@ void ConfigurationTable::MonitorItemToUsing(
 	ConfigurationParameter->PacketCheck_TCP = PacketCheck_TCP;
 #endif
 	ConfigurationParameter->PacketCheck_DNS = PacketCheck_DNS;
+	ConfigurationParameter->DataCheck_RRSetTTL = DataCheck_RRSetTTL;
 
 //[Proxy] block
 	if (ConfigurationParameter->SOCKS_TargetDomain != nullptr && !SOCKS_TargetDomain->empty() && SOCKS_TargetDomain_Port > 0)
@@ -985,17 +1077,35 @@ void ConfigurationTable::MonitorItemToUsing(
 	}
 	if (ConfigurationParameter->SOCKS_Username != nullptr)
 	{
-		if (!SOCKS_Username->empty())
-			*ConfigurationParameter->SOCKS_Username = *SOCKS_Username;
-		else 
-			ConfigurationParameter->SOCKS_Username->clear();
+		if (SOCKS_UsernameLength > 0)
+		{
+			memcpy_s(ConfigurationParameter->SOCKS_Username, SOCKS_USERNAME_PASSWORD_MAXNUM, SOCKS_Username, SOCKS_UsernameLength);
+			ConfigurationParameter->SOCKS_UsernameLength = SOCKS_UsernameLength;
+		}
+		else {
+		#if defined(ENABLE_LIBSODIUM)
+			sodium_memzero(ConfigurationParameter->SOCKS_Username, SOCKS_USERNAME_PASSWORD_MAXNUM + MEMORY_RESERVED_BYTES);
+		#else
+			memset(ConfigurationParameter->SOCKS_Username, 0, SOCKS_USERNAME_PASSWORD_MAXNUM + MEMORY_RESERVED_BYTES);
+		#endif
+			ConfigurationParameter->SOCKS_UsernameLength = 0;
+		}
 	}
 	if (ConfigurationParameter->SOCKS_Password != nullptr)
 	{
-		if (!SOCKS_Password->empty())
-			*ConfigurationParameter->SOCKS_Password = *SOCKS_Password;
-		else 
-			ConfigurationParameter->SOCKS_Password->clear();
+		if (SOCKS_PasswordLength > 0)
+		{
+			memcpy_s(ConfigurationParameter->SOCKS_Password, SOCKS_USERNAME_PASSWORD_MAXNUM, SOCKS_Password, SOCKS_PasswordLength);
+			ConfigurationParameter->SOCKS_PasswordLength = SOCKS_PasswordLength;
+		}
+		else {
+		#if defined(ENABLE_LIBSODIUM)
+			sodium_memzero(ConfigurationParameter->SOCKS_Password, SOCKS_USERNAME_PASSWORD_MAXNUM + MEMORY_RESERVED_BYTES);
+		#else
+			memset(ConfigurationParameter->SOCKS_Password, 0, SOCKS_USERNAME_PASSWORD_MAXNUM + MEMORY_RESERVED_BYTES);
+		#endif
+			ConfigurationParameter->SOCKS_PasswordLength = 0;
+		}
 	}
 	if (ConfigurationParameter->HTTP_CONNECT_TargetDomain != nullptr && !HTTP_CONNECT_TargetDomain->empty())
 		*ConfigurationParameter->HTTP_CONNECT_TargetDomain = *HTTP_CONNECT_TargetDomain;
@@ -1012,10 +1122,19 @@ void ConfigurationTable::MonitorItemToUsing(
 	}
 	if (ConfigurationParameter->HTTP_CONNECT_ProxyAuthorization != nullptr)
 	{
-		if (!HTTP_CONNECT_ProxyAuthorization->empty())
-			*ConfigurationParameter->HTTP_CONNECT_ProxyAuthorization = *HTTP_CONNECT_ProxyAuthorization;
-		else 
-			ConfigurationParameter->HTTP_CONNECT_ProxyAuthorization->clear();
+		if (HTTP_CONNECT_ProxyAuthorizationLength > 0)
+		{
+			memcpy_s(ConfigurationParameter->HTTP_CONNECT_ProxyAuthorization, HTTP_AUTHORIZATION_MAXSIZE, HTTP_CONNECT_ProxyAuthorization, HTTP_CONNECT_ProxyAuthorizationLength);
+			ConfigurationParameter->HTTP_CONNECT_ProxyAuthorizationLength = HTTP_CONNECT_ProxyAuthorizationLength;
+		}
+		else {
+		#if defined(ENABLE_LIBSODIUM)
+			sodium_memzero(ConfigurationParameter->HTTP_CONNECT_ProxyAuthorization, HTTP_AUTHORIZATION_MAXSIZE + MEMORY_RESERVED_BYTES);
+		#else
+			memset(ConfigurationParameter->HTTP_CONNECT_ProxyAuthorization, 0, HTTP_AUTHORIZATION_MAXSIZE + MEMORY_RESERVED_BYTES);
+		#endif
+			ConfigurationParameter->HTTP_CONNECT_ProxyAuthorizationLength = 0;
+		}
 	}
 
 	return;
@@ -1052,14 +1171,14 @@ void ConfigurationTable::MonitorItemReset(
 //[Values] block
 	ThreadPoolResetTime = DEFAULT_THREAD_POOL_RESET_TIME;
 #if defined(ENABLE_PCAP)
-	Target_Server_Main_IPv6.ServerPacketStatus.NetworkLayerStatus.IPv6_HeaderStatus.HopLimit_Assign = 0;
-	Target_Server_Main_IPv4.ServerPacketStatus.NetworkLayerStatus.IPv4_HeaderStatus.TTL_Assign = 0;
-	Target_Server_Main_IPv6.ServerPacketStatus.NetworkLayerStatus.IPv6_HeaderStatus.HopLimit_Mark = 0;
-	Target_Server_Main_IPv4.ServerPacketStatus.NetworkLayerStatus.IPv4_HeaderStatus.TTL_Mark = 0;
-	Target_Server_Alternate_IPv6.ServerPacketStatus.NetworkLayerStatus.IPv6_HeaderStatus.HopLimit_Assign = 0;
-	Target_Server_Alternate_IPv4.ServerPacketStatus.NetworkLayerStatus.IPv4_HeaderStatus.TTL_Assign = 0;
-	Target_Server_Alternate_IPv6.ServerPacketStatus.NetworkLayerStatus.IPv6_HeaderStatus.HopLimit_Mark = 0;
-	Target_Server_Alternate_IPv4.ServerPacketStatus.NetworkLayerStatus.IPv4_HeaderStatus.TTL_Mark = 0;
+	Target_Server_Main_IPv6.ServerPacketStatus.NetworkLayerStatus.IPv6_HeaderStatus.HopLimit_StaticLoad = 0;
+	Target_Server_Main_IPv4.ServerPacketStatus.NetworkLayerStatus.IPv4_HeaderStatus.TTL_StaticLoad = 0;
+	Target_Server_Main_IPv6.ServerPacketStatus.NetworkLayerStatus.IPv6_HeaderStatus.HopLimit_DynamicMark = 0;
+	Target_Server_Main_IPv4.ServerPacketStatus.NetworkLayerStatus.IPv4_HeaderStatus.TTL_DynamicMark = 0;
+	Target_Server_Alternate_IPv6.ServerPacketStatus.NetworkLayerStatus.IPv6_HeaderStatus.HopLimit_StaticLoad = 0;
+	Target_Server_Alternate_IPv4.ServerPacketStatus.NetworkLayerStatus.IPv4_HeaderStatus.TTL_StaticLoad = 0;
+	Target_Server_Alternate_IPv6.ServerPacketStatus.NetworkLayerStatus.IPv6_HeaderStatus.HopLimit_DynamicMark = 0;
+	Target_Server_Alternate_IPv4.ServerPacketStatus.NetworkLayerStatus.IPv4_HeaderStatus.TTL_DynamicMark = 0;
 #endif
 #if defined(PLATFORM_WIN)
 	SocketTimeout_Reliable_Once = DEFAULT_RELIABLE_ONCE_SOCKET_TIMEOUT;
@@ -1090,6 +1209,7 @@ void ConfigurationTable::MonitorItemReset(
 	PacketCheck_TCP = false;
 #endif
 	PacketCheck_DNS = false;
+	DataCheck_RRSetTTL = false;
 
 //[Proxy] block
 	memset(&SOCKS_TargetServer, 0, sizeof(SOCKS_TargetServer));
@@ -1097,9 +1217,19 @@ void ConfigurationTable::MonitorItemReset(
 		SOCKS_TargetDomain->clear();
 	SOCKS_TargetDomain_Port = 0;
 	if (SOCKS_Username != nullptr)
-		SOCKS_Username->clear();
+	#if defined(ENABLE_LIBSODIUM)
+		sodium_memzero(SOCKS_Username, SOCKS_USERNAME_PASSWORD_MAXNUM + MEMORY_RESERVED_BYTES);
+	#else
+		memset(SOCKS_Username, 0, SOCKS_USERNAME_PASSWORD_MAXNUM + MEMORY_RESERVED_BYTES);
+	#endif
+	SOCKS_UsernameLength = 0;
 	if (SOCKS_Password != nullptr)
-		SOCKS_Password->clear();
+	#if defined(ENABLE_LIBSODIUM)
+		sodium_memzero(SOCKS_Password, SOCKS_USERNAME_PASSWORD_MAXNUM + MEMORY_RESERVED_BYTES);
+	#else
+		memset(SOCKS_Password, 0, SOCKS_USERNAME_PASSWORD_MAXNUM + MEMORY_RESERVED_BYTES);
+	#endif
+	SOCKS_PasswordLength = 0;
 	if (HTTP_CONNECT_TargetDomain != nullptr)
 		HTTP_CONNECT_TargetDomain->clear();
 #if defined(ENABLE_TLS)
@@ -1109,7 +1239,12 @@ void ConfigurationTable::MonitorItemReset(
 	if (HTTP_CONNECT_HeaderField != nullptr)
 		HTTP_CONNECT_HeaderField->clear();
 	if (HTTP_CONNECT_ProxyAuthorization != nullptr)
-		HTTP_CONNECT_ProxyAuthorization->clear();
+	#if defined(ENABLE_LIBSODIUM)
+		sodium_memzero(HTTP_CONNECT_ProxyAuthorization, HTTP_AUTHORIZATION_MAXSIZE + MEMORY_RESERVED_BYTES);
+	#else
+		memset(HTTP_CONNECT_ProxyAuthorization, 0, HTTP_AUTHORIZATION_MAXSIZE + MEMORY_RESERVED_BYTES);
+	#endif
+	HTTP_CONNECT_ProxyAuthorizationLength = 0;
 
 	return;
 }
@@ -1118,10 +1253,11 @@ void ConfigurationTable::MonitorItemReset(
 GlobalStatus::GlobalStatus(
 	void)
 {
+//Class constructor
 	memset(this, 0, sizeof(GLOBAL_STATUS));
 	try {
 		LocalListeningSocket = new std::vector<SYSTEM_SOCKET>();
-		RamdomEngine = new std::default_random_engine();
+		RandomEngine = new std::default_random_engine();
 		ThreadRunningNum = new std::atomic<size_t>();
 		ThreadRunningFreeNum = new std::atomic<size_t>();
 		Path_Global = new std::vector<std::wstring>();
@@ -1134,8 +1270,8 @@ GlobalStatus::GlobalStatus(
 		MBS_FileList_Hosts = new std::vector<std::string>();
 		MBS_FileList_IPFilter = new std::vector<std::string>();
 	#endif
-		LocalAddress_Response[NETWORK_LAYER_TYPE_IPV6] = new uint8_t[NORMAL_PACKET_MAXSIZE + PADDING_RESERVED_BYTES]();
-		LocalAddress_Response[NETWORK_LAYER_TYPE_IPV4] = new uint8_t[NORMAL_PACKET_MAXSIZE + PADDING_RESERVED_BYTES]();
+		LocalAddress_Response[NETWORK_LAYER_TYPE_IPV6] = new uint8_t[PACKET_NORMAL_MAXSIZE + MEMORY_RESERVED_BYTES]();
+		LocalAddress_Response[NETWORK_LAYER_TYPE_IPV4] = new uint8_t[PACKET_NORMAL_MAXSIZE + MEMORY_RESERVED_BYTES]();
 	#if (defined(PLATFORM_WIN) || defined(PLATFORM_LINUX))
 		LocalAddress_PointerResponse[NETWORK_LAYER_TYPE_IPV6] = new std::vector<std::string>();
 		LocalAddress_PointerResponse[NETWORK_LAYER_TYPE_IPV4] = new std::vector<std::string>();
@@ -1144,7 +1280,7 @@ GlobalStatus::GlobalStatus(
 	catch (std::bad_alloc)
 	{
 		delete LocalListeningSocket;
-		delete RamdomEngine;
+		delete RandomEngine;
 		delete ThreadRunningNum;
 		delete ThreadRunningFreeNum;
 		delete Path_Global;
@@ -1152,7 +1288,7 @@ GlobalStatus::GlobalStatus(
 		delete FileList_Hosts;
 		delete FileList_IPFilter;
 		LocalListeningSocket = nullptr;
-		RamdomEngine = nullptr;
+		RandomEngine = nullptr;
 		Path_Global = nullptr;
 		Path_ErrorLog = nullptr;
 		FileList_Hosts = nullptr;
@@ -1185,6 +1321,19 @@ GlobalStatus::GlobalStatus(
 
 //GlobalStatus settings
 	GlobalStatusSetting(this);
+
+//Libraries initialization
+#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+#if defined(ENABLE_TLS)
+//OpenSSL main initialization
+	if (!GlobalRunningStatus.IsInitialized_OpenSSL)
+	{
+		OpenSSL_LibraryInit(true);
+		GlobalRunningStatus.IsInitialized_OpenSSL = true;
+	}
+#endif
+#endif
+
 	return;
 }
 
@@ -1201,7 +1350,7 @@ void GlobalStatus::CopyMemberOperator(
 	memset(this, 0, sizeof(GLOBAL_STATUS));
 	try {
 		LocalListeningSocket = new std::vector<SYSTEM_SOCKET>();
-		RamdomEngine = new std::default_random_engine();
+		RandomEngine = new std::default_random_engine();
 		ThreadRunningNum = new std::atomic<size_t>();
 		ThreadRunningFreeNum = new std::atomic<size_t>();
 		Path_Global = new std::vector<std::wstring>();
@@ -1214,8 +1363,8 @@ void GlobalStatus::CopyMemberOperator(
 		MBS_FileList_Hosts = new std::vector<std::string>();
 		MBS_FileList_IPFilter = new std::vector<std::string>();
 	#endif
-		LocalAddress_Response[NETWORK_LAYER_TYPE_IPV6] = new uint8_t[NORMAL_PACKET_MAXSIZE + PADDING_RESERVED_BYTES]();
-		LocalAddress_Response[NETWORK_LAYER_TYPE_IPV4] = new uint8_t[NORMAL_PACKET_MAXSIZE + PADDING_RESERVED_BYTES]();
+		LocalAddress_Response[NETWORK_LAYER_TYPE_IPV6] = new uint8_t[PACKET_NORMAL_MAXSIZE + MEMORY_RESERVED_BYTES]();
+		LocalAddress_Response[NETWORK_LAYER_TYPE_IPV4] = new uint8_t[PACKET_NORMAL_MAXSIZE + MEMORY_RESERVED_BYTES]();
 	#if (defined(PLATFORM_WIN) || defined(PLATFORM_LINUX))
 		LocalAddress_PointerResponse[NETWORK_LAYER_TYPE_IPV6] = new std::vector<std::string>();
 		LocalAddress_PointerResponse[NETWORK_LAYER_TYPE_IPV4] = new std::vector<std::string>();
@@ -1224,7 +1373,7 @@ void GlobalStatus::CopyMemberOperator(
 	catch (std::bad_alloc)
 	{
 		delete LocalListeningSocket;
-		delete RamdomEngine;
+		delete RandomEngine;
 		delete ThreadRunningNum;
 		delete ThreadRunningFreeNum;
 		delete Path_Global;
@@ -1232,7 +1381,7 @@ void GlobalStatus::CopyMemberOperator(
 		delete FileList_Hosts;
 		delete FileList_IPFilter;
 		LocalListeningSocket = nullptr;
-		RamdomEngine = nullptr;
+		RandomEngine = nullptr;
 		Path_Global = nullptr;
 		Path_ErrorLog = nullptr;
 		FileList_Hosts = nullptr;
@@ -1296,13 +1445,13 @@ void GlobalStatus::CopyMemberOperator(
 		delete LocalListeningSocket;
 		LocalListeningSocket = nullptr;
 	}
-	if (Reference.RamdomEngine != nullptr)
+	if (Reference.RandomEngine != nullptr)
 	{
-		*RamdomEngine = *Reference.RamdomEngine;
+		*RandomEngine = *Reference.RandomEngine;
 	}
 	else {
-		delete RamdomEngine;
-		RamdomEngine = nullptr;
+		delete RandomEngine;
+		RandomEngine = nullptr;
 	}
 	ThreadRunningNum->store(*Reference.ThreadRunningNum);
 	ThreadRunningFreeNum->store(*Reference.ThreadRunningFreeNum);
@@ -1372,8 +1521,8 @@ void GlobalStatus::CopyMemberOperator(
 		MBS_FileList_IPFilter = nullptr;
 	}
 #endif
-	memcpy_s(LocalAddress_Response[NETWORK_LAYER_TYPE_IPV6], NORMAL_PACKET_MAXSIZE, Reference.LocalAddress_Response[NETWORK_LAYER_TYPE_IPV6], NORMAL_PACKET_MAXSIZE);
-	memcpy_s(LocalAddress_Response[NETWORK_LAYER_TYPE_IPV4], NORMAL_PACKET_MAXSIZE, Reference.LocalAddress_Response[NETWORK_LAYER_TYPE_IPV4], NORMAL_PACKET_MAXSIZE);
+	memcpy_s(LocalAddress_Response[NETWORK_LAYER_TYPE_IPV6], PACKET_NORMAL_MAXSIZE, Reference.LocalAddress_Response[NETWORK_LAYER_TYPE_IPV6], PACKET_NORMAL_MAXSIZE);
+	memcpy_s(LocalAddress_Response[NETWORK_LAYER_TYPE_IPV4], PACKET_NORMAL_MAXSIZE, Reference.LocalAddress_Response[NETWORK_LAYER_TYPE_IPV4], PACKET_NORMAL_MAXSIZE);
 #if (defined(PLATFORM_WIN) || defined(PLATFORM_LINUX))
 	if (Reference.LocalAddress_PointerResponse[NETWORK_LAYER_TYPE_IPV6] != nullptr)
 	{
@@ -1421,14 +1570,16 @@ void GlobalStatusSetting(
 #if defined(PLATFORM_LINUX)
 	GlobalRunningStatusParameter->IsDaemon = true;
 #endif
-	std::random_device RamdomDevice;
-	GlobalRunningStatusParameter->RamdomEngine->seed(RamdomDevice());
+	std::random_device RandomDevice;
+	GlobalRunningStatusParameter->RandomEngine->seed(RandomDevice());
 	GlobalRunningStatusParameter->DomainTable = const_cast<uint8_t *>(DomainTable_Initialization);
+#if !defined(ENABLE_LIBSODIUM)
 	GlobalRunningStatusParameter->Base64_EncodeTable = const_cast<uint8_t *>(Base64_EncodeTable_Initialization);
 	GlobalRunningStatusParameter->Base64_DecodeTable = const_cast<int8_t *>(Base64_DecodeTable_Initialization);
+#endif
 	GlobalRunningStatusParameter->GatewayAvailable_IPv4 = true;
-	memset(GlobalRunningStatusParameter->LocalAddress_Response[NETWORK_LAYER_TYPE_IPV6], 0, NORMAL_PACKET_MAXSIZE + PADDING_RESERVED_BYTES);
-	memset(GlobalRunningStatusParameter->LocalAddress_Response[NETWORK_LAYER_TYPE_IPV4], 0, NORMAL_PACKET_MAXSIZE + PADDING_RESERVED_BYTES);
+	memset(GlobalRunningStatusParameter->LocalAddress_Response[NETWORK_LAYER_TYPE_IPV6], 0, PACKET_NORMAL_MAXSIZE + MEMORY_RESERVED_BYTES);
+	memset(GlobalRunningStatusParameter->LocalAddress_Response[NETWORK_LAYER_TYPE_IPV4], 0, PACKET_NORMAL_MAXSIZE + MEMORY_RESERVED_BYTES);
 
 	return;
 }
@@ -1468,15 +1619,13 @@ GlobalStatus::~GlobalStatus(
 		Initialized_MutexHandle = 0;
 	}
 
-//Free all OpenSSL libraries
+//Free all OpenSSL libraries.
 #if defined(ENABLE_TLS)
-#if OPENSSL_VERSION_NUMBER < OPENSSL_VERSION_1_1_0 //OpenSSL version brfore 1.1.0
 	if (IsInitialized_OpenSSL)
 	{
-		OpenSSL_Library_Init(false);
+		OpenSSL_LibraryInit(false);
 		IsInitialized_OpenSSL = false;
 	}
-#endif
 #endif
 
 //Close all file handles.
@@ -1487,13 +1636,13 @@ GlobalStatus::~GlobalStatus(
 
 //Delete and reset pointers.
 	delete LocalListeningSocket;
-	delete RamdomEngine;
+	delete RandomEngine;
 	delete Path_Global;
 	delete Path_ErrorLog;
 	delete FileList_Hosts;
 	delete FileList_IPFilter;
 	LocalListeningSocket = nullptr;
-	RamdomEngine = nullptr;
+	RandomEngine = nullptr;
 	Path_Global = nullptr;
 	Path_ErrorLog = nullptr;
 	FileList_Hosts = nullptr;
@@ -1636,6 +1785,7 @@ OutputPacketTable::OutputPacketTable(
 	Protocol_Network = 0;
 	Protocol_Transport = 0;
 	ClearPortTime = 0;
+	EDNS_Length = 0;
 
 	return;
 }
@@ -1646,20 +1796,6 @@ OutputPacketTable::OutputPacketTable(
 DNSCurveConfigurationTable::DNSCurveConfigurationTable(
 	void)
 {
-//Libsodium ramdom bytes initialization
-//randombytes_set_implementation function should only be called once, before sodium_init().
-//No need to set a custom RNG, please visit https://download.libsodium.org/doc/advanced/custom_rng.html.
-/*	randombytes_set_implementation(&randombytes_salsa20_implementation);
-	randombytes_stir();
-*/
-
-//Libsodium initialization
-	if (sodium_init() == LIBSODIUM_ERROR)
-	{
-		exit(EXIT_FAILURE);
-//		return;
-	}
-
 //Class constructor
 	memset(this, 0, sizeof(DNSCURVE_CONFIGURATION_TABLE));
 	try {
@@ -2250,36 +2386,36 @@ void DNSCurveConfigurationTableSetting(
 	DNSCURVE_CONFIGURATION_TABLE * const DNSCurveConfigurationParameter)
 {
 //[DNSCurve Addresses] block
-	sodium_memzero(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Main_IPv6.ProviderName, DOMAIN_MAXSIZE);
-	sodium_memzero(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Alternate_IPv6.ProviderName, DOMAIN_MAXSIZE);
-	sodium_memzero(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Main_IPv4.ProviderName, DOMAIN_MAXSIZE);
-	sodium_memzero(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Alternate_IPv4.ProviderName, DOMAIN_MAXSIZE);
+	memset(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Main_IPv6.ProviderName, 0, DOMAIN_MAXSIZE);
+	memset(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Alternate_IPv6.ProviderName, 0, DOMAIN_MAXSIZE);
+	memset(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Main_IPv4.ProviderName, 0, DOMAIN_MAXSIZE);
+	memset(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Alternate_IPv4.ProviderName, 0, DOMAIN_MAXSIZE);
 
 //[DNSCurve Keys] block
-	sodium_memzero(DNSCurveConfigurationParameter->Client_PublicKey, crypto_box_PUBLICKEYBYTES);
+	memset(DNSCurveConfigurationParameter->Client_PublicKey, 0, crypto_box_PUBLICKEYBYTES);
 	sodium_memzero(DNSCurveConfigurationParameter->Client_SecretKey, crypto_box_SECRETKEYBYTES);
 	sodium_memzero(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Main_IPv6.PrecomputationKey, crypto_box_BEFORENMBYTES);
 	sodium_memzero(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Alternate_IPv6.PrecomputationKey, crypto_box_BEFORENMBYTES);
 	sodium_memzero(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Main_IPv4.PrecomputationKey, crypto_box_BEFORENMBYTES);
 	sodium_memzero(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Alternate_IPv4.PrecomputationKey, crypto_box_BEFORENMBYTES);
-	sodium_memzero(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Main_IPv6.ServerPublicKey, crypto_box_PUBLICKEYBYTES);
-	sodium_memzero(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Alternate_IPv6.ServerPublicKey, crypto_box_PUBLICKEYBYTES);
-	sodium_memzero(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Main_IPv4.ServerPublicKey, crypto_box_PUBLICKEYBYTES);
-	sodium_memzero(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Alternate_IPv4.ServerPublicKey, crypto_box_PUBLICKEYBYTES);
-	sodium_memzero(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Main_IPv6.ServerFingerprint, crypto_box_PUBLICKEYBYTES);
-	sodium_memzero(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Alternate_IPv6.ServerFingerprint, crypto_box_PUBLICKEYBYTES);
-	sodium_memzero(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Main_IPv4.ServerFingerprint, crypto_box_PUBLICKEYBYTES);
-	sodium_memzero(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Alternate_IPv4.ServerFingerprint, crypto_box_PUBLICKEYBYTES);
+	memset(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Main_IPv6.ServerPublicKey, 0, crypto_box_PUBLICKEYBYTES);
+	memset(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Alternate_IPv6.ServerPublicKey, 0, crypto_box_PUBLICKEYBYTES);
+	memset(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Main_IPv4.ServerPublicKey, 0, crypto_box_PUBLICKEYBYTES);
+	memset(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Alternate_IPv4.ServerPublicKey, 0, crypto_box_PUBLICKEYBYTES);
+	memset(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Main_IPv6.ServerFingerprint, 0, crypto_box_PUBLICKEYBYTES);
+	memset(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Alternate_IPv6.ServerFingerprint, 0, crypto_box_PUBLICKEYBYTES);
+	memset(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Main_IPv4.ServerFingerprint, 0, crypto_box_PUBLICKEYBYTES);
+	memset(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Alternate_IPv4.ServerFingerprint, 0, crypto_box_PUBLICKEYBYTES);
 
 //[DNSCurve Magic Number] block
-	sodium_memzero(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Main_IPv6.ReceiveMagicNumber, DNSCURVE_MAGIC_QUERY_LEN);
-	sodium_memzero(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Alternate_IPv6.ReceiveMagicNumber, DNSCURVE_MAGIC_QUERY_LEN);
-	sodium_memzero(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Main_IPv4.ReceiveMagicNumber, DNSCURVE_MAGIC_QUERY_LEN);
-	sodium_memzero(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Alternate_IPv4.ReceiveMagicNumber, DNSCURVE_MAGIC_QUERY_LEN);
-	sodium_memzero(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Main_IPv6.SendMagicNumber, DNSCURVE_MAGIC_QUERY_LEN);
-	sodium_memzero(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Alternate_IPv6.SendMagicNumber, DNSCURVE_MAGIC_QUERY_LEN);
-	sodium_memzero(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Main_IPv4.SendMagicNumber, DNSCURVE_MAGIC_QUERY_LEN);
-	sodium_memzero(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Alternate_IPv4.SendMagicNumber, DNSCURVE_MAGIC_QUERY_LEN);
+	memset(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Main_IPv6.ReceiveMagicNumber, 0, DNSCURVE_MAGIC_QUERY_LEN);
+	memset(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Alternate_IPv6.ReceiveMagicNumber, 0, DNSCURVE_MAGIC_QUERY_LEN);
+	memset(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Main_IPv4.ReceiveMagicNumber, 0, DNSCURVE_MAGIC_QUERY_LEN);
+	memset(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Alternate_IPv4.ReceiveMagicNumber, 0, DNSCURVE_MAGIC_QUERY_LEN);
+	memset(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Main_IPv6.SendMagicNumber, 0, DNSCURVE_MAGIC_QUERY_LEN);
+	memset(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Alternate_IPv6.SendMagicNumber, 0, DNSCURVE_MAGIC_QUERY_LEN);
+	memset(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Main_IPv4.SendMagicNumber, 0, DNSCURVE_MAGIC_QUERY_LEN);
+	memset(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Alternate_IPv4.SendMagicNumber, 0, DNSCURVE_MAGIC_QUERY_LEN);
 
 //Default settings
 	//[DNSCurve] block
@@ -2287,13 +2423,13 @@ void DNSCurveConfigurationTableSetting(
 	DNSCurveConfigurationParameter->DNSCurveProtocol_Transport = REQUEST_MODE_TRANSPORT::UDP;
 	DNSCurveConfigurationParameter->DNSCurvePayloadSize = EDNS_PACKET_MINSIZE;
 #if defined(PLATFORM_WIN)
-	DNSCurveConfigurationParameter->DNSCurve_SocketTimeout_Reliable = DEFAULT_DNSCURVE_RELIABLE_SOCKET_TIMEOUT;
-	DNSCurveConfigurationParameter->DNSCurve_SocketTimeout_Unreliable = DEFAULT_DNSCURVE_UNRELIABLE_SOCKET_TIMEOUT;
+	DNSCurveConfigurationParameter->DNSCurve_SocketTimeout_Reliable = DNSCURVE_DEFAULT_RELIABLE_SOCKET_TIMEOUT;
+	DNSCurveConfigurationParameter->DNSCurve_SocketTimeout_Unreliable = DNSCURVE_DEFAULT_UNRELIABLE_SOCKET_TIMEOUT;
 #elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-	DNSCurveConfigurationParameter->DNSCurve_SocketTimeout_Reliable.tv_sec = DEFAULT_DNSCURVE_RELIABLE_SOCKET_TIMEOUT;
-	DNSCurveConfigurationParameter->DNSCurve_SocketTimeout_Unreliable.tv_sec = DEFAULT_DNSCURVE_UNRELIABLE_SOCKET_TIMEOUT;
+	DNSCurveConfigurationParameter->DNSCurve_SocketTimeout_Reliable.tv_sec = DNSCURVE_DEFAULT_RELIABLE_SOCKET_TIMEOUT;
+	DNSCurveConfigurationParameter->DNSCurve_SocketTimeout_Unreliable.tv_sec = DNSCURVE_DEFAULT_UNRELIABLE_SOCKET_TIMEOUT;
 #endif
-	DNSCurveConfigurationParameter->KeyRecheckTime = DEFAULT_DNSCURVE_RECHECK_TIME * SECOND_TO_MILLISECOND;
+	DNSCurveConfigurationParameter->KeyRecheckTime = DNSCURVE_DEFAULT_RECHECK_TIME * SECOND_TO_MILLISECOND;
 
 	return;
 }
@@ -2425,20 +2561,20 @@ void DNSCurveConfigurationTable::MonitorItemToUsing(
 	if (DNSCurveConfigurationParameter->Client_PublicKey != nullptr && !CheckEmptyBuffer(Client_PublicKey, crypto_box_PUBLICKEYBYTES) && 
 		memcmp(DNSCurveConfigurationParameter->Client_PublicKey, Client_PublicKey, crypto_box_PUBLICKEYBYTES) != 0)
 			memcpy_s(DNSCurveConfigurationParameter->Client_PublicKey, crypto_box_PUBLICKEYBYTES, Client_PublicKey, crypto_box_PUBLICKEYBYTES);
-	if (DNSCurveConfigurationParameter->Client_SecretKey != nullptr && !CheckEmptyBuffer(Client_SecretKey, crypto_box_PUBLICKEYBYTES) && 
+	if (DNSCurveConfigurationParameter->Client_SecretKey != nullptr && sodium_is_zero(Client_SecretKey, crypto_box_PUBLICKEYBYTES) == 0 && 
 		sodium_memcmp(DNSCurveConfigurationParameter->Client_SecretKey, Client_SecretKey, crypto_box_PUBLICKEYBYTES) != 0)
 			memcpy_s(DNSCurveConfigurationParameter->Client_SecretKey, crypto_box_PUBLICKEYBYTES, Client_SecretKey, crypto_box_PUBLICKEYBYTES);
 	if (DNSCurveConfigurationParameter->DNSCurve_Target_Server_Main_IPv6.PrecomputationKey != nullptr && 
-		!CheckEmptyBuffer(DNSCurve_Target_Server_Main_IPv6.PrecomputationKey, crypto_box_BEFORENMBYTES))
+		sodium_is_zero(DNSCurve_Target_Server_Main_IPv6.PrecomputationKey, crypto_box_BEFORENMBYTES) == 0)
 			memcpy_s(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Main_IPv6.PrecomputationKey, crypto_box_BEFORENMBYTES, DNSCurve_Target_Server_Main_IPv6.PrecomputationKey, crypto_box_BEFORENMBYTES);
 	if (DNSCurveConfigurationParameter->DNSCurve_Target_Server_Alternate_IPv6.PrecomputationKey != nullptr && 
-		!CheckEmptyBuffer(DNSCurve_Target_Server_Alternate_IPv6.PrecomputationKey, crypto_box_BEFORENMBYTES))
+		sodium_is_zero(DNSCurve_Target_Server_Alternate_IPv6.PrecomputationKey, crypto_box_BEFORENMBYTES) == 0)
 			memcpy_s(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Alternate_IPv6.PrecomputationKey, crypto_box_BEFORENMBYTES, DNSCurve_Target_Server_Alternate_IPv6.PrecomputationKey, crypto_box_BEFORENMBYTES);
 	if (DNSCurveConfigurationParameter->DNSCurve_Target_Server_Main_IPv4.PrecomputationKey != nullptr && 
-		!CheckEmptyBuffer(DNSCurve_Target_Server_Main_IPv4.PrecomputationKey, crypto_box_BEFORENMBYTES))
+		sodium_is_zero(DNSCurve_Target_Server_Main_IPv4.PrecomputationKey, crypto_box_BEFORENMBYTES) == 0)
 			memcpy_s(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Main_IPv4.PrecomputationKey, crypto_box_BEFORENMBYTES, DNSCurve_Target_Server_Main_IPv4.PrecomputationKey, crypto_box_BEFORENMBYTES);
 	if (DNSCurveConfigurationParameter->DNSCurve_Target_Server_Alternate_IPv4.PrecomputationKey != nullptr && 
-		!CheckEmptyBuffer(DNSCurve_Target_Server_Alternate_IPv4.PrecomputationKey, crypto_box_BEFORENMBYTES))
+		sodium_is_zero(DNSCurve_Target_Server_Alternate_IPv4.PrecomputationKey, crypto_box_BEFORENMBYTES) == 0)
 			memcpy_s(DNSCurveConfigurationParameter->DNSCurve_Target_Server_Alternate_IPv4.PrecomputationKey, crypto_box_BEFORENMBYTES, DNSCurve_Target_Server_Alternate_IPv4.PrecomputationKey, crypto_box_BEFORENMBYTES);
 	if (DNSCurveConfigurationParameter->DNSCurve_Target_Server_Main_IPv6.ServerPublicKey != nullptr && 
 		!CheckEmptyBuffer(DNSCurve_Target_Server_Main_IPv6.ServerPublicKey, crypto_box_PUBLICKEYBYTES) && 
@@ -2504,15 +2640,15 @@ void DNSCurveConfigurationTable::MonitorItemReset(
 {
 //[DNSCurve] block
 #if defined(PLATFORM_WIN)
-	DNSCurve_SocketTimeout_Reliable = DEFAULT_DNSCURVE_RELIABLE_SOCKET_TIMEOUT;
-	DNSCurve_SocketTimeout_Unreliable = DEFAULT_DNSCURVE_UNRELIABLE_SOCKET_TIMEOUT;
+	DNSCurve_SocketTimeout_Reliable = DNSCURVE_DEFAULT_RELIABLE_SOCKET_TIMEOUT;
+	DNSCurve_SocketTimeout_Unreliable = DNSCURVE_DEFAULT_UNRELIABLE_SOCKET_TIMEOUT;
 #elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-	DNSCurve_SocketTimeout_Reliable.tv_sec = DEFAULT_DNSCURVE_RELIABLE_SOCKET_TIMEOUT;
+	DNSCurve_SocketTimeout_Reliable.tv_sec = DNSCURVE_DEFAULT_RELIABLE_SOCKET_TIMEOUT;
 	DNSCurve_SocketTimeout_Reliable.tv_usec = 0;
-	DNSCurve_SocketTimeout_Unreliable.tv_sec = DEFAULT_DNSCURVE_UNRELIABLE_SOCKET_TIMEOUT;
+	DNSCurve_SocketTimeout_Unreliable.tv_sec = DNSCURVE_DEFAULT_UNRELIABLE_SOCKET_TIMEOUT;
 	DNSCurve_SocketTimeout_Unreliable.tv_usec = 0;
 #endif
-	KeyRecheckTime = DEFAULT_DNSCURVE_RECHECK_TIME * SECOND_TO_MILLISECOND;
+	KeyRecheckTime = DNSCURVE_DEFAULT_RECHECK_TIME * SECOND_TO_MILLISECOND;
 
 //[DNSCurve database] block
 	if (Database_LineData != nullptr)
@@ -2523,7 +2659,7 @@ void DNSCurveConfigurationTable::MonitorItemReset(
 
 //[DNSCurve Keys] block
 	if (Client_PublicKey != nullptr)
-		sodium_memzero(Client_PublicKey, crypto_box_PUBLICKEYBYTES);
+		memset(Client_PublicKey, 0, crypto_box_PUBLICKEYBYTES);
 	if (Client_SecretKey != nullptr)
 		sodium_memzero(Client_SecretKey, crypto_box_SECRETKEYBYTES);
 	if (DNSCurve_Target_Server_Main_IPv6.PrecomputationKey != nullptr)
@@ -2535,39 +2671,39 @@ void DNSCurveConfigurationTable::MonitorItemReset(
 	if (DNSCurve_Target_Server_Alternate_IPv4.PrecomputationKey != nullptr)
 		sodium_memzero(DNSCurve_Target_Server_Alternate_IPv4.PrecomputationKey, crypto_box_BEFORENMBYTES);
 	if (DNSCurve_Target_Server_Main_IPv6.ServerPublicKey != nullptr)
-		sodium_memzero(DNSCurve_Target_Server_Main_IPv6.ServerPublicKey, crypto_box_PUBLICKEYBYTES);
+		memset(DNSCurve_Target_Server_Main_IPv6.ServerPublicKey, 0, crypto_box_PUBLICKEYBYTES);
 	if (DNSCurve_Target_Server_Alternate_IPv6.ServerPublicKey != nullptr)
-		sodium_memzero(DNSCurve_Target_Server_Alternate_IPv6.ServerPublicKey, crypto_box_PUBLICKEYBYTES);
+		memset(DNSCurve_Target_Server_Alternate_IPv6.ServerPublicKey, 0, crypto_box_PUBLICKEYBYTES);
 	if (DNSCurve_Target_Server_Main_IPv4.ServerPublicKey != nullptr)
-		sodium_memzero(DNSCurve_Target_Server_Main_IPv4.ServerPublicKey, crypto_box_PUBLICKEYBYTES);
+		memset(DNSCurve_Target_Server_Main_IPv4.ServerPublicKey, 0, crypto_box_PUBLICKEYBYTES);
 	if (DNSCurve_Target_Server_Alternate_IPv4.ServerPublicKey != nullptr)
-		sodium_memzero(DNSCurve_Target_Server_Alternate_IPv4.ServerPublicKey, crypto_box_PUBLICKEYBYTES);
+		memset(DNSCurve_Target_Server_Alternate_IPv4.ServerPublicKey, 0, crypto_box_PUBLICKEYBYTES);
 	if (DNSCurve_Target_Server_Main_IPv6.ServerFingerprint != nullptr)
-		sodium_memzero(DNSCurve_Target_Server_Main_IPv6.ServerFingerprint, crypto_box_PUBLICKEYBYTES);
+		memset(DNSCurve_Target_Server_Main_IPv6.ServerFingerprint, 0, crypto_box_PUBLICKEYBYTES);
 	if (DNSCurve_Target_Server_Alternate_IPv6.ServerFingerprint != nullptr)
-		sodium_memzero(DNSCurve_Target_Server_Alternate_IPv6.ServerFingerprint, crypto_box_PUBLICKEYBYTES);
+		memset(DNSCurve_Target_Server_Alternate_IPv6.ServerFingerprint, 0, crypto_box_PUBLICKEYBYTES);
 	if (DNSCurve_Target_Server_Main_IPv4.ServerFingerprint != nullptr)
-		sodium_memzero(DNSCurve_Target_Server_Main_IPv4.ServerFingerprint, crypto_box_PUBLICKEYBYTES);
+		memset(DNSCurve_Target_Server_Main_IPv4.ServerFingerprint, 0, crypto_box_PUBLICKEYBYTES);
 	if (DNSCurve_Target_Server_Alternate_IPv4.ServerFingerprint != nullptr)
-		sodium_memzero(DNSCurve_Target_Server_Alternate_IPv4.ServerFingerprint, crypto_box_PUBLICKEYBYTES);
+		memset(DNSCurve_Target_Server_Alternate_IPv4.ServerFingerprint, 0, crypto_box_PUBLICKEYBYTES);
 
 //[DNSCurve Magic Number] block
 	if (DNSCurve_Target_Server_Main_IPv6.ReceiveMagicNumber != nullptr)
-		sodium_memzero(DNSCurve_Target_Server_Main_IPv6.ReceiveMagicNumber, DNSCURVE_MAGIC_QUERY_LEN);
+		memset(DNSCurve_Target_Server_Main_IPv6.ReceiveMagicNumber, 0, DNSCURVE_MAGIC_QUERY_LEN);
 	if (DNSCurve_Target_Server_Alternate_IPv6.ReceiveMagicNumber != nullptr)
-		sodium_memzero(DNSCurve_Target_Server_Alternate_IPv6.ReceiveMagicNumber, DNSCURVE_MAGIC_QUERY_LEN);
+		memset(DNSCurve_Target_Server_Alternate_IPv6.ReceiveMagicNumber, 0, DNSCURVE_MAGIC_QUERY_LEN);
 	if (DNSCurve_Target_Server_Main_IPv4.ReceiveMagicNumber != nullptr)
-		sodium_memzero(DNSCurve_Target_Server_Main_IPv4.ReceiveMagicNumber, DNSCURVE_MAGIC_QUERY_LEN);
+		memset(DNSCurve_Target_Server_Main_IPv4.ReceiveMagicNumber, 0, DNSCURVE_MAGIC_QUERY_LEN);
 	if (DNSCurve_Target_Server_Alternate_IPv4.ReceiveMagicNumber != nullptr)
-		sodium_memzero(DNSCurve_Target_Server_Alternate_IPv4.ReceiveMagicNumber, DNSCURVE_MAGIC_QUERY_LEN);
+		memset(DNSCurve_Target_Server_Alternate_IPv4.ReceiveMagicNumber, 0, DNSCURVE_MAGIC_QUERY_LEN);
 	if (DNSCurve_Target_Server_Main_IPv6.SendMagicNumber != nullptr)
-		sodium_memzero(DNSCurve_Target_Server_Main_IPv6.SendMagicNumber, DNSCURVE_MAGIC_QUERY_LEN);
+		memset(DNSCurve_Target_Server_Main_IPv6.SendMagicNumber, 0, DNSCURVE_MAGIC_QUERY_LEN);
 	if (DNSCurve_Target_Server_Alternate_IPv6.SendMagicNumber != nullptr)
-		sodium_memzero(DNSCurve_Target_Server_Alternate_IPv6.SendMagicNumber, DNSCURVE_MAGIC_QUERY_LEN);
+		memset(DNSCurve_Target_Server_Alternate_IPv6.SendMagicNumber, 0, DNSCURVE_MAGIC_QUERY_LEN);
 	if (DNSCurve_Target_Server_Main_IPv4.SendMagicNumber != nullptr)
-		sodium_memzero(DNSCurve_Target_Server_Main_IPv4.SendMagicNumber, DNSCURVE_MAGIC_QUERY_LEN);
+		memset(DNSCurve_Target_Server_Main_IPv4.SendMagicNumber, 0, DNSCURVE_MAGIC_QUERY_LEN);
 	if (DNSCurve_Target_Server_Alternate_IPv4.SendMagicNumber != nullptr)
-		sodium_memzero(DNSCurve_Target_Server_Alternate_IPv4.SendMagicNumber, DNSCURVE_MAGIC_QUERY_LEN);
+		memset(DNSCurve_Target_Server_Alternate_IPv4.SendMagicNumber, 0, DNSCURVE_MAGIC_QUERY_LEN);
 
 	return;
 }

@@ -20,7 +20,7 @@
 #ifndef PCAP_DNSPROXY_PRINTLOG_H
 #define PCAP_DNSPROXY_PRINTLOG_H
 
-#include "Base.h"
+#include "Include.h"
 
 //Global variables
 extern CONFIGURATION_TABLE Parameter;
@@ -30,6 +30,8 @@ extern std::vector<FILE_DATA> FileList_Config, FileList_IPFilter, FileList_Hosts
 extern std::vector<FILE_DATA> FileList_DNSCurveDatabase;
 #endif
 extern std::mutex ScreenLock;
+
+//Local variables
 std::mutex ErrorLogLock;
 
 //Functions

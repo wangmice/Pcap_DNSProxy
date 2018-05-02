@@ -20,9 +20,23 @@
 #ifndef PCAP_DNSPROXY_CONFIGURATION_H
 #define PCAP_DNSPROXY_CONFIGURATION_H
 
-#include "Base.h"
+#include "Include.h"
 
-//Type definitions
+//Size and length definitions
+#define BOM_UTF_16_LENGTH                     2U 
+#define BOM_UTF_32_LENGTH                     4U
+#define BOM_UTF_8_LENGTH                      3U
+#define READ_DATA_MINSIZE                     4U
+#define READ_TEXT_MINSIZE                     2U
+#define READ_PARAMETER_MINSIZE                8U
+#define READ_HOSTS_MINSIZE                    3U
+#define READ_HOSTS_ADDRESS_MINSIZE            5U
+#define READ_IPFILTER_MINSIZE                 3U
+#define READ_IPFILTER_MAIN_MINSIZE            5U
+#define READ_IPFILTER_BLACKLIST_MINSIZE       3U
+#define READ_IPFILTER_LOCAL_ROUTING_MINSIZE   4U
+
+//Structure definitions
 typedef enum class _label_ipfilter_type_
 {
 	NONE, 
@@ -43,19 +57,6 @@ typedef enum class _label_hosts_type_
 	ADDRESS, 
 	SOURCE
 }LABEL_HOSTS_TYPE;
-
-//Size and length definitions
-#define BOM_UTF_16_LENGTH                     2U 
-#define BOM_UTF_32_LENGTH                     4U
-#define BOM_UTF_8_LENGTH                      3U
-#define READ_DATA_MINSIZE                     4U
-#define READ_TEXT_MINSIZE                     2U
-#define READ_PARAMETER_MINSIZE                8U
-#define READ_HOSTS_MINSIZE                    3U
-#define READ_HOSTS_ADDRESS_MINSIZE            5U
-#define READ_IPFILTER_MINSIZE                 5U
-#define READ_IPFILTER_BLACKLIST_MINSIZE       3U
-#define READ_IPFILTER_LOCAL_ROUTING_MINSIZE   4U
 
 //Global variables
 extern CONFIGURATION_TABLE Parameter, ParameterModificating;
@@ -101,11 +102,123 @@ uint16_t ServiceNameToBinary(
 	const uint8_t * const OriginalBuffer);
 uint16_t DNSTypeNameToBinary(
 	const uint8_t * const OriginalBuffer);
-bool ReadParameterData(
+bool ReadParameterData_Whole(
 	std::string Data, 
 	const size_t FileIndex, 
 	const bool IsFirstRead, 
 	const size_t Line);
+bool ReadParameterData_Base(
+	const std::string &Data, 
+	const size_t FileIndex, 
+	const bool IsFirstRead, 
+	const size_t Line, 
+	CONFIGURATION_TABLE * const ParameterPointer, 
+	bool &IsFoundParameter);
+bool ReadParameterData_Log(
+	const std::string &Data, 
+	const size_t FileIndex, 
+//	const bool IsFirstRead, 
+	const size_t Line, 
+	CONFIGURATION_TABLE * const ParameterPointer, 
+	bool &IsFoundParameter);
+bool ReadParameterData_Listen(
+	const std::string &Data, 
+	const size_t FileIndex, 
+	const bool IsFirstRead, 
+	const size_t Line, 
+	CONFIGURATION_TABLE * const ParameterPointer, 
+	bool &IsFoundParameter);
+bool ReadParameterData_DNS(
+	const std::string &Data, 
+	const size_t FileIndex, 
+	const bool IsFirstRead, 
+	const size_t Line, 
+	CONFIGURATION_TABLE * const ParameterPointer, 
+	bool &IsFoundParameter);
+bool ReadParameterData_Local_DNS(
+	const std::string &Data, 
+//	const size_t FileIndex, 
+	const bool IsFirstRead, 
+//	const size_t Line, 
+	CONFIGURATION_TABLE * const ParameterPointer, 
+	bool &IsFoundParameter);
+bool ReadParameterData_Addresses(
+	const std::string &Data, 
+	const size_t FileIndex, 
+	const bool IsFirstRead, 
+	const size_t Line, 
+//	CONFIGURATION_TABLE * const ParameterPointer, 
+	bool &IsFoundParameter);
+bool ReadParameterData_Values(
+	const std::string &Data, 
+	const size_t FileIndex, 
+	const bool IsFirstRead, 
+	const size_t Line, 
+	CONFIGURATION_TABLE * const ParameterPointer, 
+	bool &IsFoundParameter);
+bool ReadParameterData_Switches(
+	const std::string &Data, 
+	const size_t FileIndex, 
+	const bool IsFirstRead, 
+	const size_t Line, 
+	CONFIGURATION_TABLE * const ParameterPointer, 
+	bool &IsFoundParameter);
+bool ReadParameterData_Data(
+	const std::string &Data, 
+	const size_t FileIndex, 
+	const bool IsFirstRead, 
+	const size_t Line, 
+	CONFIGURATION_TABLE * const ParameterPointer, 
+	bool &IsFoundParameter);
+bool ReadParameterData_Proxy(
+	const std::string &Data, 
+	const size_t FileIndex, 
+	const bool IsFirstRead, 
+	const size_t Line, 
+	CONFIGURATION_TABLE * const ParameterPointer, 
+	bool &IsFoundParameter);
+#if defined(ENABLE_LIBSODIUM)
+bool ReadParameterData_DNSCurve(
+	const std::string &Data, 
+	const size_t FileIndex, 
+	const bool IsFirstRead, 
+	const size_t Line, 
+//	CONFIGURATION_TABLE * const ParameterPointer, 
+	DNSCURVE_CONFIGURATION_TABLE * const DNSCurveParameterPointer, 
+	bool &IsFoundParameter);
+bool ReadParameterData_DNSCurve_Database(
+	const std::string &Data, 
+	const size_t FileIndex, 
+	const bool IsFirstRead, 
+	const size_t Line, 
+//	CONFIGURATION_TABLE * const ParameterPointer, 
+//	DNSCURVE_CONFIGURATION_TABLE * const DNSCurveParameterPointer, 
+	bool &IsFoundParameter);
+bool ReadParameterData_DNSCurve_Addresses(
+	const std::string &Data, 
+	const size_t FileIndex, 
+	const bool IsFirstRead, 
+	const size_t Line, 
+//	CONFIGURATION_TABLE * const ParameterPointer, 
+//	DNSCURVE_CONFIGURATION_TABLE * const DNSCurveParameterPointer, 
+	bool &IsFoundParameter);
+bool ReadParameterData_DNSCurve_Keys(
+	const std::string &Data, 
+	const size_t FileIndex, 
+//	const bool IsFirstRead, 
+	const size_t Line, 
+//	CONFIGURATION_TABLE * const ParameterPointer, 
+	DNSCURVE_CONFIGURATION_TABLE * const DNSCurveParameterPointer, 
+	bool &IsFoundParameter);
+bool ReadParameterData_DNSCurve_Magic_Number(
+	const std::string &Data, 
+	const size_t FileIndex, 
+//	const bool IsFirstRead, 
+	const size_t Line, 
+//	CONFIGURATION_TABLE * const ParameterPointer, 
+	DNSCURVE_CONFIGURATION_TABLE * const DNSCurveParameterPointer, 
+	bool &IsFoundParameter);
+#endif
 bool ReadName_PathFile(
 	std::string Data, 
 	const size_t DataOffset, 

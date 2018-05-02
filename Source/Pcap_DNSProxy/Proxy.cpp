@@ -236,11 +236,11 @@ size_t SOCKS_TCP_Request(
 //Add length of request packet.
 	if (SocketSelectingDataList.front().SendSize <= SendSize + sizeof(uint16_t))
 	{
-		auto SendBuffer = std::make_unique<uint8_t[]>(SendSize + sizeof(uint16_t) + PADDING_RESERVED_BYTES);
-		memset(SendBuffer.get(), 0, SendSize + sizeof(uint16_t) + PADDING_RESERVED_BYTES);
-		memcpy_s(SendBuffer.get(), SendSize + sizeof(uint16_t), OriginalSend, SendSize);
+		auto SendBuffer = std::make_unique<uint8_t[]>(SendSize + sizeof(uint16_t) + MEMORY_BUFFER_EXPAND_BYTES + MEMORY_RESERVED_BYTES);
+		memset(SendBuffer.get(), 0, SendSize + sizeof(uint16_t) + MEMORY_BUFFER_EXPAND_BYTES + MEMORY_RESERVED_BYTES);
+		memcpy_s(SendBuffer.get(), SendSize + sizeof(uint16_t) + MEMORY_RESERVED_BYTES, OriginalSend, SendSize);
 		std::swap(SocketSelectingDataList.front().SendBuffer, SendBuffer);
-		SocketSelectingDataList.front().SendSize = SendSize + sizeof(uint16_t);
+		SocketSelectingDataList.front().SendSize = SendSize + sizeof(uint16_t) + MEMORY_RESERVED_BYTES;
 		SocketSelectingDataList.front().SendLen = SendSize;
 	}
 	auto RecvLen = AddLengthDataToHeader(SocketSelectingDataList.front().SendBuffer.get(), SocketSelectingDataList.front().SendLen, SocketSelectingDataList.front().SendSize);
@@ -460,8 +460,8 @@ size_t SOCKS_UDP_Request(
 //Buffer initialization(Part 1)
 	if (UDPSocketSelectingDataList.front().SendSize <= Parameter.LargeBufferSize)
 	{
-		auto SendBuffer = std::make_unique<uint8_t[]>(Parameter.LargeBufferSize + PADDING_RESERVED_BYTES);
-		memset(SendBuffer.get(), 0, Parameter.LargeBufferSize + PADDING_RESERVED_BYTES);
+		auto SendBuffer = std::make_unique<uint8_t[]>(Parameter.LargeBufferSize + MEMORY_RESERVED_BYTES);
+		memset(SendBuffer.get(), 0, Parameter.LargeBufferSize + MEMORY_RESERVED_BYTES);
 		std::swap(UDPSocketSelectingDataList.front().SendBuffer, SendBuffer);
 		UDPSocketSelectingDataList.front().SendSize = Parameter.LargeBufferSize;
 		UDPSocketSelectingDataList.front().SendLen = 0;
@@ -642,8 +642,8 @@ bool SOCKS_SelectionExchange(
 //Client selection packet
 	reinterpret_cast<socks_client_selection *>(SocketSelectingDataList.front().SendBuffer.get())->Version = SOCKS_VERSION_5;
 	reinterpret_cast<socks_client_selection *>(SocketSelectingDataList.front().SendBuffer.get())->Methods_1 = SOCKS_METHOD_NO_AUTHENTICATION_REQUIRED;
-	if (Parameter.SOCKS_Username != nullptr && !Parameter.SOCKS_Username->empty() && 
-		Parameter.SOCKS_Password != nullptr && !Parameter.SOCKS_Password->empty())
+	if (Parameter.SOCKS_Username != nullptr && Parameter.SOCKS_UsernameLength > 0 && 
+		Parameter.SOCKS_Password != nullptr && Parameter.SOCKS_PasswordLength > 0)
 	{
 		reinterpret_cast<socks_client_selection *>(SocketSelectingDataList.front().SendBuffer.get())->Methods_Number = SOCKS_METHOD_SUPPORT_NUM;
 		reinterpret_cast<socks_client_selection *>(SocketSelectingDataList.front().SendBuffer.get())->Methods_2 = SOCKS_METHOD_USERNAME_PASSWORD;
@@ -701,8 +701,8 @@ bool SOCKS_SelectionExchange(
 			case SOCKS_METHOD_USERNAME_PASSWORD:
 			{
 			//Username or password authentication process
-				if (Parameter.SOCKS_Username != nullptr && !Parameter.SOCKS_Username->empty() && 
-					Parameter.SOCKS_Password != nullptr && !Parameter.SOCKS_Password->empty())
+				if (Parameter.SOCKS_Username != nullptr && Parameter.SOCKS_UsernameLength > 0 && 
+					Parameter.SOCKS_Password != nullptr && Parameter.SOCKS_PasswordLength > 0)
 				{
 					if (!SOCKS_AuthenticationExchange(SocketDataList, SocketSelectingDataList, ErrorCodeList))
 					{
@@ -738,12 +738,12 @@ bool SOCKS_AuthenticationExchange(
 		return false;
 
 //Buffer initialization
-	if (SocketSelectingDataList.front().SendSize <= sizeof(socks_client_user_authentication) + sizeof(uint8_t) * 2U + Parameter.SOCKS_Username->length() + Parameter.SOCKS_Password->length())
+	if (SocketSelectingDataList.front().SendSize <= sizeof(socks_client_user_authentication) + sizeof(uint8_t) * 2U + Parameter.SOCKS_UsernameLength + Parameter.SOCKS_PasswordLength)
 	{
-		auto SendBuffer = std::make_unique<uint8_t[]>(sizeof(socks_client_user_authentication) + sizeof(uint8_t) * 2U + Parameter.SOCKS_Username->length() + Parameter.SOCKS_Password->length() + PADDING_RESERVED_BYTES);
-		memset(SendBuffer.get(), 0, sizeof(socks_client_user_authentication) + sizeof(uint8_t) * 2U + Parameter.SOCKS_Username->length() + Parameter.SOCKS_Password->length() + PADDING_RESERVED_BYTES);
+		auto SendBuffer = std::make_unique<uint8_t[]>(sizeof(socks_client_user_authentication) + sizeof(uint8_t) * 2U + Parameter.SOCKS_UsernameLength + Parameter.SOCKS_PasswordLength + MEMORY_RESERVED_BYTES);
+		memset(SendBuffer.get(), 0, sizeof(socks_client_user_authentication) + sizeof(uint8_t) * 2U + Parameter.SOCKS_UsernameLength + Parameter.SOCKS_PasswordLength + MEMORY_RESERVED_BYTES);
 		std::swap(SocketSelectingDataList.front().SendBuffer, SendBuffer);
-		SocketSelectingDataList.front().SendSize = sizeof(socks_client_user_authentication) + sizeof(uint8_t) * 2U + Parameter.SOCKS_Username->length() + Parameter.SOCKS_Password->length();
+		SocketSelectingDataList.front().SendSize = sizeof(socks_client_user_authentication) + sizeof(uint8_t) * 2U + Parameter.SOCKS_UsernameLength + Parameter.SOCKS_PasswordLength;
 		SocketSelectingDataList.front().SendLen = 0;
 	}
 
@@ -751,14 +751,14 @@ bool SOCKS_AuthenticationExchange(
 	size_t RecvLen = 0;
 	reinterpret_cast<socks_client_user_authentication *>(SocketSelectingDataList.front().SendBuffer.get())->Version = SOCKS_USERNAME_PASSWORD_VERSION;
 	RecvLen += sizeof(socks_client_user_authentication);
-	*(reinterpret_cast<uint8_t *>(SocketSelectingDataList.front().SendBuffer.get() + RecvLen)) = static_cast<uint8_t>(Parameter.SOCKS_Username->length());
+	*(reinterpret_cast<uint8_t *>(SocketSelectingDataList.front().SendBuffer.get() + RecvLen)) = static_cast<uint8_t>(Parameter.SOCKS_UsernameLength);
 	RecvLen += sizeof(uint8_t);
-	memcpy_s(SocketSelectingDataList.front().SendBuffer.get() + RecvLen, SocketSelectingDataList.front().SendSize - RecvLen, Parameter.SOCKS_Username->c_str(), Parameter.SOCKS_Username->length());
-	RecvLen += Parameter.SOCKS_Username->length();
-	*(reinterpret_cast<uint8_t *>(SocketSelectingDataList.front().SendBuffer.get() + RecvLen)) = static_cast<uint8_t>(Parameter.SOCKS_Password->length());
+	memcpy_s(SocketSelectingDataList.front().SendBuffer.get() + RecvLen, SocketSelectingDataList.front().SendSize - RecvLen, Parameter.SOCKS_Username, Parameter.SOCKS_UsernameLength);
+	RecvLen += Parameter.SOCKS_UsernameLength;
+	*(reinterpret_cast<uint8_t *>(SocketSelectingDataList.front().SendBuffer.get() + RecvLen)) = static_cast<uint8_t>(Parameter.SOCKS_PasswordLength);
 	RecvLen += sizeof(uint8_t);
-	memcpy_s(SocketSelectingDataList.front().SendBuffer.get() + RecvLen, SocketSelectingDataList.front().SendSize - RecvLen, Parameter.SOCKS_Password->c_str(), Parameter.SOCKS_Password->length());
-	RecvLen += Parameter.SOCKS_Password->length();
+	memcpy_s(SocketSelectingDataList.front().SendBuffer.get() + RecvLen, SocketSelectingDataList.front().SendSize - RecvLen, Parameter.SOCKS_Password, Parameter.SOCKS_PasswordLength);
+	RecvLen += Parameter.SOCKS_PasswordLength;
 
 //Username/password authentication exchange and server reply check
 	SocketSelectingDataList.front().RecvBuffer.reset();
@@ -791,8 +791,8 @@ bool SOCKS_ClientCommandRequest(
 //Buffer initialization
 	if (SocketSelectingDataList.front().SendSize <= Parameter.LargeBufferSize)
 	{
-		auto SendBuffer = std::make_unique<uint8_t[]>(Parameter.LargeBufferSize + PADDING_RESERVED_BYTES);
-		memset(SendBuffer.get(), 0, Parameter.LargeBufferSize + PADDING_RESERVED_BYTES);
+		auto SendBuffer = std::make_unique<uint8_t[]>(Parameter.LargeBufferSize + MEMORY_RESERVED_BYTES);
+		memset(SendBuffer.get(), 0, Parameter.LargeBufferSize + MEMORY_RESERVED_BYTES);
 		std::swap(SocketSelectingDataList.front().SendBuffer, SendBuffer);
 		SocketSelectingDataList.front().SendSize = Parameter.LargeBufferSize;
 		SocketSelectingDataList.front().SendLen = 0;
@@ -878,10 +878,10 @@ bool SOCKS_ClientCommandRequest(
 		RecvLen = sizeof(socks4_client_command_request);
 
 	//Write UserID.
-		if (Parameter.SOCKS_Username != nullptr && !Parameter.SOCKS_Username->empty())
+		if (Parameter.SOCKS_Username != nullptr && Parameter.SOCKS_UsernameLength > 0)
 		{
-			memcpy_s(SocketSelectingDataList.front().SendBuffer.get() + (RecvLen - sizeof(uint8_t)), SocketSelectingDataList.front().SendSize - (RecvLen - sizeof(uint8_t)), Parameter.SOCKS_Username->c_str(), Parameter.SOCKS_Username->length());
-			RecvLen += Parameter.SOCKS_Username->length();
+			memcpy_s(SocketSelectingDataList.front().SendBuffer.get() + (RecvLen - sizeof(uint8_t)), SocketSelectingDataList.front().SendSize - (RecvLen - sizeof(uint8_t)), Parameter.SOCKS_Username, Parameter.SOCKS_UsernameLength);
+			RecvLen += Parameter.SOCKS_UsernameLength;
 		}
 
 	//Write target domain.
@@ -1071,8 +1071,8 @@ bool HTTP_CONNECT_2_HEADERS_WriteBytes(
 		ExtendedSize += Length + DEFAULT_LARGE_BUFFER_SIZE;
 	if (SocketSelectingDataList.front().SendSize <= SocketSelectingDataList.front().SendLen + ExtendedSize)
 	{
-		auto SendBuffer = std::make_unique<uint8_t[]>(SocketSelectingDataList.front().SendSize + ExtendedSize + PADDING_RESERVED_BYTES);
-		memset(SendBuffer.get(), 0, SocketSelectingDataList.front().SendSize + ExtendedSize + PADDING_RESERVED_BYTES);
+		auto SendBuffer = std::make_unique<uint8_t[]>(SocketSelectingDataList.front().SendSize + ExtendedSize + MEMORY_RESERVED_BYTES);
+		memset(SendBuffer.get(), 0, SocketSelectingDataList.front().SendSize + ExtendedSize + MEMORY_RESERVED_BYTES);
 		memcpy_s(SendBuffer.get(), SocketSelectingDataList.front().SendSize + ExtendedSize, SocketSelectingDataList.front().SendBuffer.get(), SocketSelectingDataList.front().SendLen);
 		std::swap(SocketSelectingDataList.front().SendBuffer, SendBuffer);
 		SocketSelectingDataList.front().SendSize += ExtendedSize;
@@ -1652,9 +1652,9 @@ bool HTTP_CONNECT_2_HEADERS_ReadBytes(
 				Index += IntegerSize;
 
 		//Read Names and Values.
-			const auto HeaderBuffer = std::make_unique<uint8_t[]>(LiteralSize + PADDING_RESERVED_BYTES);
-			memset(HeaderBuffer.get(), 0, LiteralSize + PADDING_RESERVED_BYTES);
-			memcpy_s(HeaderBuffer.get(), LiteralSize + PADDING_RESERVED_BYTES, Buffer + Index, LiteralSize);
+			const auto HeaderBuffer = std::make_unique<uint8_t[]>(LiteralSize + MEMORY_RESERVED_BYTES);
+			memset(HeaderBuffer.get(), 0, LiteralSize + MEMORY_RESERVED_BYTES);
+			memcpy_s(HeaderBuffer.get(), LiteralSize + MEMORY_RESERVED_BYTES, Buffer + Index, LiteralSize);
 			HeaderList.push_back(reinterpret_cast<char *>(HeaderBuffer.get()));
 			Index += LiteralSize;
 		}
@@ -1674,7 +1674,7 @@ bool HTTP_CONNECT_ResponseBytesCheck(
 	if (Parameter.HTTP_CONNECT_Version == HTTP_VERSION_SELECTION::VERSION_1)
 	{
 	//Length check
-		if (strnlen_s(reinterpret_cast<const char *>(SocketSelectingDataList.front().RecvBuffer.get()), SocketSelectingDataList.front().RecvLen + PADDING_RESERVED_BYTES) > SocketSelectingDataList.front().RecvLen)
+		if (strnlen_s(reinterpret_cast<const char *>(SocketSelectingDataList.front().RecvBuffer.get()), SocketSelectingDataList.front().RecvLen + MEMORY_RESERVED_BYTES) > SocketSelectingDataList.front().RecvLen)
 			goto PrintDataFormatError;
 
 	//HTTP version 1.x response
@@ -1706,7 +1706,7 @@ bool HTTP_CONNECT_ResponseBytesCheck(
 		if (*SocketSelectingDataList.front().RecvBuffer.get() > 0)
 		{
 		//Length check
-			if (strnlen_s(reinterpret_cast<const char *>(SocketSelectingDataList.front().RecvBuffer.get()), SocketSelectingDataList.front().RecvLen + PADDING_RESERVED_BYTES) > SocketSelectingDataList.front().RecvLen)
+			if (strnlen_s(reinterpret_cast<const char *>(SocketSelectingDataList.front().RecvBuffer.get()), SocketSelectingDataList.front().RecvLen + MEMORY_RESERVED_BYTES) > SocketSelectingDataList.front().RecvLen)
 				goto PrintDataFormatError;
 
 		//HTTP version 1.x response
@@ -1793,12 +1793,12 @@ bool HTTP_CONNECT_ResponseBytesCheck(
 				//Buffer initialization
 					if (HeaderBlockSize <= HeaderBlockLength + ntohs(FrameHeader->Length_Low))
 					{
-						auto HeaderBuffer = std::make_unique<uint8_t[]>(HeaderBlockSize + ntohs(FrameHeader->Length_Low) + PADDING_RESERVED_BYTES);
-						memset(HeaderBuffer.get(), 0, HeaderBlockSize + ntohs(FrameHeader->Length_Low) + PADDING_RESERVED_BYTES);
+						auto HeaderBuffer = std::make_unique<uint8_t[]>(HeaderBlockSize + ntohs(FrameHeader->Length_Low) + MEMORY_RESERVED_BYTES);
+						memset(HeaderBuffer.get(), 0, HeaderBlockSize + ntohs(FrameHeader->Length_Low) + MEMORY_RESERVED_BYTES);
 						if (HeaderBlockBuffer)
-							memcpy_s(HeaderBuffer.get(), HeaderBlockSize + ntohs(FrameHeader->Length_Low) + PADDING_RESERVED_BYTES, HeaderBlockBuffer.get(), HeaderBlockLength);
+							memcpy_s(HeaderBuffer.get(), HeaderBlockSize + ntohs(FrameHeader->Length_Low) + MEMORY_RESERVED_BYTES, HeaderBlockBuffer.get(), HeaderBlockLength);
 						std::swap(HeaderBlockBuffer, HeaderBuffer);
-						HeaderBlockSize += ntohs(FrameHeader->Length_Low) + PADDING_RESERVED_BYTES;
+						HeaderBlockSize += ntohs(FrameHeader->Length_Low) + MEMORY_RESERVED_BYTES;
 					}
 
 				//Write to buffer.
@@ -2060,11 +2060,11 @@ size_t HTTP_CONNECT_Request(
 	//Buffer initialization
 		if (SocketSelectingDataList.front().SendSize <= SendSize + sizeof(uint16_t))
 		{
-			auto SendBuffer = std::make_unique<uint8_t[]>(SendSize + sizeof(uint16_t) + PADDING_RESERVED_BYTES);
-			memset(SendBuffer.get(), 0, SendSize + sizeof(uint16_t) + PADDING_RESERVED_BYTES);
-			memcpy_s(SendBuffer.get(), SendSize + sizeof(uint16_t), OriginalSend, SendSize);
+			auto SendBuffer = std::make_unique<uint8_t[]>(SendSize + sizeof(uint16_t) + MEMORY_BUFFER_EXPAND_BYTES + MEMORY_RESERVED_BYTES);
+			memset(SendBuffer.get(), 0, SendSize + sizeof(uint16_t) + MEMORY_BUFFER_EXPAND_BYTES + MEMORY_RESERVED_BYTES);
+			memcpy_s(SendBuffer.get(), SendSize + sizeof(uint16_t) + MEMORY_RESERVED_BYTES, OriginalSend, SendSize);
 			std::swap(SocketSelectingDataList.front().SendBuffer, SendBuffer);
-			SocketSelectingDataList.front().SendSize = SendSize + sizeof(uint16_t);
+			SocketSelectingDataList.front().SendSize = SendSize + sizeof(uint16_t) + MEMORY_RESERVED_BYTES;
 		}
 
 	//Write request to buffer.
@@ -2076,11 +2076,11 @@ size_t HTTP_CONNECT_Request(
 	//Buffer initialization
 		if (SocketSelectingDataList.front().SendSize <= SocketSelectingDataList.front().SendLen + sizeof(http2_frame_hdr) + sizeof(uint16_t) + SendSize)
 		{
-			auto SendBuffer = std::make_unique<uint8_t[]>(SocketSelectingDataList.front().SendLen + sizeof(http2_frame_hdr) + sizeof(uint16_t) + SendSize + PADDING_RESERVED_BYTES);
-			memset(SendBuffer.get(), 0, SocketSelectingDataList.front().SendLen + sizeof(http2_frame_hdr) + sizeof(uint16_t) + SendSize + PADDING_RESERVED_BYTES);
-			memcpy_s(SendBuffer.get(), SocketSelectingDataList.front().SendLen + sizeof(http2_frame_hdr) + sizeof(uint16_t) + SendSize, SocketSelectingDataList.front().SendBuffer.get(), SocketSelectingDataList.front().SendLen);
+			auto SendBuffer = std::make_unique<uint8_t[]>(SocketSelectingDataList.front().SendLen + sizeof(http2_frame_hdr) + sizeof(uint16_t) + SendSize + MEMORY_BUFFER_EXPAND_BYTES + MEMORY_RESERVED_BYTES);
+			memset(SendBuffer.get(), 0, SocketSelectingDataList.front().SendLen + sizeof(http2_frame_hdr) + sizeof(uint16_t) + SendSize + MEMORY_BUFFER_EXPAND_BYTES + MEMORY_RESERVED_BYTES);
+			memcpy_s(SendBuffer.get(), SocketSelectingDataList.front().SendLen + sizeof(http2_frame_hdr) + sizeof(uint16_t) + SendSize + MEMORY_RESERVED_BYTES, SocketSelectingDataList.front().SendBuffer.get(), SocketSelectingDataList.front().SendLen);
 			std::swap(SocketSelectingDataList.front().SendBuffer, SendBuffer);
-			SocketSelectingDataList.front().SendSize = SocketSelectingDataList.front().SendLen + sizeof(http2_frame_hdr) + sizeof(uint16_t) + SendSize;
+			SocketSelectingDataList.front().SendSize = SocketSelectingDataList.front().SendLen + sizeof(http2_frame_hdr) + sizeof(uint16_t) + SendSize + MEMORY_RESERVED_BYTES;
 		}
 
 	//DATA frame
@@ -2358,10 +2358,10 @@ bool HTTP_CONNECT_Exchange(
 		}
 
 	//Extended header Proxy-Authorization field
-		if (Parameter.HTTP_CONNECT_ProxyAuthorization != nullptr && !Parameter.HTTP_CONNECT_ProxyAuthorization->empty())
+		if (Parameter.HTTP_CONNECT_ProxyAuthorization != nullptr && Parameter.HTTP_CONNECT_ProxyAuthorizationLength > 0)
 		{
 			HTTP_String.append("Proxy-Authorization: ");
-			HTTP_String.append(*Parameter.HTTP_CONNECT_ProxyAuthorization);
+			HTTP_String.append(reinterpret_cast<const char *>(Parameter.HTTP_CONNECT_ProxyAuthorization));
 			HTTP_String.append("\r\n");
 		}
 
@@ -2371,8 +2371,8 @@ bool HTTP_CONNECT_Exchange(
 	//Buffer initialization
 		if (SocketSelectingDataList.front().SendSize <= HTTP_String.length())
 		{
-			auto SendBuffer = std::make_unique<uint8_t[]>(HTTP_String.length() + PADDING_RESERVED_BYTES);
-			memset(SendBuffer.get(), 0, HTTP_String.length() + PADDING_RESERVED_BYTES);
+			auto SendBuffer = std::make_unique<uint8_t[]>(HTTP_String.length() + MEMORY_RESERVED_BYTES);
+			memset(SendBuffer.get(), 0, HTTP_String.length() + MEMORY_RESERVED_BYTES);
 			memcpy_s(SendBuffer.get(), HTTP_String.length(), HTTP_String.c_str(), HTTP_String.length());
 			std::swap(SocketSelectingDataList.front().SendBuffer, SendBuffer);
 			SocketSelectingDataList.front().SendSize = HTTP_String.length();
@@ -2443,9 +2443,9 @@ bool HTTP_CONNECT_Exchange(
 		}
 
 	//Extended header proxy-authorization field(HEADERS frame)
-		if (Parameter.HTTP_CONNECT_ProxyAuthorization != nullptr && !Parameter.HTTP_CONNECT_ProxyAuthorization->empty() && 
+		if (Parameter.HTTP_CONNECT_ProxyAuthorization != nullptr && Parameter.HTTP_CONNECT_ProxyAuthorizationLength > 0 && 
 			(!HTTP_CONNECT_2_HEADERS_WriteBytes(SocketSelectingDataList, reinterpret_cast<const uint8_t *>("proxy-authorization"), strlen("proxy-authorization"), true) || 
-			!HTTP_CONNECT_2_HEADERS_WriteBytes(SocketSelectingDataList, const_cast<uint8_t *>(reinterpret_cast<const uint8_t *>(Parameter.HTTP_CONNECT_ProxyAuthorization->c_str())), Parameter.HTTP_CONNECT_ProxyAuthorization->length(), false)))
+			!HTTP_CONNECT_2_HEADERS_WriteBytes(SocketSelectingDataList, Parameter.HTTP_CONNECT_ProxyAuthorization, Parameter.HTTP_CONNECT_ProxyAuthorizationLength, false)))
 				return false;
 
 	//Packet initialization(HEADERS frame, part 2)
@@ -2476,9 +2476,9 @@ bool HTTP_CONNECT_Exchange(
 		//Buffer initialization
 			if (SocketSelectingDataList.front().RecvSize <= SocketSelectingDataList.front().RecvLen)
 			{
-				auto RecvBuffer = std::make_unique<uint8_t[]>(SocketSelectingDataList.front().RecvSize + PADDING_RESERVED_BYTES);
-				memset(RecvBuffer.get(), 0, SocketSelectingDataList.front().RecvSize + PADDING_RESERVED_BYTES);
-				SocketSelectingDataList.front().RecvSize += PADDING_RESERVED_BYTES;
+				auto RecvBuffer = std::make_unique<uint8_t[]>(SocketSelectingDataList.front().RecvSize + MEMORY_RESERVED_BYTES);
+				memset(RecvBuffer.get(), 0, SocketSelectingDataList.front().RecvSize + MEMORY_RESERVED_BYTES);
+				SocketSelectingDataList.front().RecvSize += MEMORY_RESERVED_BYTES;
 				memcpy_s(RecvBuffer.get(), SocketSelectingDataList.front().RecvSize, SocketSelectingDataList.front().RecvBuffer.get(), SocketSelectingDataList.front().RecvLen);
 				std::swap(SocketSelectingDataList.front().RecvBuffer, RecvBuffer);
 			}
@@ -2532,9 +2532,9 @@ bool HTTP_CONNECT_Exchange(
 //Buffer initialization
 	if (SocketSelectingDataList.front().RecvSize <= SocketSelectingDataList.front().RecvLen)
 	{
-		auto RecvBuffer = std::make_unique<uint8_t[]>(SocketSelectingDataList.front().RecvSize + PADDING_RESERVED_BYTES);
-		memset(RecvBuffer.get(), 0, SocketSelectingDataList.front().RecvSize + PADDING_RESERVED_BYTES);
-		SocketSelectingDataList.front().RecvSize += PADDING_RESERVED_BYTES;
+		auto RecvBuffer = std::make_unique<uint8_t[]>(SocketSelectingDataList.front().RecvSize + MEMORY_RESERVED_BYTES);
+		memset(RecvBuffer.get(), 0, SocketSelectingDataList.front().RecvSize + MEMORY_RESERVED_BYTES);
+		SocketSelectingDataList.front().RecvSize += MEMORY_RESERVED_BYTES;
 		memcpy_s(RecvBuffer.get(), SocketSelectingDataList.front().RecvSize, SocketSelectingDataList.front().RecvBuffer.get(), SocketSelectingDataList.front().RecvLen);
 		std::swap(SocketSelectingDataList.front().RecvBuffer, RecvBuffer);
 	}
@@ -2725,12 +2725,12 @@ size_t HTTP_CONNECT_Transport(
 				//Buffer initialization
 					if (DataBlockSize <= DataBlockLength + ntohs(FrameHeader->Length_Low))
 					{
-						auto DataBuffer = std::make_unique<uint8_t[]>(DataBlockSize + ntohs(FrameHeader->Length_Low) + PADDING_RESERVED_BYTES);
-						memset(DataBuffer.get(), 0, DataBlockSize + ntohs(FrameHeader->Length_Low) + PADDING_RESERVED_BYTES);
+						auto DataBuffer = std::make_unique<uint8_t[]>(DataBlockSize + ntohs(FrameHeader->Length_Low) + MEMORY_RESERVED_BYTES);
+						memset(DataBuffer.get(), 0, DataBlockSize + ntohs(FrameHeader->Length_Low) + MEMORY_RESERVED_BYTES);
 						if (DataBlockBuffer)
-							memcpy_s(DataBuffer.get(), DataBlockSize + ntohs(FrameHeader->Length_Low) + PADDING_RESERVED_BYTES, DataBlockBuffer.get(), DataBlockLength);
+							memcpy_s(DataBuffer.get(), DataBlockSize + ntohs(FrameHeader->Length_Low) + MEMORY_RESERVED_BYTES, DataBlockBuffer.get(), DataBlockLength);
 						std::swap(DataBlockBuffer, DataBuffer);
-						DataBlockSize += ntohs(FrameHeader->Length_Low) + PADDING_RESERVED_BYTES;
+						DataBlockSize += ntohs(FrameHeader->Length_Low) + MEMORY_RESERVED_BYTES;
 					}
 
 				//Write to buffer.

@@ -10,7 +10,7 @@ https://sourceforge.net/projects/pcap-dnsproxy
 
 安裝方法（需要以管理員身份進行）：
 
-1.訪問 https://www.winpcap.org/install/default.htm 下載並以管理員許可權安裝 WinPcap
+1.訪問 https://www.winpcap.org 下載並以管理員許可權安裝 WinPcap
   * WinPcap 只需要安裝一次，以前安裝過最新版本或以後更新本工具時請從第 2 步開始操作
   * 如果 WinPcap 提示已安裝舊版本無法繼續時，參見 FAQ 中 運行結果分析 一節
   * 安裝時自啟動選項對工具的運行沒有影響，本工具直接調用 WinPcap API 不需要經過伺服器程式
@@ -50,7 +50,7 @@ https://sourceforge.net/projects/pcap-dnsproxy
   * 服務啟動前請先確認監聽的位址和埠是否有被其它程式或程式本身的其它實例佔用，否則可能會導致監聽衝突無法正常工作
   * 殺毒軟體/協力廠商防火牆可能會阻止本程式的操作，請將行為全部允許或將本程式加入到白名單中
   * 如果啟動服務時提示 "服務沒有及時回應啟動或者控制請求" 請留意是否有錯誤報表生成，詳細的錯誤資訊參見 FAQ 文檔中 Error.log 詳細錯誤報表 一節
-  * 目錄和程式的名稱可以隨意更改，但請務必在進行安裝方法第 4 步前完成。如果服務註冊後需移動工具目錄的路徑，參見上文 卸載方法 第2步的注意事項
+  * 目錄和程式的名稱可以隨意更改，但請務必在進行安裝方法第 4 步前完成。如果服務註冊後需移動工具目錄的路徑，參見上文 卸載方法 第 2 步的注意事項
   * Windows XP 如出現 10022 錯誤，需要先啟用系統的 IPv6 支援（以管理員身份運行 cmd 輸入 ipv6 install 並回車，一次性操作），再重新開機服務
   * 本專案僅對最新版本提供技術支援，在新版本發佈後舊版本的支援會即時停止，回饋前請先務必升級到最新版本
 
@@ -64,14 +64,14 @@ https://sourceforge.net/projects/pcap-dnsproxy
 
 
 更新程式方法（需要以管理員身份進行，切勿直接覆蓋，否則可能會造成不可預料的錯誤）：
-1.提前下載好新版本的 Pcap_DNSProxy（亦即 安裝方法 中第2步），更新過程可能會造成網域名稱解析短暫中斷
+1.提前下載好新版本的 Pcap_DNSProxy（亦即 安裝方法 中第 2 步），更新過程可能會造成網域名稱解析短暫中斷
 2.備份好所有設定檔 Hosts 檔 IPFilter 檔的自訂內容
 3.右鍵以管理員身份(Vista 以及更新版本)或直接以管理員登錄按兩下(XP/2003)運行 ServiceControl.bat
 4.輸入 2 並回車，即選擇 "2: Uninstall service" 卸載服務
 4.將整個 Pcap_DNSProxy 程式的目錄刪除。注意 Windows 防火牆可能會留有允許程式訪問網路的資訊，卸載服務後又變更了程式的目錄則可能需要使用註冊表清理工具清理
 5.將新版本的 Pcap_DNSProxy 解壓到任何位置（亦即 安裝方法 中第 3 步）
 6.將設定檔的自訂內容加回新版本設定檔裡相應的區域內
-7.按照 安裝方法 中第4步重新部署 Pcap_DNSProxy
+7.按照 安裝方法 中第 4 步重新部署 Pcap_DNSProxy
 
 
 安全模式下的使用方法（需要以管理員身份進行）：
@@ -80,7 +80,7 @@ https://sourceforge.net/projects/pcap-dnsproxy
 
 
 卸載方法（需要以管理員身份進行）：
-1.按照 安裝方法 中第6步還原 DNS 網域名稱伺服器位址配置
+1.按照 安裝方法 中第 6 步還原 DNS 網域名稱伺服器位址配置
 2.右鍵以管理員身份(Vista 以及更新版本)或直接以管理員登錄按兩下(XP/2003)運行 ServiceControl.bat
   * 輸入 2 並回車，即選擇 "2: Uninstall service" 卸載服務
   * 注意：Windows 防火牆可能會留有允許程式訪問網路的資訊，故卸載後可能需要使用註冊表清理工具清理
@@ -126,13 +126,10 @@ https://sourceforge.net/projects/pcap-dnsproxy
     * 非標準 DNS 埠現階段尚未被干擾，此組合的過濾效果比較可靠
   * Multiple Request Times = xx 時：應用到所有除請求境內伺服器外的所有請求，一個請求多次發送功能
     * 此功能用於對抗網路丟包比較嚴重的情況，對系統和網路資源的佔用都比較高，但在網路環境惡劣的情況下能提高獲得解析結果的可靠性
-  * DNSCurve = 1 同時 Encryption = 0：使用 DNSCurve(DNSCrypt) 非加密模式請求網域名稱解析
-    * 此組合等於使用非標準 DNS 埠請求，網域名稱解析可靠性比較高，詳細情況參見上文
   * DNSCurve = 1 同時 Encryption = 1：使用 DNSCurve(DNSCrypt) 加密模式請求網域名稱解析
     * 此組合加密傳輸所有網域名稱請求，網域名稱解析可靠性最高
-  * DNSCurve = 1 同時 Encryption = 1 同時 Encryption Only = 1：只使用 DNSCurve(DNSCrypt) 加密模式請求網域名稱解析
-    * 上文的加密組合並不阻止程式在請求 DNSCurve(DNSCrypt) 加密模式失敗是使用其它協定請求網域名稱解析，開啟 Encryption Only = 1 後將只允許使用加密傳輸，安全性和可靠性最高，但網域名稱解析成功率可能會下降
 * 優化大量請求下程式表現：
+  * 關閉所有使用 TCP 協定的對外請求，TCP 協定的資源佔用率比預設的 UDP 協定要高
   * Pcap Reading Timeout 適當調低這個參數能使抓包模組以更高的頻率抓取資料包，降低延遲
   * Cache Parameter + Default TTL 儘量調高這個參數能增加緩存的存留時間或者佇列長度，提高緩存命中率
   * Thread Pool Maximum Number 適當調高這個參數能可以增大緩衝區最大可容納請求的數量
@@ -246,10 +243,10 @@ https://sourceforge.net/projects/pcap-dnsproxy
     * 填入多個埠時，程式將會同時監聽請求
     * 當相應協定的 Listen Address 生效時，相應協定的本參數將會被自動忽略
   * Operation Mode - 程式的監聽工作模式：分 Server/伺服器模式、Private/私有網路模式 和 Proxy/代理模式
-    * Server/伺服器模式：打開 DNS 通用埠（TCP/UDP 同時打開），可為所有其它設備提供代理網域名稱解析請求服務
-    * Private/私有網路模式：打開 DNS 通用埠（TCP/UDP 同時打開），可為僅限於私有網路位址的設備提供代理網域名稱解析請求服務
-    * Proxy/代理模式：只打開回環位址的 DNS 埠（TCP/UDP 同時打開），只能為本機提供代理網域名稱解析請求服務
-    * Custom/自訂模式：打開 DNS 通用埠（TCP/UDP 同時打開），可用的位址由 IPFilter 參數決定
+    * Server/伺服器模式：打開 DNS 通用埠，可為所有其它設備提供代理網域名稱解析請求服務
+    * Private/私有網路模式：打開 DNS 通用埠，可為僅限於私有網路位址的設備提供代理網域名稱解析請求服務
+    * Proxy/代理模式：只打開回環位址的 DNS 埠，只能為本機提供代理網域名稱解析請求服務
+    * Custom/自訂模式：打開 DNS 通用埠，可用的位址由 IPFilter 參數決定
     * 當相應協定的 Listen Address 生效時，相應協定的本參數將會被自動忽略
   * IPFilter Type - IPFilter 參數的類型：分為 Deny 禁止和 Permit 允許，對應 IPFilter 參數應用為黑名單或白名單
   * IPFilter Level - IPFilter 參數的過濾級別，級別越高過濾越嚴格，與 IPFilter 條目相對應：0 為不啟用過濾，如果留空則為 0
@@ -379,22 +376,26 @@ https://sourceforge.net/projects/pcap-dnsproxy
   * Local Protocol - 發送請求到境內 DNS 伺服器時所使用的協定：可填入 IPv4 和 IPv6 和 TCP 和 UDP
     * 填入的協定可隨意組合，只填 IPv4 或 IPv6 配合 UDP 或 TCP 時，只使用指定協定向境內 DNS 伺服器發出請求
     * 同時填入 IPv4 和 IPv6 或直接不填任何網路層協定時，程式將根據網路環境自動選擇所使用的協定
-    * 同時填入 TCP 和 UDP 等於只填入 TCP 因為 UDP 為 DNS 的標準網路層協定，所以即使填入 TCP 失敗時也會使用 UDP 請求
+  * 同時填入 TCP 和 UDP 等於只填入 TCP 因為 UDP 為 DNS 的標準網路層協定，所以即使填入 TCP 失敗時也會使用 UDP 請求
     * 填入 Force TCP 可阻止 TCP 請求失敗後使用 UDP 重新嘗試請求
   * Local Hosts - 白名單境內伺服器請求功能：開啟為 1 /關閉為 0
     * 本功能開啟後才會嘗試讀取 Local Hosts 白名單內的資料，關閉時不會讀取任何白名單的資料
   * Local Routing - 境內路由表識別功能：開啟為 1 /關閉為 0
     * 本功能開啟後所有請求都會先發送至境內伺服器進行網域名稱解析，再根據解析結果進行下一步的操作
   * Local Force Request - 強制使用境內伺服器進行解析：開啟為 1 /關閉為 0
-    * 本功能要求啟用 Local Hosts 參數
-  * 注意：關於 Local Force Request 和 Local Hosts 和 Local Routing 的組合說明
-    * 所有參數均為關閉時：直接跳過使用境內伺服器進行網域名稱解析的過程
+  * 注意：關於 Local Hosts 和 Local Routing 和 Local Force Request 的組合說明
     * 預設情況下在境內伺服器解析失敗會進行下一步的操作
-    * 只開啟 Local Hosts 時：將按照（黑）白名單（無）命中規則的網域名稱，才（不）使用境內伺服器進行解析
-    * 開啟 Local Force Request 參數時，則強制已命中規則的網域名稱只能使用境內伺服器進行解析
-      * 只開啟 Local Routing 時：所有請求都會先發送至境內伺服器進行網域名稱解析，然後根據路由表進行匹配，命中路由表的解析結果將直接返回給要求者
-    * 同時開啟 Local Hosts 和 Local Routing 時：所有（除了黑名單所指定的）請求都會先發送至境內伺服器進行網域名稱解析，然後根據路由表進行匹配，命中路由表的解析結果將直接返回給要求者
-      * 開啟 Local Force Request 參數時，則強制已命中規則的網域名稱只能使用境內伺服器進行解析
+    * 所有參數均為關閉時，直接跳過使用境內伺服器進行網域名稱解析的過程
+    * Local Hosts 可以單獨開啟：將按照（黑）白名單（無）命中規則的網域名稱，才（不）使用境內伺服器進行解析
+    * Local Routing 可以單獨開啟：所有請求都會先發送至境內伺服器進行網域名稱解析，然後根據路由表進行匹配，命中路由表的解析結果將直接返回給要求者
+    * Local Force Request 不能單獨啟用：需要和 Local Hosts 配合使用
+    * Local Hosts + Local Routing 不能同時啟用：功能衝突
+    * Local Hosts + Local Force Request 可以同時啟用：強制已命中規則的網域名稱只能使用境內伺服器進行解析，解析結果有問題將直接丟棄並終止整個解析過程
+    * Local Routing + Local Force Request 不能同時啟用：功能衝突
+    * Local Hosts + Local Routing + Local Force Request 可以同時啟用：所有（除了黑名單所指定的）請求都會先發送至境內伺服器進行網域名稱解析，根據請求的性質：
+      * 如果該請求的網域名稱命中 Local Hosts 則強制已命中規則的網域名稱只能使用境內伺服器進行解析，解析結果有問題將直接丟棄並終止整個解析過程
+      * 如果該請求的網域名稱沒有命中 Local Hosts 則根據路由表進行匹配，命中路由表的解析結果將直接返回給要求者
+      * 所有沒有命中且沒有成功匹配路由表的請求將會進行下一步的操作
 
 * Addresses - 普通模式位址區域
   * IPv4 Listen Address - IPv4 本地監聽位址：需要輸入一個帶埠格式的位址，留空為不啟用
@@ -628,6 +629,7 @@ https://sourceforge.net/projects/pcap-dnsproxy
   * TCP Data Filter - TCP 資料包頭檢測：開啟為 1 /關閉為 0
   * DNS Data Filter - DNS 資料包頭檢測：開啟為 1 /關閉為 0
   * Blacklist Filter - 解析結果黑名單過濾：開啟為 1 /關閉為 0
+  * Resource Record Set TTL Filter - 嚴格的資源記錄存留時間過濾：開啟為 1/關閉為 0
 
 * Data - 資料區域
   * ICMP ID - ICMP/Ping 資料包頭部 ID 的值：格式為 0x**** 的十六進位字元，如果留空則獲取執行緒的 ID 作為請求用 ID
@@ -755,7 +757,7 @@ https://sourceforge.net/projects/pcap-dnsproxy
   * DNSCurve IPv6 Alternate Provider Name - DNSCurve 協定 IPv6 備用 DNS 伺服器提供者，請輸入正確的網域名稱並且不要超過 253 位元組 ASCII 資料
   * 注意：
     * 自動獲取 DNSCurve 伺服器連接資訊時必須輸入提供者的網域名稱，不能留空
-    * 更多支援 DNSCurve(DNSCrypt) 的伺服器請移步 https://github.com/jedisct1/dnscrypt-proxy/blob/master/dnscrypt-resolvers.csv
+    * 更多支援 DNSCurve(DNSCrypt) 的伺服器請移步 https://github.com/dyne/dnscrypt-proxy/blob/master/dnscrypt-resolvers.csv
 
 * DNSCurve Keys - DNSCurve 協定金鑰區域
   * DNSCurve Client Public Key - 自訂用戶端公開金鑰：可使用 KeyPairGenerator 生成，留空則每次啟動時自動生成
@@ -1046,6 +1048,7 @@ IPFilter 設定檔分為 Blacklist/黑名單區域 和 IPFilter/位址過濾區�
 * IPv4 Do Not Fragment
 * TCP Data Filter
 * DNS Data Filter
+* Resource Record Set TTL Filter
 * Domain Test Protocol
 * SOCKS Target Server
 * SOCKS Username

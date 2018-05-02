@@ -20,14 +20,16 @@
 #ifndef PCAP_DNSPROXY_TRANSPORTSECURITY_H
 #define PCAP_DNSPROXY_TRANSPORTSECURITY_H
 
-#include "Base.h"
+#include "Include.h"
 
 #if defined(ENABLE_TLS)
 //Global variables
 extern CONFIGURATION_TABLE Parameter;
+
+//Local variables
 #if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-static unsigned char HTTP1_ALPN_Vector[] = HTTP_1_TLS_ALPN_STRING;
-static unsigned char HTTP_2_ALPN_Vector[] = HTTP_2_TLS_ALPN_STRING;
+static unsigned char HTTP_1_ALPN_List[] = HTTP_1_TLS_ALPN_STRING;
+static unsigned char HTTP_2_ALPN_List[] = HTTP_2_TLS_ALPN_STRING;
 #endif
 
 #if defined(PLATFORM_WIN)

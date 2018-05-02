@@ -20,7 +20,7 @@
 #ifndef PCAP_DNSPROXY_PROCESS_H
 #define PCAP_DNSPROXY_PROCESS_H
 
-#include "Base.h"
+#include "Include.h"
 
 //Global variables
 extern CONFIGURATION_TABLE Parameter;
@@ -30,16 +30,15 @@ extern BLOCKING_QUEUE<MONITOR_QUEUE_DATA> MonitorBlockingQueue;
 extern DNSCURVE_CONFIGURATION_TABLE DNSCurveParameter;
 #endif
 extern std::vector<DIFFERNET_FILE_SET_HOSTS> *HostsFileSetUsing, *HostsFileSetModificating;
-extern std::list<DNS_CACHE_DATA> DNSCacheList;
-extern std::unordered_multimap<std::string, std::list<DNS_CACHE_DATA>::iterator> DNSCacheIndexList;
-extern std::mutex LocalAddressLock[], HostsFileLock, DNSCacheListLock;
+extern std::mutex LocalAddressLock[], HostsFileLock;
 
 //Functions
 bool LocalRequestProcess(
 	MONITOR_QUEUE_DATA &MonitorQueryData, 
 	uint8_t * const OriginalRecv, 
 	const size_t RecvSize, 
-	std::unique_ptr<uint8_t[]> &EDNS_Buffer);
+	std::unique_ptr<uint8_t[]> &EDNS_Buffer, 
+	const REQUEST_PROCESS_TYPE RequestType);
 bool SOCKS_RequestProcess(
 	MONITOR_QUEUE_DATA &MonitorQueryData, 
 	std::unique_ptr<uint8_t[]> &EDNS_Buffer);
@@ -70,7 +69,5 @@ void UDP_RequestProcess(
 	std::unique_ptr<uint8_t[]> &EDNS_Buffer);
 #endif
 uint16_t SelectDirectProtocol(
-	void);
-void AutoRemoveExpired_DNS_Cache(
 	void);
 #endif

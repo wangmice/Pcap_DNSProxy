@@ -1,34 +1,39 @@
-﻿Pcap_DNSProxy 0.4.9.5 更新日誌(2018-01-07)：
+﻿Pcap_DNSProxy 0.4.9.5-0.4.9.7 更新日誌(2018-05-02)：
 
 * 添加完整的 EDNS 標籤透明轉發支援
+* 添加對 libevent 庫的支援
 * C++ 最低標準要求更新到 14
 * LibSodium 更新到 1.0.16 (Windows/macOS)
-* OpenSSL 更新到 1.1.0g (macOS)
+* OpenSSL 更新到 1.1.0h (macOS)
+* Strict Resource Record TTL Filter 改名為 Resource Record Set TTL Filter
+* 修正 Local 請求過程參數的邏輯 [LisonFan/sysconfon]
 * 修正 EDNS Lebel 參數對 All 行為的支援 [muink]
 * 修正對 DNSSEC 資料包的過濾演算法 [ZeroClover]
 * 修正初始化 LibSodium 時的行為，增強安全性
 * 修正抓包模組對 IPv4/IPv6 分片資料包的支援
 * 修正包含 DNSSEC 相關記錄的過濾演算法
   * DNSSEC Force Validation 改名為 DNSSEC Force Record
-* 修復 SOCKS Username 和 SOCKS Password 參數讀取的問題 [ダクネスExplosion]
 * 修正腳本對檔描述項的軟性限制 (Linux) [lunzima]
+* 修復 SOCKS 和 HTTP(S) Proxy 協定 TCP 模式下長度判斷錯誤的問題 [LisonFan/laggardkernel]
+* 修復 SOCKS Username 和 SOCKS Password 參數讀取的問題 [ダクネスExplosion]
+* 修復 EDNS Client Subnet 啟用時部分類型的 DNS 請求會被截斷的問題 [mewsf]
+* 修復 ICMP/ICMPv6 請求模組的時間控制問題
 * 提升 CMake 版本要求到 3.1 (Linux/macOS)
 * 移除 IPv4 Data Filter 參數
 * 移除 DNSSEC Validation 參數
   * 注意：本工具從未有支援 DNSSEC 完整驗證，僅檢查是否存在 DNSSEC 相關資源記錄，而此功能已整合到 DNS Data Filter 參數中。 為避免名稱上的誤導，特此移除！
-* 移除 Strict Resource Record TTL Filter 參數
-  * 注意：此參數的所有功能需要強制啟用，為避免名稱上的誤導，特此移除！
+* 移除對 Homebrew 的支援 (macOS)
 * Release Hash:
   * SHA-3(256):
-    * Windows/Pcap_DNSProxy.exe: 
-    * Windows/Pcap_DNSProxy_x86.exe: 
-    * Windows/Pcap_DNSProxy_XP.exe: 
-    * macOS/Pcap_DNSProxy: 
+    * Windows/Pcap_DNSProxy.exe: 8D93658927AB72EC54EFB033CCF38C539521496B93999BDFD8CEB09B2A74A691
+    * Windows/Pcap_DNSProxy_x86.exe: 9F4088730F61EE711F015A7B15305FCB11416EFDED5577ED767AE5ECBDD7DC11
+    * Windows/Pcap_DNSProxy_XP.exe: 0A40DA574EA36CAA0582770D9C267BECF02EBDA83F3D8D51F2FC172EAEB7E41D
+    * macOS/Pcap_DNSProxy: D82A5B69C2A2FBD8C2C6D4CF1B0B3722A509E1A3705A6336258F2A0F72141360
   * SHA-2(256):
-    * Windows/Pcap_DNSProxy.exe: 
-    * Windows/Pcap_DNSProxy_x86.exe: 
-    * Windows/Pcap_DNSProxy_XP.exe: 
-    * macOS/Pcap_DNSProxy: 
+    * Windows/Pcap_DNSProxy.exe: 2287859592C167756A2D6221DD35C10BF589D3D7236196C862D0BEA93AD5BCFF
+    * Windows/Pcap_DNSProxy_x86.exe: AB91F6DA9A2F87FED1742B8C3F6C5BE23596EC278B49B8D7844D98819DBF1D59
+    * Windows/Pcap_DNSProxy_XP.exe: D8102C55CA842607F2152F9DFC76C8C442CBABFF283B5DBAF8B3B2D45E252050
+    * macOS/Pcap_DNSProxy: 7094EE4C80623FC362D17775EE3F5331D86A02A7D6B08894F252C418A18CA284
 
 
 -------------------------------------------------------------------------------
@@ -582,7 +587,7 @@ Pcap_DNSProxy v0.4(Windows/Linux/Mac) 更新日誌(2015-05-12)：
 * 調整請求本地 DNS 伺服器由抓包模式到直連模式，加快回應速度降低資源佔用
 * 調整 IPv4 Data Filter/IPv4 資料包篩檢程式，預設為關閉
 * 調整 ICMP 和隨機網域名稱請求模組的編號和序號建置規則
-* 調整 ICMP 附加資料限制長度最長到 1484 bytes(Ethernet MTU - IPv4 Standard Header - ICMP Header)
+* 調整 ICMP 附加資料限制長度最長到 1464 bytes(Ethernet MTU - IPv4 Standard Header - ICMP Header)
 * 調整隨機網域名稱生成模組，使用 C++ STL 提供的梅森旋轉演算法引擎產生離散型均勻分佈的隨機網域名稱
 * 調整內置預設本機伺服器完整網網域名稱稱為 "pcap-dnsproxy.server"（不含引號）以遵循網域名稱系統的標準
 * 調整記憶體分配策略（標準乙太網 MTU 長度、資料包緩衝區長度和 STL 標準庫調用）減少資源佔用

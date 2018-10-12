@@ -119,7 +119,7 @@
 #define CONFIG_VERSION_MINOR                          45U                                   //Current configuration file minor version(0.45)
 #define CONFIG_VERSION_MAXSIZE                        8U                                    //Maximum size of version
 #define COPYRIGHT_MESSAGE                             L"Copyright (C) 2012-2018 Chengr28"   //Copyright message
-#define FULL_VERSION                                  L"0.4.9.7"                            //Current full version
+#define FULL_VERSION                                  L"0.4.9.11"                           //Current full version
 
 //Size and length definitions(Number)
 #define ADDRESS_STRING_IPV4_MINSIZE                   6U                                //The shortest IPv4 address strings(*.*.*.*)
@@ -129,7 +129,6 @@
 #define COMMAND_COUNT_MIN                             1                                 //Minimum count of commands
 #define DEFAULT_LARGE_BUFFER_SIZE                     4096U                             //Default size of large buffer(4KB/4096 bytes)
 #define DEFAULT_LOG_READING_MAXSIZE                   8388608U                          //Default number of maximum log file size(8MB/8388608 bytes)
-#define DEFAULT_THREAD_POOL_BASENUM                   24U                               //Default number of base thread pool size
 #define DEFAULT_THREAD_POOL_MAXNUM                    256U                              //Default number of maximum thread pool size
 #define DIFFERNET_FILE_SET_NUM                        2U                                //Number of different file set
 #define DNS_RECORD_COUNT_AAAA_MAX                     43U                               //Maximum Record Resources size of whole AAAA answers, 28 bytes * 43 records = 1204 bytes
@@ -148,7 +147,8 @@
 #define DOMAIN_MINSIZE                                2U                                //Minimum size of whole level domain is 3 bytes(Section 2.3.1 in RFC 1035).
 #define DOMAIN_RANDOM_MINSIZE                         6U                                //Minimum size of random domain request
 #define DOMAIN_SINGLE_DATA_MAXSIZE                    63U                               //Domain length is between 3 and 63(Single label must be 63 characters/bytes or less, Section 2.3.1 in RFC 1035).
-#define ERROR_MESSAGE_MINSIZE                         3U                                //Minimum size of error message
+#define ERROR_MESSAGE_MAXSIZE                         512U                              //Maximum size of log message
+#define ERROR_MESSAGE_MINSIZE                         3U                                //Minimum size of log message
 #define FILE_BUFFER_SIZE                              DEFAULT_LARGE_BUFFER_SIZE         //Size of file reading buffer
 #define FILE_READING_MAXSIZE                          268435456U                        //Maximum size of whole reading file(256 MB/268435456 bytes).
 #define HTTP_AUTHORIZATION_MAXSIZE                    DEFAULT_LARGE_BUFFER_SIZE         //Maximum size of HTTP proxy authorization string.
@@ -166,16 +166,21 @@
 #define LOG_READING_MINSIZE                           DEFAULT_LARGE_BUFFER_SIZE         //Minimum size of whole log file
 #define MEMORY_BUFFER_EXPAND_BYTES                    1U                                //Memory buffer expanded bytes(1 bytes)
 #define MEMORY_RESERVED_BYTES                         2U                                //Memory buffer reserved bytes(2 bytes)
-#define MULTIPLE_REQUEST_MAXNUM                       64U                               //Maximum number of multiple request.
+#define MULTIPLE_REQUEST_MAXNUM                       32U                               //Maximum number of multiple request.
 #define NETWORK_LAYER_PARTNUM                         2U                                //Number of network layer protocols(IPv6 and IPv4)
 #define NULL_TERMINATE_LENGTH                         1U                                //Length of C style string null
-#define PACKET_ORIGINAL_MAXSIZE                       1522U                             //Maximum size of original Ethernet frame, 6 bytes destination MAC + 6 bytes source MAC + 4 bytes 802.1Q tag(optional) + 2 bytes Ethertype + 1500 bytes payload + 4 bytes Frame Check Sequence
-#define PACKET_NORMAL_MAXSIZE                         1480U                             //Maximum size of normal Ethernet frame, 1500 bytes maximum payload - 20 bytes IPv4 header(IPv6 header length is longer than IPv4) and ignore all other transport layer protocols.
+//#define PACKET_ORIGINAL_MAXSIZE                       1522U                             //Maximum size of original Ethernet frame, 6 bytes destination MAC + 6 bytes source MAC + 4 bytes 802.1Q tag(optional) + 2 bytes Ethertype + 1500 bytes payload + 4 bytes FCS/Frame Check Sequence
+#define PACKET_ORIGINAL_MAXSIZE                       2048U                             //Some DNS response length exceeds an Ethernet frame maximum payload, extends to 2 KB/2048 bytes.
+//#define PACKET_NORMAL_MAXSIZE                         1480U                             //Maximum size of normal Ethernet frame, 1500 bytes maximum payload - 20 bytes IPv4 header(IPv6 header length is longer than IPv4) and ignore all other transport layer protocols.
+#define PACKET_NORMAL_MAXSIZE                         PACKET_ORIGINAL_MAXSIZE           //Some DNS response length exceeds an Ethernet frame maximum payload, extends to 2 KB/2048 bytes.
 #if defined(ENABLE_PCAP)
 	#define PCAP_CAPTURE_STRING_MAXNUM                    256U                        //Maximum length of pcap capture drive name and description
 #endif
 #if defined(PLATFORM_WIN)
 	#define QUERY_SERVICE_CONFIG_BUFFER_MAXSIZE           8192U                       //Buffer maximum size of QueryServiceConfig function(8KB/8192 Bytes)
+#endif
+#if defined(PLATFORM_WIN)
+	#define SERVICE_TABLE_ENTRY_NUM                       2U                          //Service table entry number
 #endif
 #define THREAD_POOL_MAXNUM                            148809524U                  //Number of maximum packet buffer queues, 148809523pps or 148.809Mpps in 100 Gigabit Ethernet
 #define THREAD_POOL_MINNUM                            8U                          //Number of minimum packet buffer queues
@@ -209,9 +214,10 @@
 #endif
 
 //Time definitions
-#define DEFAULT_ALTERNATE_RANGE_TIME                  10U                         //Default time of checking timeout(10 seconds)
-#define DEFAULT_ALTERNATE_RESET_TIME                  180U                        //Default time to reset switching of alternate servers(180 seconds/2 minutes)
-#define DEFAULT_ALTERNATE_TIMES                       5U                          //Default times of request timeout(5 times)
+#define DEFAULT_ALTERNATE_RANGE_TIME                  60U                         //Default time of checking timeout(1 minute/60 seconds)
+#define DEFAULT_ALTERNATE_RESET_TIME                  300U                        //Default time to reset switching of alternate servers(300 seconds/5 minutes)
+#define DEFAULT_ALTERNATE_TIMES                       10U                         //Default times of request timeout(10 times)
+#define DEFAULT_DNS_CACHE_PARAMETER                   4096U                       //Default parameter of DNS cache(4096 size of queue)
 #define DEFAULT_DOMAIN_TEST_INTERVAL_TIME             900U                        //Default Domain Test time between every sending(900 seconds/15 minutes)
 #define DEFAULT_FILE_REFRESH_TIME                     15000U                      //Default time between files auto-refreshing(15000 ms/15 seconds)
 #define DEFAULT_HOSTS_TTL                             900U                        //Default Hosts DNS TTL(900 seconds/15 minutes)
@@ -241,12 +247,14 @@
 #define MICROSECOND_TO_MILLISECOND                    1000U                       //1000 microseconds(1 ms)
 #define SECOND_TO_MILLISECOND                         1000U                       //1000 milliseconds(1 second)
 #define SENDING_INTERVAL_TIME                         5000U                       //Time between every sending(5000 ms/5 seconds)
-#define SENDING_ONCE_INTERVAL_TIMES                   3U                          //Repeat 3 times between every sending.
+#define SENDING_ONCE_INTERVAL_TIMES                   3U                          //Repeat times between every sending(3 times).
+#define SENDING_MAX_INTERVAL_TIMES                    8U                          //The maximum times of every repeat testing(8 times).
 #define SHORTEST_ALTERNATE_RANGE_TIME                 5U                          //The shortest time of checking timeout(5 seconds)
 #define SHORTEST_ALTERNATE_RESET_TIME                 5U                          //The shortest time to reset switching of alternate servers(5 seconds)
 #define SHORTEST_DOMAIN_TEST_INTERVAL_TIME            5U                          //The shortest Domain Test time between every sending(5 seconds)
 #define SHORTEST_FILE_REFRESH_TIME                    5U                          //The shortest time between files auto-refreshing(5 seconds)
 #define SHORTEST_ICMP_TEST_TIME                       5U                          //The shortest time between ICMP Test(5 seconds)
+#define SHORTEST_QUEUE_RESET_TIME                     5U                          //The shortest time to reset queue limit(5 seconds)
 #define SHORTEST_THREAD_POOL_RESET_TIME               5U                          //The shortest time to reset thread pool number(5 seconds)
 #define SOCKET_TIMEOUT_MIN                            500U                        //The shortest socket timeout(500 ms)
 #define STANDARD_TIMEOUT                              1000U                       //Standard timeout(1000 ms/1 second)
@@ -261,9 +269,11 @@
 	#define COMMAND_KEYPAIR_GENERATOR                     (L"--keypair-generator")
 	#define COMMAND_LIB_VERSION                           (L"--lib-version")
 	#define COMMAND_LONG_HELP                             (L"--help")
+	#define COMMAND_LONG_LOG_FILE                         (L"--log-file")
 	#define COMMAND_LONG_PRINT_VERSION                    (L"--version")
-	#define COMMAND_LONG_SET_PATH                         (L"--config-file")
+	#define COMMAND_LONG_SET_PATH                         (L"--config-path")
 	#define COMMAND_SHORT_HELP                            (L"-h")
+	#define COMMAND_SHORT_LOG_FILE                        (L"-l")
 	#define COMMAND_SHORT_PRINT_VERSION                   (L"-v")
 	#define COMMAND_SHORT_SET_PATH                        (L"-c")
 	#define CONFIG_FILE_NAME_LIST_WCS                     {(L"Config.ini"), (L"Config.conf"), (L"Config.cfg"), (L"Config")}
@@ -286,9 +296,11 @@
 	#define COMMAND_KEYPAIR_GENERATOR                     ("--keypair-generator")
 	#define COMMAND_LIB_VERSION                           ("--lib-version")
 	#define COMMAND_LONG_HELP                             ("--help")
+	#define COMMAND_LONG_LOG_FILE                         ("--log-file")
 	#define COMMAND_LONG_PRINT_VERSION                    ("--version")
-	#define COMMAND_LONG_SET_PATH                         ("--config-file")
+	#define COMMAND_LONG_SET_PATH                         ("--config-path")
 	#define COMMAND_SHORT_HELP                            ("-h")
+	#define COMMAND_SHORT_LOG_FILE                        ("-l")
 	#define COMMAND_SHORT_PRINT_VERSION                   ("-v")
 	#define COMMAND_SHORT_SET_PATH                        ("-c")
 	#define CONFIG_FILE_NAME_LIST_WCS                     {(L"Config.conf"), (L"Config.ini"), (L"Config.cfg"), (L"Config")}
@@ -303,11 +315,6 @@
 	#define FIFO_PATH_NAME                                ("/tmp/pcap_dnsproxy_fifo")                  //FIFO pathname
 #endif
 #define DEFAULT_LOCAL_SERVER_NAME                     ("pcap-dnsproxy.server")                     //Default Local DNS server name
-#if defined(PLATFORM_MACOS)
-	#define DEFAULT_SEQUENCE                               0
-#else
-	#define DEFAULT_SEQUENCE                               0x0001                                      //Default sequence of protocol
-#endif
 #define DNS_PACKET_QUERY_LOCATE(Buffer)               (sizeof(dns_hdr) + CheckQueryNameLength(reinterpret_cast<const uint8_t *>(Buffer) + sizeof(dns_hdr)) + NULL_TERMINATE_LENGTH)                     //Locate the beginning of DNS query.
 #define DNS_PACKET_RR_LOCATE(Buffer)                  (sizeof(dns_hdr) + CheckQueryNameLength(reinterpret_cast<const uint8_t *>(Buffer) + sizeof(dns_hdr)) + NULL_TERMINATE_LENGTH + sizeof(dns_qry))   //Locate the beginning of DNS resource records.
 

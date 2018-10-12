@@ -30,7 +30,8 @@ extern BLOCKING_QUEUE<MONITOR_QUEUE_DATA> MonitorBlockingQueue;
 extern DNSCURVE_CONFIGURATION_TABLE DNSCurveParameter;
 #endif
 extern std::vector<DIFFERNET_FILE_SET_HOSTS> *HostsFileSetUsing, *HostsFileSetModificating;
-extern std::mutex LocalAddressLock[], HostsFileLock;
+extern std::mutex HostsFileLock;
+extern std::array<std::mutex, NETWORK_LAYER_PARTNUM> LocalAddressLock;
 
 //Functions
 bool LocalRequestProcess(
@@ -68,6 +69,4 @@ void UDP_RequestProcess(
 	MONITOR_QUEUE_DATA &MonitorQueryData, 
 	std::unique_ptr<uint8_t[]> &EDNS_Buffer);
 #endif
-uint16_t SelectDirectProtocol(
-	void);
 #endif

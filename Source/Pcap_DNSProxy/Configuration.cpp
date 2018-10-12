@@ -19,11 +19,11 @@
 
 #include "Configuration.h"
 
-//Global variables
-size_t ParameterHopLimitsIndex[]{0, 0};
+//Local variables
+std::array<size_t, NETWORK_LAYER_PARTNUM> ParameterHopLimitsIndex{};
 
 //Read texts
-bool ReadText(
+bool ReadSupport_ReadText(
 	const FILE * const FileHandle, 
 	const READ_TEXT_TYPE InputType, 
 	const size_t FileIndex)
@@ -42,8 +42,8 @@ bool ReadText(
 //Reset global variables.
 	if (InputType == READ_TEXT_TYPE::PARAMETER_NORMAL || InputType == READ_TEXT_TYPE::PARAMETER_MONITOR)
 	{
-		ParameterHopLimitsIndex[NETWORK_LAYER_TYPE_IPV6] = 0;
-		ParameterHopLimitsIndex[NETWORK_LAYER_TYPE_IPV4] = 0;
+		ParameterHopLimitsIndex.at(NETWORK_LAYER_TYPE_IPV6) = 0;
+		ParameterHopLimitsIndex.at(NETWORK_LAYER_TYPE_IPV4) = 0;
 	}
 
 //Read data.
@@ -56,7 +56,7 @@ bool ReadText(
 		{
 			if (errno != 0)
 			{
-				ReadTextPrintLog(InputType, FileIndex, Line);
+				PrintLog_ReadText(InputType, FileIndex, Line);
 				return false;
 			}
 			else {
@@ -69,7 +69,7 @@ bool ReadText(
 		{
 			if (ReadLength <= READ_DATA_MINSIZE)
 			{
-				ReadTextPrintLog(InputType, FileIndex, Line);
+				PrintLog_ReadText(InputType, FileIndex, Line);
 				return false;
 			}
 			else {
@@ -351,6 +351,7 @@ bool ReadText(
 			}
 		}
 
+	//Clean file buffer.
 		memset(FileBuffer.get(), 0, FILE_BUFFER_SIZE + MEMORY_RESERVED_BYTES);
 
 	//Line length check
@@ -430,11 +431,11 @@ bool ReadText(
 					#if defined(ENABLE_LIBSODIUM)
 						case READ_TEXT_TYPE::DNSCURVE_DATABASE: //ReadDNSCurveDatabase
 						{
-							ReadDNSCurveDatabaseData(TextData, READ_TEXT_TYPE::DNSCURVE_DATABASE, FileIndex, Line);
+							ReadSupport_DNSCurveDatabaseData(TextData, READ_TEXT_TYPE::DNSCURVE_DATABASE, FileIndex, Line);
 						}break;
 						case READ_TEXT_TYPE::DNSCURVE_MONITOR: //ReadDNSCurveDatabase(Monitor mode)
 						{
-							ReadDNSCurveDatabaseData(TextData, READ_TEXT_TYPE::DNSCURVE_MONITOR, FileIndex, Line);
+							ReadSupport_DNSCurveDatabaseData(TextData, READ_TEXT_TYPE::DNSCURVE_MONITOR, FileIndex, Line);
 						}break;
 					#endif
 					}
@@ -469,19 +470,20 @@ bool ReadParameter(
 	if (IsFirstRead)
 	{
 		FILE_DATA FileDataTemp;
+		FileDataTemp.ModificationTime = 0;
 
 	//Create file list.
 		const wchar_t *WCS_ConfigFileNameList[] = CONFIG_FILE_NAME_LIST_WCS;
 	#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-		const char *MBS_ConfigFileNameList[] = CONFIG_FILE_NAME_LIST_MBS;
+		const char *ConfigFileNameList_MBS[] = CONFIG_FILE_NAME_LIST_MBS;
 	#endif
 		for (FileIndex = 0;FileIndex < sizeof(WCS_ConfigFileNameList) / sizeof(wchar_t *);++FileIndex)
 		{
 			FileDataTemp.FileName = GlobalRunningStatus.Path_Global->front();
 			FileDataTemp.FileName.append(WCS_ConfigFileNameList[FileIndex]);
 		#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-			FileDataTemp.MBS_FileName = GlobalRunningStatus.MBS_Path_Global->front();
-			FileDataTemp.MBS_FileName.append(MBS_ConfigFileNameList[FileIndex]);
+			FileDataTemp.FileName_MBS = GlobalRunningStatus.Path_Global_MBS->front();
+			FileDataTemp.FileName_MBS.append(ConfigFileNameList_MBS[FileIndex]);
 		#endif
 			FileDataTemp.ModificationTime = 0;
 
@@ -494,7 +496,7 @@ bool ReadParameter(
 		#if defined(PLATFORM_WIN)
 			if (_wfopen_s(&FileHandle, FileList_Config.at(FileIndex).FileName.c_str(), L"rb") != 0 || FileHandle == nullptr)
 		#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-			FileHandle = fopen(FileList_Config.at(FileIndex).MBS_FileName.c_str(), ("rb"));
+			FileHandle = fopen(FileList_Config.at(FileIndex).FileName_MBS.c_str(), "rb");
 			if (FileHandle == nullptr)
 		#endif
 			{
@@ -539,14 +541,14 @@ bool ReadParameter(
 	{
 	//Jump here to restart.
 	#if defined(ENABLE_LIBSODIUM)
-		JumpToRestart:
+		JumpTo_Restart:
 	#endif
 
 	//Check configuration file list.
 		for (FileIndex = 0;FileIndex < FileList_Config.size();++FileIndex)
 		{
 		//Get attributes of file.
-			if (!ReadFileAttributesLoop(ReadConfigTextType, FileIndex, FileList_Config.at(FileIndex), IsConfigFileModified))
+			if (!ReadSupport_FileAttributesLoop(ReadConfigTextType, FileIndex, FileList_Config.at(FileIndex), IsConfigFileModified))
 			{
 				if (IsFirstRead)
 					return false;
@@ -561,7 +563,7 @@ bool ReadParameter(
 		#if defined(PLATFORM_WIN)
 			if (_wfopen_s(&FileHandle, FileList_Config.at(FileIndex).FileName.c_str(), L"rb") != 0 || FileHandle == nullptr)
 		#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-			FileHandle = fopen(FileList_Config.at(FileIndex).MBS_FileName.c_str(), ("rb"));
+			FileHandle = fopen(FileList_Config.at(FileIndex).FileName_MBS.c_str(), "rb");
 			if (FileHandle == nullptr)
 		#endif
 			{
@@ -576,7 +578,7 @@ bool ReadParameter(
 				}
 			}
 			else {
-				if (!ReadText(FileHandle, ReadConfigTextType, FileIndex))
+				if (!ReadSupport_ReadText(FileHandle, ReadConfigTextType, FileIndex))
 				{
 					fclose(FileHandle);
 					FileHandle = nullptr;
@@ -599,6 +601,7 @@ bool ReadParameter(
 		if (IsFirstRead)
 		{
 			FILE_DATA FileDataTemp;
+			FileDataTemp.ModificationTime = 0;
 
 		//Create file list.
 			if (Parameter.IsDNSCurve && !DNSCurveParameter.DatabaseName->empty() && 
@@ -610,8 +613,8 @@ bool ReadParameter(
 					FileDataTemp.FileName = GlobalRunningStatus.Path_Global->at(FileIndex);
 					FileDataTemp.FileName.append(*DNSCurveParameter.DatabaseName);
 				#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-					FileDataTemp.MBS_FileName = GlobalRunningStatus.MBS_Path_Global->at(FileIndex);
-					FileDataTemp.MBS_FileName.append(*DNSCurveParameter.MBS_DatabaseName);
+					FileDataTemp.FileName_MBS = GlobalRunningStatus.Path_Global_MBS->at(FileIndex);
+					FileDataTemp.FileName_MBS.append(*DNSCurveParameter.DatabaseName_MBS);
 				#endif
 					FileDataTemp.ModificationTime = 0;
 
@@ -622,8 +625,8 @@ bool ReadParameter(
 				delete DNSCurveParameter.DatabaseName;
 				DNSCurveParameter.DatabaseName = nullptr;
 			#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-				delete DNSCurveParameter.MBS_DatabaseName;
-				DNSCurveParameter.MBS_DatabaseName = nullptr;
+				delete DNSCurveParameter.DatabaseName_MBS;
+				DNSCurveParameter.DatabaseName_MBS = nullptr;
 			#endif
 				delete DNSCurveParameter.Database_Target_Server_Main_IPv6;
 				delete DNSCurveParameter.Database_Target_Server_Alternate_IPv6;
@@ -644,7 +647,7 @@ bool ReadParameter(
 			for (FileIndex = 0;FileIndex < FileList_DNSCurveDatabase.size();++FileIndex)
 			{
 			//Get attributes of file.
-				if (!ReadFileAttributesLoop(ReadDNSCurveTextType, FileIndex, FileList_DNSCurveDatabase.at(FileIndex), IsDNSCurveFileModified) && !IsConfigFileModified)
+				if (!ReadSupport_FileAttributesLoop(ReadDNSCurveTextType, FileIndex, FileList_DNSCurveDatabase.at(FileIndex), IsDNSCurveFileModified) && !IsConfigFileModified)
 				{
 					if (!IsDNSCurveFileModified)
 						continue;
@@ -657,14 +660,14 @@ bool ReadParameter(
 				if (!IsConfigFileModified)
 				{
 					IsConfigFileModified = true;
-					goto JumpToRestart;
+					goto JumpTo_Restart;
 				}
 
 			//Read DNSCurve database file.
 			#if defined(PLATFORM_WIN)
 				if (_wfopen_s(&FileHandle, FileList_DNSCurveDatabase.at(FileIndex).FileName.c_str(), L"rb") != 0 || FileHandle == nullptr)
 			#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-				FileHandle = fopen(FileList_DNSCurveDatabase.at(FileIndex).MBS_FileName.c_str(), ("rb"));
+				FileHandle = fopen(FileList_DNSCurveDatabase.at(FileIndex).FileName_MBS.c_str(), "rb");
 				if (FileHandle == nullptr)
 			#endif
 				{
@@ -674,7 +677,7 @@ bool ReadParameter(
 //					continue;
 				}
 				else {
-					if (!ReadText(FileHandle, ReadDNSCurveTextType, FileIndex))
+					if (!ReadSupport_ReadText(FileHandle, ReadDNSCurveTextType, FileIndex))
 					{
 						fclose(FileHandle);
 						FileHandle = nullptr;
@@ -689,7 +692,7 @@ bool ReadParameter(
 			}
 
 		//Read data from list.
-			if (IsDNSCurveFileModified && !ReadDNSCurveDatabaseItem(ReadDNSCurveTextType))
+			if (IsDNSCurveFileModified && !ReadSupport_DNSCurveDatabaseItem(ReadDNSCurveTextType))
 			{
 				if (IsFirstRead)
 					return false;
@@ -762,13 +765,14 @@ void ReadIPFilter(
 	for (size_t Index = 0;Index < GlobalRunningStatus.Path_Global->size();++Index)
 	{
 		FILE_DATA FileDataTemp;
+		FileDataTemp.ModificationTime = 0;
 		for (FileIndex = 0;FileIndex < GlobalRunningStatus.FileList_IPFilter->size();++FileIndex)
 		{
 			FileDataTemp.FileName = GlobalRunningStatus.Path_Global->at(Index);
 			FileDataTemp.FileName.append(GlobalRunningStatus.FileList_IPFilter->at(FileIndex));
 		#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-			FileDataTemp.MBS_FileName = GlobalRunningStatus.MBS_Path_Global->at(Index);
-			FileDataTemp.MBS_FileName.append(GlobalRunningStatus.MBS_FileList_IPFilter->at(FileIndex));
+			FileDataTemp.FileName_MBS = GlobalRunningStatus.Path_Global_MBS->at(Index);
+			FileDataTemp.FileName_MBS.append(GlobalRunningStatus.FileList_IPFilter_MBS->at(FileIndex));
 		#endif
 			FileDataTemp.ModificationTime = 0;
 
@@ -791,7 +795,7 @@ void ReadIPFilter(
 		for (FileIndex = 0;FileIndex < FileList_IPFilter.size();++FileIndex)
 		{
 		//Get attributes of file.
-			if (!ReadFileAttributesLoop(READ_TEXT_TYPE::IPFILTER, FileIndex, FileList_IPFilter.at(FileIndex), IsFileModified))
+			if (!ReadSupport_FileAttributesLoop(READ_TEXT_TYPE::IPFILTER, FileIndex, FileList_IPFilter.at(FileIndex), IsFileModified))
 				continue;
 
 		//Clear list data.
@@ -802,7 +806,7 @@ void ReadIPFilter(
 		#if defined(PLATFORM_WIN)
 			if (_wfopen_s(&FileHandle, FileList_IPFilter.at(FileIndex).FileName.c_str(), L"rb") != 0 || FileHandle == nullptr)
 		#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-			FileHandle = fopen(FileList_IPFilter.at(FileIndex).MBS_FileName.c_str(), ("rb"));
+			FileHandle = fopen(FileList_IPFilter.at(FileIndex).FileName_MBS.c_str(), "rb");
 			if (FileHandle == nullptr)
 		#endif
 				continue;
@@ -815,13 +819,13 @@ void ReadIPFilter(
 				IPFilterFileSetModificating->push_back(IPFilterFileSetTemp);
 			}
 			else {
-				for (auto IPFilterFileSetIter = IPFilterFileSetModificating->begin();IPFilterFileSetIter != IPFilterFileSetModificating->end();++IPFilterFileSetIter)
+				for (auto IPFilterFileSetItem = IPFilterFileSetModificating->begin();IPFilterFileSetItem != IPFilterFileSetModificating->end();++IPFilterFileSetItem)
 				{
-					if (IPFilterFileSetIter->FileIndex == FileIndex)
+					if (IPFilterFileSetItem->FileIndex == FileIndex)
 					{
 						break;
 					}
-					else if (IPFilterFileSetIter + 1U == IPFilterFileSetModificating->end())
+					else if (IPFilterFileSetItem + 1U == IPFilterFileSetModificating->end())
 					{
 						IPFilterFileSetTemp.FileIndex = FileIndex;
 						IPFilterFileSetModificating->push_back(IPFilterFileSetTemp);
@@ -831,7 +835,7 @@ void ReadIPFilter(
 			}
 
 		//Read data.
-			ReadText(FileHandle, READ_TEXT_TYPE::IPFILTER, FileIndex);
+			ReadSupport_ReadText(FileHandle, READ_TEXT_TYPE::IPFILTER, FileIndex);
 			fclose(FileHandle);
 			FileHandle = nullptr;
 		}
@@ -871,13 +875,14 @@ void ReadHosts(
 	for (size_t Index = 0;Index < GlobalRunningStatus.Path_Global->size();++Index)
 	{
 		FILE_DATA FileDataTemp;
+		FileDataTemp.ModificationTime = 0;
 		for (FileIndex = 0;FileIndex < GlobalRunningStatus.FileList_Hosts->size();++FileIndex)
 		{
 			FileDataTemp.FileName = GlobalRunningStatus.Path_Global->at(Index);
 			FileDataTemp.FileName.append(GlobalRunningStatus.FileList_Hosts->at(FileIndex));
 		#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-			FileDataTemp.MBS_FileName = GlobalRunningStatus.MBS_Path_Global->at(Index);
-			FileDataTemp.MBS_FileName.append(GlobalRunningStatus.MBS_FileList_Hosts->at(FileIndex));
+			FileDataTemp.FileName_MBS = GlobalRunningStatus.Path_Global_MBS->at(Index);
+			FileDataTemp.FileName_MBS.append(GlobalRunningStatus.FileList_Hosts_MBS->at(FileIndex));
 		#endif
 			FileDataTemp.ModificationTime = 0;
 
@@ -900,7 +905,7 @@ void ReadHosts(
 		for (FileIndex = 0;FileIndex < FileList_Hosts.size();++FileIndex)
 		{
 		//Get attributes of file.
-			if (!ReadFileAttributesLoop(READ_TEXT_TYPE::HOSTS, FileIndex, FileList_Hosts.at(FileIndex), IsFileModified))
+			if (!ReadSupport_FileAttributesLoop(READ_TEXT_TYPE::HOSTS, FileIndex, FileList_Hosts.at(FileIndex), IsFileModified))
 				continue;
 
 		//clear list data.
@@ -911,7 +916,7 @@ void ReadHosts(
 		#if defined(PLATFORM_WIN)
 			if (_wfopen_s(&FileHandle, FileList_Hosts.at(FileIndex).FileName.c_str(), L"rb") != 0 || FileHandle == nullptr)
 		#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-			FileHandle = fopen(FileList_Hosts.at(FileIndex).MBS_FileName.c_str(), ("rb"));
+			FileHandle = fopen(FileList_Hosts.at(FileIndex).FileName_MBS.c_str(), "rb");
 			if (FileHandle == nullptr)
 		#endif
 				continue;
@@ -924,13 +929,13 @@ void ReadHosts(
 				HostsFileSetModificating->push_back(HostsFileSetTemp);
 			}
 			else {
-				for (auto HostsFileSetIter = HostsFileSetModificating->begin();HostsFileSetIter != HostsFileSetModificating->end();++HostsFileSetIter)
+				for (auto HostsFileSetItem = HostsFileSetModificating->begin();HostsFileSetItem != HostsFileSetModificating->end();++HostsFileSetItem)
 				{
-					if (HostsFileSetIter->FileIndex == FileIndex)
+					if (HostsFileSetItem->FileIndex == FileIndex)
 					{
 						break;
 					}
-					else if (HostsFileSetIter + 1U == HostsFileSetModificating->end())
+					else if (HostsFileSetItem + 1U == HostsFileSetModificating->end())
 					{
 						HostsFileSetTemp.FileIndex = FileIndex;
 						HostsFileSetModificating->push_back(HostsFileSetTemp);
@@ -940,7 +945,7 @@ void ReadHosts(
 			}
 
 		//Read data.
-			ReadText(FileHandle, READ_TEXT_TYPE::HOSTS, FileIndex);
+			ReadSupport_ReadText(FileHandle, READ_TEXT_TYPE::HOSTS, FileIndex);
 			fclose(FileHandle);
 			FileHandle = nullptr;
 		}
@@ -972,10 +977,10 @@ void ReadHosts(
 }
 
 //Loop of file attributes reading
-bool ReadFileAttributesLoop(
+bool ReadSupport_FileAttributesLoop(
 	const READ_TEXT_TYPE InputType, 
 	const size_t FileIndex, 
-	FILE_DATA &FileListIter, 
+	FILE_DATA &FileListItem, 
 	bool &IsFileModified)
 {
 //Initialization
@@ -992,11 +997,11 @@ bool ReadFileAttributesLoop(
 //Get attributes of file.
 #if defined(PLATFORM_WIN)
 	if (GetFileAttributesExW(
-			FileListIter.FileName.c_str(), 
+			FileListItem.FileName.c_str(), 
 			GetFileExInfoStandard, 
 			&FileAttributeData) == 0)
 #elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-	if (stat(FileListIter.MBS_FileName.c_str(), &FileStatData) != 0)
+	if (stat(FileListItem.FileName_MBS.c_str(), &FileStatData) != 0)
 #endif
 	{
 	//Clear list data.
@@ -1006,10 +1011,10 @@ bool ReadFileAttributesLoop(
 			ClearModificatingListData(InputType, FileIndex);
 
 	//Reset patameters.
-		if (FileListIter.ModificationTime > 0)
+		if (FileListItem.ModificationTime > 0)
 		{
 			IsFileModified = true;
-			FileListIter.ModificationTime = 0;
+			FileListItem.ModificationTime = 0;
 		}
 
 		return false;
@@ -1030,23 +1035,23 @@ bool ReadFileAttributesLoop(
 
 	//Print error messages.
 		if (InputType == READ_TEXT_TYPE::PARAMETER_NORMAL || InputType == READ_TEXT_TYPE::PARAMETER_MONITOR)
-			PrintError(LOG_LEVEL_TYPE::LEVEL_3, LOG_ERROR_TYPE::PARAMETER, L"Configuration file size is too large", 0, FileListIter.FileName.c_str(), 0);
+			PrintError(LOG_LEVEL_TYPE::LEVEL_3, LOG_ERROR_TYPE::PARAMETER, L"Configuration file size is too large", 0, FileListItem.FileName.c_str(), 0);
 	#if defined(ENABLE_LIBSODIUM)
 		else if (InputType == READ_TEXT_TYPE::DNSCURVE_DATABASE || InputType == READ_TEXT_TYPE::DNSCURVE_MONITOR)
-			PrintError(LOG_LEVEL_TYPE::LEVEL_3, LOG_ERROR_TYPE::PARAMETER, L"DNSCurve database file size is too large", 0, FileListIter.FileName.c_str(), 0);
+			PrintError(LOG_LEVEL_TYPE::LEVEL_3, LOG_ERROR_TYPE::PARAMETER, L"DNSCurve database file size is too large", 0, FileListItem.FileName.c_str(), 0);
 	#endif
 		else if (InputType == READ_TEXT_TYPE::HOSTS)
-			PrintError(LOG_LEVEL_TYPE::LEVEL_3, LOG_ERROR_TYPE::PARAMETER, L"Hosts file size is too large", 0, FileListIter.FileName.c_str(), 0);
+			PrintError(LOG_LEVEL_TYPE::LEVEL_3, LOG_ERROR_TYPE::PARAMETER, L"Hosts file size is too large", 0, FileListItem.FileName.c_str(), 0);
 		else if (InputType == READ_TEXT_TYPE::IPFILTER)
-			PrintError(LOG_LEVEL_TYPE::LEVEL_3, LOG_ERROR_TYPE::PARAMETER, L"IPFilter file size is too large", 0, FileListIter.FileName.c_str(), 0);
+			PrintError(LOG_LEVEL_TYPE::LEVEL_3, LOG_ERROR_TYPE::PARAMETER, L"IPFilter file size is too large", 0, FileListItem.FileName.c_str(), 0);
 		else 
 			return false;
 
 	//Reset parameters.
-		if (FileListIter.ModificationTime > 0)
+		if (FileListItem.ModificationTime > 0)
 		{
 			IsFileModified = true;
-			FileListIter.ModificationTime = 0;
+			FileListItem.ModificationTime = 0;
 		}
 
 		return false;
@@ -1057,9 +1062,9 @@ bool ReadFileAttributesLoop(
 	memset(&FileSizeData, 0, sizeof(FileSizeData));
 	FileSizeData.HighPart = FileAttributeData.ftLastWriteTime.dwHighDateTime;
 	FileSizeData.LowPart = FileAttributeData.ftLastWriteTime.dwLowDateTime;
-	if (FileListIter.ModificationTime > 0 && FileSizeData.QuadPart == FileListIter.ModificationTime)
+	if (FileListItem.ModificationTime > 0 && FileSizeData.QuadPart == FileListItem.ModificationTime)
 #elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-	if (FileListIter.ModificationTime > 0 && FileStatData.st_mtime == FileListIter.ModificationTime)
+	if (FileListItem.ModificationTime > 0 && FileStatData.st_mtime == FileListItem.ModificationTime)
 #endif
 	{
 		if (InputType == READ_TEXT_TYPE::PARAMETER_NORMAL)
@@ -1070,9 +1075,9 @@ bool ReadFileAttributesLoop(
 //Mark modification time.
 	else {
 	#if defined(PLATFORM_WIN)
-		FileListIter.ModificationTime = FileSizeData.QuadPart;
+		FileListItem.ModificationTime = FileSizeData.QuadPart;
 	#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-		FileListIter.ModificationTime = FileStatData.st_mtime;
+		FileListItem.ModificationTime = FileStatData.st_mtime;
 	#endif
 	}
 
@@ -1087,11 +1092,11 @@ void ClearModificatingListData(
 //Clear Hosts file set.
 	if (ClearType == READ_TEXT_TYPE::HOSTS)
 	{
-		for (auto HostsFileSetIter = HostsFileSetModificating->begin();HostsFileSetIter != HostsFileSetModificating->end();++HostsFileSetIter)
+		for (auto HostsFileSetItem = HostsFileSetModificating->begin();HostsFileSetItem != HostsFileSetModificating->end();++HostsFileSetItem)
 		{
-			if (HostsFileSetIter->FileIndex == FileIndex)
+			if (HostsFileSetItem->FileIndex == FileIndex)
 			{
-				HostsFileSetModificating->erase(HostsFileSetIter);
+				HostsFileSetModificating->erase(HostsFileSetItem);
 				break;
 			}
 		}
@@ -1099,11 +1104,11 @@ void ClearModificatingListData(
 //Clear IPFilter file set.
 	else if (ClearType == READ_TEXT_TYPE::IPFILTER)
 	{
-		for (auto IPFilterFileSetIter = IPFilterFileSetModificating->begin();IPFilterFileSetIter != IPFilterFileSetModificating->end();++IPFilterFileSetIter)
+		for (auto IPFilterFileSetItem = IPFilterFileSetModificating->begin();IPFilterFileSetItem != IPFilterFileSetModificating->end();++IPFilterFileSetItem)
 		{
-			if (IPFilterFileSetIter->FileIndex == FileIndex)
+			if (IPFilterFileSetItem->FileIndex == FileIndex)
 			{
-				IPFilterFileSetModificating->erase(IPFilterFileSetIter);
+				IPFilterFileSetModificating->erase(IPFilterFileSetItem);
 				break;
 			}
 		}
@@ -1113,7 +1118,7 @@ void ClearModificatingListData(
 }
 
 //Get data list from file
-void GetParameterListData(
+void ReadSupport_GetParameterListData(
 	std::vector<std::string> &ListData, 
 	const std::string &Data, 
 	const size_t DataOffset, 

@@ -8,37 +8,11 @@ https://sourceforge.net/projects/pcap-dnsproxy
 -------------------------------------------------------------------------------
 
 
-Installation method (required as administrator):
+How to install:
+Please read specific platform ReadMe_xx text files!
 
-1. Visit https://www.winpcap.org to download and install WinPcap with administrator privileges
-  * WinPcap only need to be installed once, before the latest version of the installation or later update the tool, please start from the second step
-  * If the WinPcap prompt has been installed in the old version can not continue, see the FAQ in the run results analysis section
-  * The self-starting option during installation has no effect on the operation of the tool. The tool directly calls the WinPcap API without going through the server program
 
-2. Visit https://github.com/chengr28/Pcap_DNSProxy/releases to download the binary executable file to the local
-  * Windows version of Pcap_DNSProxy in the binary executable file in the Windows directory, the entire directory can be a separate out of the run
-
-3. Open the downloaded binary executable file, extract the Windows directory to any location on the disk
-  * Directory location and program file name can be arbitrarily changed, it is recommended that the project placed in a separate directory
-  * The profile needs to use a fixed file name (see the Features and Techniques section below for more details)
-
-4. After determining the name and path of the tool directory, go to the directory and right-click on the administrator (Vista and later) or run the ServiceControl.bat (XP/2003) by pressing the administrator login twice (XP/2003)
-  * Enter 1 and press Enter, select "1: Install service" to install the service
-  * Batch processing will program the system services, and firewall test, each boot service will automatically start
-  * At this point, the Windows system asks if you want to agree to programmatically access the network. Please tick "private network" and "public network" and confirm
-
-5. Please follow the following section of the normal work to see the method, the first test whether the normal work and then modify the network settings!
-
-6. Open the Network and Sharing Center - Change Adapter Settings Select either Local or Wireless or Broadband
-  * Right-click "Properties" - "Internet Protocol (TCP/IP)" (XP/2003) or "Internet Protocol Version 4 (IPv4)" (Vista and later) - "Properties" - check "Use the following DNS server Device address "
-  * In the "preferred DNS server" fill in "127.0.0.1" (without quotation marks) to determine the save and exit
-  * If you need to use the IPv6 protocol for the local server
-    * Right click on "Properties" - "Internet Protocol Version 6 (IPv6)" - "Properties" - check "Use the following DNS server address"
-    * Enter "::1" (without the quotation marks) in the "Preferred DNS Server" to confirm the save and exit
-  * Make sure to only fill in these two addresses, fill in other addresses may cause the system to select other DNS servers to bypass the program's proxy
-  * Note: It is recommended to "local connection" and "wireless connection" and "broadband connection" all modified!
-
-7. Special attention:
+Special attention:
   * If you need to let the flow of the program through the system routing level of the agent (such as VPN, etc.) for functional variable name resolution, select one of the options, restart the configuration after the completion of the service:
     * Direct Request = IPv4
     * Direct Request = IPv6
@@ -55,68 +29,10 @@ Installation method (required as administrator):
   * Technical support only for the latest version, please make sure to upgrade to the latest version.
 
 
--------------------------------------------------------------------------------
-
-
-Restart the service method (required as an administrator):
-1. Right-click on the administrator (Vista and later) or run the ServiceControl.bat (XP/2003) by pressing the administrator login twice (XP/2003)
-2. Enter 5 and press Enter, select "5: Restart service" to restart the service immediately
-
-
-Update the program method (need to be an administrator, do not directly cover, otherwise it may cause unpredictable errors):
-1. In advance to download a new version of the Pcap_DNSProxy (that is, the installation method in step 2), the update process may cause the function variable name resolution short interrupt
-2. Back up all the custom content of the Hosts file IPFilter file
-3. Right-click the ServiceControl.bat as an administrator (Vista and later) or log on as an administrator (XP/2003)
-4. Enter 2 and press Enter to select the "2: Uninstall service" uninstall service
-4. Delete the entire Pcap_DNSProxy program directory. Note that Windows Firewall may leave information that allows programs to access the network. After uninstalling the service and changing the program directory, you may need to use the registry cleanup tool to clean up
-5. Extract the new version of Pcap_DNSProxy to any location (ie, step 3 of the installation method)
-6. Add the customization of the profile to the appropriate area in the new version of the profile
-7. Redeploy Pcap_DNSProxy in step 4 of the installation method
-
-
-How to use it in safe mode (requires an administrator):
-* Program has the ability to run in safe mode, in safe mode, right-click as an administrator to run the program directly
-* Direct operation mode has a console window, close the program directly close the console window can be
-
-
-Unload method (required as administrator):
-1. Restore the DNS function variable name server address configuration according to step 6 of the installation method
-2. Right-click on the administrator (Vista and later) or run the ServiceControl.bat (XP/2003) by pressing the administrator login (XP/2003)
-  * Enter 2 and press Enter, select "2: Uninstall service" to uninstall the service
-  * Note: Windows Firewall may have permission to access the network information, it may need to use the registry cleanup after the clean-up
-  * Transfer the tool directory path does not need to uninstall the service, first stop the service transfer, transfer is completed after the restart service
-
-
--------------------------------------------------------------------------------
-
-
-Normal work View method:
-
-1. Open a command prompt
-   * At the beginning of the menu or direct Win + R call up, enter cmd and press Enter
-   * Start Menu - Program/All Programs - Accessories - Command Prompt
-2. Enter "nslookup www.google.com 127.0.0.1" or "nslookup www.google.com ::1" and press Enter
-3. The results should be similar:
-
-    > Nslookup www.google.com
-     Server: pcap-dnsproxy.server (depending on the value of the profile settings, see the section below for details on the configuration file)
-     Address: 127.0.0.1 (depending on the network environment, when the local listening protocol is IPv6: 1)
-
-     Non-authoritative response:
-     Name: www.google.com
-     Addresses: ... (IP address or address list)
-
-
-4. If you do not have the above results, please move the section in the FAQ document to run the results analysis section
-
-
--------------------------------------------------------------------------------
-
-
 Special use skills:
 Here are some of the proposed project group introduction and use of skills for your reference and use. For details on adjusting the configuration, see the section below
 
-* This tool configuration options are rich, configure the different combinations will have different effects, introduce several more commonly used combination:
+* Configure the different combinations will have different effects, introduce several more commonly used combination:
   * Default configuration: UDP request + capture mode
   * Outgoing Protocol = .. TCP: UDP request after the first request and UDP packet capture mode, the occupation of the network resources is relatively high
     * Because the TCP request most of the time will not be poisoned, this combination of filtering effect is more reliable
@@ -160,7 +76,6 @@ Function and technology:
   * Read the DNS server address directly from the web interface card settings Function Variable Name Resolution (small): Pcap_DNSProxy Hosts configuration file (Whitelist/whitelist entry> Hosts list)> DNS cache> Local Hosts/DNS resolution in the country Variable list of names> Remote DNS server
   * Requests the priority of the remote DNS server: Direct Request mode> DNSCurve Encryption/Unencrypted mode of TCP mode (if any)> DNSCurve Encrypted/Unencrypted mode in UDP mode (if any)> TCP mode Normal request (if any )> UDP mode normal request
 * The tool's DNSCurve (DNSCrypt) protocol is built-in implementation, do not need to install DNSCrypt official tool!
-  * DNSCurve agreement for Streamlined/Lite type
   * Automatically get the connection information must ensure that the system time is correct, otherwise the certificate will lead to failure to get the connection information failed!
   * DNSCrypt official tool will take up the local DNS port caused Pcap_DNSProxy deployment failed!
 
@@ -172,20 +87,22 @@ Program Operation Parameter Description:
 Because some features can not be specified by using the configuration file, so use the program plug-in parameters to support
 All plug-in parameters can also be queried with the -h and --help parameters
 
-* -c Path and --config-file Path
+* --config-path Path
    Starts the job directory where the profile is located
-* -h and --help
+* --help
    Output the program description information to the screen
-* -v and --version
+* --version
    Export the program version number to the screen
 * --flush-dns
    Immediately empty all programs and DNS buffers within the system
 * --flush-dns Domain
    Immediately clear the function variable name for the Domain and all systems within the DNS cache
-* - keypair-generator
+* --keypair-generator
    Generate the key group required for the DNSCurve (DNSCrypt) protocol to KeyPair.txt
 * --lib-version
    Outputs the version number of the library used for the program to the screen
+* --log-file Path+Name
+  Set location of log file, output to stderr or stdout if Path+Name set to them.
 * --disable-daemon
    Turn off daemon mode (Linux)
 * --first-setup
@@ -204,7 +121,7 @@ Base - the basic parameter area
   * Version - the version of the profile used to correctly identify the profile: this parameter is not related to the program version number, do not modify
   * File Refresh Time - File Refresh Interval: in seconds and a minimum of 5
     * This parameter also determines the sublimation of the time of the monitor's sleep time, which means that it will start for a long period of time and check if there is a need to re-run a specific monitoring project without waiting for a long time to complete the dormant To be able to re-monitor this, the appropriate configuration of this function on the program's network adaptability will be improved
-  * Large Buffer Size - Fixed length of the large data buffer: in bytes, with a minimum of 1500
+  * Large Buffer Size - Fixed length of the large data buffer: in bytes, with a minimum of 2048
   * Additional Path - additional data file to read the path, attached to the directory path under the Hosts file and IPFilter file will be read in order: Please fill in the directory of the absolute path
     * This parameter supports multiple paths at the same time. Please use|separate between paths
   * Hosts File Name - Hosts file name, attached to the Hosts file name will be read in turn
@@ -236,10 +153,9 @@ Base - the basic parameter area
     * Read the timeout time need to balance the demand and resource consumption, the time set too long will lead to the domain name resolution request response slow response request timeout, too fast will take up too much system to deal with resources
   * Listen Protocol - the protocol supported by the local listening request: can be filled with IPv4 and IPv6 and TCP and UDP
     * Fill in the agreement can be arbitrarily combined, only fill IPv4 or IPv6 with UDP or TCP, only listen to the specified agreement of the local port
-    * Note: The agreement here refers to the protocol that can be used when request the function variable name resolution, and the protocol used by the program request the remote DNS server is determined by the Protocol parameter
   * Listen Port - the port of the listening port, the local listening request: the format "port A (|port B)" (without quotation marks, brackets are optional items)
     * Port can be filled in the service name, service name list see below
-    * Can also fill in the port between 1-65535, if left to 53
+    * Port number must between 1 and 65535, default number is 53.
     * When multiple ports are filled in, the program will listen for requests at the same time
     * When the corresponding agreement Listen Address takes effect, this parameter of the corresponding agreement will be automatically ignored
   * Operation Mode - Program monitoring mode: Server/Server mode, Private/private network mode and Proxy/proxy mode
@@ -336,11 +252,10 @@ Base - the basic parameter area
     * RESERVED/65535
 
 * DNS - function variable name resolution parameter area
-  * Outgoing Protocol - the protocol used to send the request to the remote DNS server: can be filled with IPv4 and IPv6 and TCP and UDP
-    * Fill in the agreement can be arbitrarily combined, only fill IPv4 or IPv6 with UDP or TCP, only use the specified agreement to the remote DNS server to issue a request
-    * When you fill in both IPv4 and IPv6 or do not fill in any network layer agreements, the program will automatically select the protocol to be used according to the web environment
-    * At the same time fill in TCP and UDP is equal to only fill in TCP because UDP is the standard network layer protocol for DNS, so even when the TCP fails to fill the UDP request
-    * Fill in Force TCP to prevent TCP requests from failing to use UDP to retry requests
+  * Outgoing Protocol - The protocol of sending request to remote DNS server: Format is "Network Layer + Transport Layer( + Type)" (without quotation marks, items in brackets are optional).
+    * Network Layer can be filled in "IPv4" or "IPv6" or "IPv4 + IPv6". Auto select protocol if fill in "IPv4 + IPv6" or nothing.
+    * Transport Layer can be filled in "TCP" or "UDP" or "TCP + UDP". Program will retry using UDP if TCP is failed, fill in "Force TCP" to stop this operation.
+    * Filling in "Type" will enable selecting protocol based on DNS type.
   * Direct Request - Direct connection mode, enable the system will use the system directly request the remote server: can fill in IPv4 and IPv6 and 0, turn off to 0
     * It is recommended when the system uses the global proxy function, the program will be in addition to all the requests outside the domestic server directly to the system without any filtering and other processing, the system will automatically send the request to the remote server for analysis
     * When you fill in IPv4 or IPv6, you will enable the Direct Request function of the corresponding protocol. Filling in IPv4 + IPv6 will enable all protocol functions
@@ -357,7 +272,7 @@ Base - the basic parameter area
       * Cache time in seconds
       * If the average TTL value of the resolution result is greater than this value, use [TTL + this value] for the final cache time
       * If the average TTL value of the resolution result is less than or equal to this value, use [this value] as the final cache time
-      * If you fill 0, the final cache time is TTL
+      * If fill 0, the final cache time is TTL
     Queue/Queue: Queue Length
     * Mixed type
       * Queue length
@@ -370,14 +285,13 @@ Base - the basic parameter area
     * When the DNS cache type is mixed, this parameter will determine the final cache time
       * If the average TTL value of the resolution result is greater than this value, use [TTL + this value] for the final cache time
       * If the average TTL value of the resolution result is less than or equal to this value, use [this value] as the final cache time
-      * If you fill 0, the final cache time is TTL
+      * If fill 0, the final cache time is TTL
   
 * Local DNS - Domestic function variable name resolution parameter area
-  * Local Protocol - protocol used to send requests to the internal DNS server: Fill in IPv4 and IPv6 and TCP and UDP
-    * Fill in the agreement can be arbitrarily combined, filling only IPv4 or IPv6 With UDP or TCP, only use the specified protocol to the internal DNS server request
-    * Fill both IPv4 and IPv6 at the same time or do not fill in any network layer protocol, the program will automatically select the protocol used according to the network environment
-    * Fill in TCP and UDP at the same time equals fill in only TCP Because UDP is the standard network layer protocol for DNS, UDP requests are used even if TCP fills in.
-    * Fill in Force TCP to prevent TCP requests from retrying requests using UDP after they fail
+  * Local Protocol - The protocol of sending request to local(ISP's) DNS server: Format is "Network Layer + Transport Layer( + Type)" (without quotation marks, items in brackets are optional).
+    * Network Layer can be filled in "IPv4" or "IPv6" or "IPv4 + IPv6". Auto select protocol if fill in "IPv4 + IPv6" or nothing.
+    * Transport Layer can be filled in "TCP" or "UDP" or "TCP + UDP". Program will retry using UDP if TCP is failed, fill in "Force TCP" to stop this operation.
+    * Filling in "Type" will enable selecting protocol based on DNS type.
   * Local Hosts - Whitelist Domestic Server Request Features: On 1/Off 0
     * This function will only try to read the data in the Local Hosts whitelist and will not read any white list data when it is off
   * Local Routing - Local routing table identification: open to 1/off to 0
@@ -423,6 +337,7 @@ Base - the basic parameter area
   * IPv6 EDNS Client Subnet Address - IPv6 user terminal network address, after the input will be added to all requests for this address EDNS subnet information: need to enter a prefix with the length of the local public network address, leave blank Enabled
     * This feature requires the EDNS Label parameter to be enabled
     * EDNS Client Subnet Relay parameter priority is higher than this parameter. After enabling, the EDNS subnet address of EDNS Client Subnet Relay will be added preferentially.
+    * The RFC standard recommends that the IPv4 address has a first code length of 24 bits and an IPv6 address of 56 bits
   * IPv6 Main DNS Address - IPv6 Primary DNS Server Address: You need to enter a port with a port format, leave it blank
     * Support multiple addresses, pay attention to fill will be forced to enable the Alternate Multiple Request parameters
     * Support the use of service name instead of port number
@@ -441,9 +356,9 @@ Base - the basic parameter area
       * A single IPv6 is "[IPv6 address]: port" (without quotation marks)
       * Multiple IPv4 is "Address A: Port|Address B: Port|Address C: Port" (without quotation marks)
       * Multiple IPv6 is "[Address A]: Port|[Address B]: Port|[Address C]: Port" (without quotation marks)
-      * Enable simultaneous request for multiple servers Simultaneous request to the server in the list to resolve the variable name and use the results of the fastest response server, and requests the alternate server to automatically enable the Alternate Multiple Request parameter (see below )
+      * Enable simultaneous request for multiple servers Simultaneous request to the server in the list to resolve the variable name and use the results of the fastest response server, and requests the alternate server to automatically enable the Alternate Multiple Request parameter (see below)
       * The number of servers that can be filled in is: Enter the number of primary/standby servers
-      * Multiple Request Times = Total requested value, this value can not exceed 64
+      * Multiple Request Times = Total requested value, this value can not exceed 32
     * Format with preamble length address:
        * IPv4 is "IPv4 address/mask length" (without quotation marks)
        * IPv6 is "IPv6 address/prefix length" (without quotation marks)
@@ -537,25 +452,25 @@ Base - the basic parameter area
 
 * Values ​​- Extended parameter value area
   * Thread Pool Base Number - Runtime Basis Minimum Hold Thread: Min 8 Set to 0 Turn off the function of the thread
-  * Thread Pool Maximum Number - the maximum number of threads in the execution thread and the number of buffer queues: a minimum of 8
+  * Thread Pool Maximum Number - Maximum threads in pool or buffer queue length: Minimum is 8, set to 8 if empty or 0.
     * When the Queue Limits Reset Time parameter is enabled, this parameter is the maximum number of requests per unit of time
     * The number of buffers used to receive data when the Queue Limits Reset Time parameter is not enabled
-  * Thread Pool Reset Time - the number of threads in the thread if the number of threads in the thread pool exceeds the number specified by Thread Pool Base Number after the thread will automatically end:
+  * Thread Pool Reset Time - Time between rescan thread number to match policy: In seconds, Min 5 Set to 0 Turn this feature off
   * Queue Limits Reset Time - Data Buffer Queue Quantity Limit Reset Time: In seconds, Min 5 Set to 0 Turn this feature off
   * EDNS Payload Size - EDNS label with the maximum load length used: minimum for the DNS protocol to achieve the requirements of 512 (bytes), leave the EDNS label is required to use the shortest 1220 (bytes)
-  * IPv4 Packet TTL - issue IPv4 packet header TTL value: 0 is automatically determined by the operating system, the value of 1-255 between
+  * IPv4 Packet TTL - issue IPv4 packet header TTL value: 0 is automatically determined by the operating system, the value of 1 - 255 between
     * This parameter supports the specified range of values. The value actually used at the time of sending each packet is randomly specified within this range. The specified range is a closed range
-  * IPv4 Main DNS TTL - IPv4 The primary DNS server accepts the requested remote DNS server packet TTL value: 0 is automatically fetched, the value is between 1-255
+  * IPv4 Main DNS TTL - IPv4 The primary DNS server accepts the requested remote DNS server packet TTL value: 0 is automatically fetched, the value is between 1 - 255
     * Supports multiple TTL values, corresponding to IPv4 DNS Address
-  * IPv4 Alternate DNS TTL - The IPv4 secondary DNS server accepts the TTL value of the remote DNS server package that is requested: 0 is automatically fetched, with a value between 1-255
+  * IPv4 Alternate DNS TTL - The IPv4 secondary DNS server accepts the TTL value of the remote DNS server package that is requested: 0 is automatically fetched, with a value between 1 - 255
     * Supports multiple TTL values, corresponding to IPv4 Alternate DNS Address
-  * IPv6 Packet Hop Limits - issue IPv6 header header HopLimits value: 0 is automatically determined by the operating system, the value of 1-255 between
+  * IPv6 Packet Hop Limits - issue IPv6 header header HopLimits value: 0 is automatically determined by the operating system, the value of 1 - 255 between
     * This parameter supports the specified range of values. The value actually used at the time of sending each packet is randomly specified within this range. The specified range is a closed range
-  * IPv6 Main DNS Hop Limits - IPv6 primary DNS server accepts the requested remote DNS server bundle Hop Limits value: 0 for automatic acquisition, the value is between 1-255
+  * IPv6 Main DNS Hop Limits - IPv6 primary DNS server accepts the requested remote DNS server bundle Hop Limits value: 0 for automatic acquisition, the value is between 1 - 255
     * Supports multiple Hop Limits values, corresponding to IPv6 DNS Address
-  * IPv6 Alternate DNS Hop Limits - IPv6 standby DNS server accepts the requested remote DNS server bundle Hop Limits value: 0 for automatic acquisition, the value is between 1-255
+  * IPv6 Alternate DNS Hop Limits - IPv6 standby DNS server accepts the requested remote DNS server bundle Hop Limits value: 0 for automatic acquisition, the value is between 1 - 255
     * Supports multiple Hop Limits values, corresponding to IPv6 Alternate DNS Address
-  * Hop Limits Fluctuation - IPv4 TTL/IPv6 Hop Limits Acceptable range, that is, IPv4 TTL/IPv6 Hop Limits value range of ± data packets can be accepted, to avoid the short-term changes in the network environment caused by the failure of the problem : The value is between 1-255
+  * Hop Limits Fluctuation - IPv4 TTL/IPv6 Hop Limits Acceptable range, that is, IPv4 TTL/IPv6 Hop Limits value range of ± data packets can be accepted, to avoid the short-term changes in the network environment caused by the failure of the problem : The value is between 1 - 255
   * Reliable Once Socket Timeout - one-time reliable protocol port timeout: in milliseconds, a minimum of 500 can be left blank, leave the time for the 3000
     * One-time refers to the request in a RTT round-trip network transmission can be completed, such as standard DNS and DNSCurve (DNSCrypt) agreement
     * Reliable port refers to TCP protocol
@@ -589,13 +504,13 @@ Base - the basic parameter area
     * In general, the reliability of the data package is likely to be higher
   * ICMP Test - ICMP/Ping test interval: in seconds, a minimum of 5 is set to 0 to turn off this function
   * Domain Test - DNS Server Resolution Function Variable Name Test Interval: In seconds, a minimum of 5 is set to 0 to turn off this feature
-  * Alternate Times - Standby server failure thresholds, if a threshold exceeds a threshold triggers a server switch:
-  * Alternate Time Range - Standby Server Failed Thresholds Calculation Period: In seconds, Min 5
-  * Alternate Reset Time - Standby Server Resets the toggle time. After this switchover, this event will switch back to the primary server: in seconds, min 5
+  * Alternate Times - Standby server failure thresholds, if a threshold exceeds a threshold triggers a server switch: In times, set to 5 if empty or 0.
+  * Alternate Time Range - Standby Server Failed Thresholds Calculation Period: In seconds, minimum is 5, set to 10 if empty or 0.
+  * Alternate Reset Time - Standby Server Resets the toggle time. After this switchover, this event will switch back to the primary server: In seconds, minimum is 5, set to 300 if empty or 0.
   * Multiple Request Times - Send parallel function to the same remote server at a time Variable name name Resolution request: 0 and 1 request 1 request when a request is received, 2 requests when a request is received 2, 3 Receive a request request 3 times .. and so on
     * This value will be applied to all remote servers except Local Hosts, so it may be stressful on the system and the remote server. Please consider the risk of opening!
     * The maximum number that can be filled in is: Enter the number of primary/standby servers
-  * Multiple Request Times = Total requested value, this value can not exceed 64
+  * Multiple Request Times = Total requested value, this value cannot exceed 32.
     * Generally, unless the packet is very serious interference with the normal use of this is not recommended to open, open does not recommend the value set too much. The actual use of each +1 can be restarted after the service test results, find the most appropriate value
   * Note:
     * The TTL protocol is TTL (A)|TTL (B)|TTL (C) "(without quotation marks), or can be directly preset (that is, only one 0 does not use this format) TTL will be automatically obtained by the program
@@ -632,12 +547,12 @@ Base - the basic parameter area
   * Resource Record Set TTL Filter - RFC 2181 clarifications to the DNS specification, restrict TTL values of RRSet: 1 to enable/0 to disable.
 
 * Data - data area
-  * ICMP ID - ICMP/Ping packet header ID: hexadecimal character in the format 0x ****, if left blank, the thread ID of the thread is used as the request id
+  * ICMP ID - ICMP/Ping packet header ID: Hexadecimal character in 0x****, randomly generated if empty.
   * ICMP Sequence - ICMP/Ping Package Header Sequence/Serial Number: Hexadecimal character in the format 0x ****, if left blank, increments from 0x0001 to each request loopback increment
-  * ICMP PaddingData - ICMP Additional information, Ping program to send the request to make up the data to reach the Ethernet type network to send the minimum length of the data: length of 18 bytes - 1500 bytes between the ASCII data , Leave the ICMP extension using the Microsoft Windows Ping program
+  * ICMP Padding Data - ICMP Additional information, Ping program to send the request to make up the data to reach the Ethernet type network to send the minimum length of the data: length of 18 bytes - 2048 bytes between the ASCII data , Leave the ICMP extension using the Ping program
   * Domain Test Protocol - Protocol used when sending a request using Domain Test: Fill in TCP and UDP
-  * Domain Test ID - DNS packet header ID: hexadecimal character in the format 0x ****, if left blank, the thread ID of the thread is used as the request id
-  * Domain Test Data - DNS Server Resolution Function Variable Name Test: Please enter the correct, confirm the name of the function variable that will not be poisoned and do not exceed 253 bytes of ASCII data, leaving a function variable name randomly test
+  * Domain Test ID - DNS packet header ID: Hexadecimal character in 0x****, randomly generated if empty.
+  * Domain Test Data - DNS Server Resolution Function Variable Name Test: Please enter a correct domain which less than 253 bytes of ASCII, randomly generated if empty.
   * Local Machine Server Name - Local DNS Server Name: Enter the correct function variable name and do not exceed 253 bytes of ASCII data, leaving pcap-dnsproxy.server as the local server name
 
 * Proxy - proxy area
@@ -645,11 +560,10 @@ Base - the basic parameter area
   * SOCKS Version - Version used by the SOCKS Agreement: Fill in 4 or 4A or 5
     * SOCKS version 4 does not support IPv6 address and function variable name of the target server, and does not support UDP forwarding function
     * SOCKS version 4a does not support IPv6 address of the target server, and does not support UDP forwarding function
-  * SOCKS Protocol - the protocol used when using the SOCKS protocol to send a request: fill in IPv4 and IPv6 and TCP and UDP
-    * Fill in the agreement can be arbitrarily combined, only to fill IPv4 or IPv6 with UDP or TCP, only use the specified agreement to the SOCKS server request
-    * When you fill in both IPv4 and IPv6 or do not fill in any network layer agreements, the program will automatically select the protocol to be used according to the web environment
-    * Both TCP and UDP are filled with only UDP because TCP is the first support for SOCKS and the most commonly supported standard network layer protocol, so TCP requests are used even when a UDP request fails
-    * Fill in Force UDP to prevent UDP requests from failing to use TCP to retry requests
+  * SOCKS Protocol - The protocol of sending request to SOCKS server: Format is "Network Layer + Transport Layer( + Type)" (without quotation marks, items in brackets are optional).
+    * Network Layer can be filled in "IPv4" or "IPv6" or "IPv4 + IPv6". Auto select protocol if fill in "IPv4 + IPv6" or nothing.
+    * Transport Layer can be filled in "TCP" or "UDP" or "TCP + UDP". Program will retry using TCP if UDP is failed, fill in "Force UDP" to stop this operation.
+    * Filling in "Type" will enable selecting protocol based on DNS type.
   * SOCKS UDP No Handshake - SOCKS UDP does not shake hands mode, will not open after the TCP handshake directly send UDP forwarding request: 1 to enable/0 to disable.
     * The standard flow of the SOCKS protocol must use the TCP connection to exchange handshaking information before using the UDP forwarding function. Otherwise, the SOCKS server will discard the forwarding request
     * Part of the SOCKS local proxy can be directly UDP forwarding without the use of TCP connection exchange handshake information, please be sure to confirm the SOCKS server support before
@@ -666,9 +580,9 @@ Base - the basic parameter area
   * SOCKS Username - User name used when connecting to SOCKS server: maximum length of 255 characters, blank
   * SOCKS Password - the password used to connect to the SOCKS server: up to 255 characters, leave it blank
   * HTTP CONNECT Proxy - HTTP CONNECT protocol master switch, control all options related to the HTTP CONNECT protocol: 1 to enable/0 to disable.
-  * HTTP CONNECT Protocol - the protocol used when using the HTTP CONNECT protocol request: can be filled with IPv4 and IPv6
-    * Fill in the agreement can be arbitrarily combined, only to fill IPv4 or IPv6, only use the specified agreement to the HTTP CONNECT server request
-    * When you fill in both IPv4 and IPv6 or do not fill in any network layer agreements, the program will automatically select the protocol to be used according to the web environment
+  * HTTP CONNECT Protocol - The protocol of sending request to HTTP CONNECT proxy server: Format is "Network Layer( + Type)" (without quotation marks, items in brackets are optional).
+    * Network Layer can be filled in "IPv4" or "IPv6" or "IPv4 + IPv6". Auto select protocol if fill in "IPv4 + IPv6" or nothing.
+    * Filling in "Type" will enable selecting protocol based on DNS type.
   * HTTP CONNECT Proxy Only - Only use the HTTP CONNECT protocol proxy mode, all requests will be made only via the HTTP CONNECT protocol: 1 to enable/0 to disable.
   * HTTP CONNECT IPv4 Address - HTTP CONNECT protocol IPv4 Primary HTTP CONNECT server address: need to enter a port format with the address
     * Does not support multiple addresses, can only fill a single address
@@ -710,11 +624,10 @@ Base - the basic parameter area
 
 * DNSCurve - DNSCurve Agreement Basic Parameter Area
   * DNSCurve - DNSCurve protocol master switch that controls all options related to the DNSCurve protocol: 1 to enable/0 to disable.
-  * DNSCurve Protocol - the protocol used to send the request using the DNSCurve protocol: can be filled with IPv4 and IPv6 and TCP and UDP
-    * Fill in the agreement can be arbitrarily combined, only fill IPv4 or IPv6 with UDP or TCP, only use the specified agreement to the remote DNS server to issue a request
-    * When you fill in both IPv4 and IPv6 or do not fill in any network layer agreements, the program will automatically select the protocol to be used according to the web environment
-    * At the same time fill in TCP and UDP is equal to only fill in TCP because UDP is the standard network layer protocol for DNS, so even when the TCP fails to fill the UDP request
-    * Fill in Force TCP to prevent TCP requests from failing to use UDP to retry requests
+  * DNSCurve Protocol - The protocol of sending request to DNSCurve server: Format is "Network Layer + Transport Layer( + Type)" (without quotation marks, items in brackets are optional).
+    * Network Layer can be filled in "IPv4" or "IPv6" or "IPv4 + IPv6". Auto select protocol if fill in "IPv4 + IPv6" or nothing.
+    * Transport Layer can be filled in "TCP" or "UDP" or "TCP + UDP". Program will retry using TCP if UDP is failed, fill in "Force UDP" to stop this operation.
+    * Filling in "Type" will enable selecting protocol based on DNS type.
   * DNSCurve Payload Size - The maximum payload length that is included with the DNSCurve tag, as well as the total length of the request sent and the requested fill length: in bytes
     * Minimum for the DNS protocol to achieve the requirements of 512, leaving 512
     * Maximum of Ethernet MTU minus the DNSCurve header length, it is recommended not to exceed 1220
@@ -725,7 +638,7 @@ Base - the basic parameter area
   * DNSCurve Encryption Only - only use encryption mode, all requests will only be through DNCurve encryption mode: 1 to enable/0 to disable.
     * Note: Use "Only use encryption mode" must provide the server's magic number and fingerprints for request and reception
   * DNSCurve Client Ephemeral Key - One-off client key group mode, each request resolution using a randomly generated one-time client key group, providing forward security: 1 to enable/0 to disable.
-  * DNSCurve Key Recheck Time - DNSCurve Agreement DNS Server Connection Information Check Interval: In seconds, Min 10
+  * DNSCurve Key Recheck Time - DNSCurve Agreement DNS Server Connection Information Check Interval: In seconds, minimum is 10, set to 1800 if empty or 0.
 
 * DNSCurve Database - DNSCurve Agreement Database area
   * DNSCurve Database Name - The file name of the DNSCurve agreement database
@@ -1000,7 +913,8 @@ The valid parameter format is "Start Address - End Address, Filter Level, Entry 
 When Local Routing is on, it will check whether the routing table of this list is hit. Check whether it is related to whether the function name request is using the local server. If the routing table is hit, the result will be returned directly. The hit will discard the resolution result and The server initiates the request again
 Valid parameter format is "Address block/network prefix length" (without quotation marks)
   * This routing table supports IPv4 and IPv6 protocols
-  * The IPv4 prefix is ​​in the range of 1-32, and the network prefix is ​​in the range of 1-128
+  * IPv4 network prefix must between 1 and 32.
+  * IPv6 network prefix must between 1 and 128.
 
 
 * Stop - temporarily stop reading the label
@@ -1032,7 +946,7 @@ Auto-refresh support profile list:
 * IPv6 Packet Hop Limits
 * IPv6 Main DNS Hop Limits
 * IPv6 Alternate DNS Hop Limits
-* HopLimits Fluctuation
+* Hop Limits Fluctuation
 * Reliable Once Socket Timeout
 * Reliable Serial Socket Timeout
 * Unreliable Once Socket Timeout

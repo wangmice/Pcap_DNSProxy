@@ -289,6 +289,9 @@
 		D9C8DD28205E4F6700C3D259 /* Include.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Include.h; sourceTree = "<group>"; };
 		D9C8DD29205E4F6700C3D259 /* DNSCurveControl.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DNSCurveControl.cpp; sourceTree = "<group>"; };
 		D9C8DD2B205E4F7200C3D259 /* Type.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Type.h; sourceTree = "<group>"; };
+		D9D89CC42145593D00373BE8 /* sslconf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = sslconf.h; path = Dependency/OpenSSL/internal/sslconf.h; sourceTree = "<group>"; };
+		D9D89CC52145593D00373BE8 /* __DECC_INCLUDE_EPILOGUE.H */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = __DECC_INCLUDE_EPILOGUE.H; path = Dependency/OpenSSL/internal/__DECC_INCLUDE_EPILOGUE.H; sourceTree = "<group>"; };
+		D9D89CC62145593D00373BE8 /* __DECC_INCLUDE_PROLOGUE.H */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = __DECC_INCLUDE_PROLOGUE.H; path = Dependency/OpenSSL/internal/__DECC_INCLUDE_PROLOGUE.H; sourceTree = "<group>"; };
 		D9EF117C1DDB53C7004E4B90 /* LibSodium_macOS.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = LibSodium_macOS.a; path = Dependency/LibSodium/LibSodium_macOS.a; sourceTree = "<group>"; };
 		D9EF117E1DDB53D7004E4B90 /* LibCrypto_macOS.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = LibCrypto_macOS.a; path = Dependency/OpenSSL/LibCrypto_macOS.a; sourceTree = "<group>"; };
 		D9EF117F1DDB53D7004E4B90 /* LibSSL_macOS.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = LibSSL_macOS.a; path = Dependency/OpenSSL/LibSSL_macOS.a; sourceTree = "<group>"; };
@@ -662,7 +665,10 @@
 				D99203331F1B49A500B0698E /* numbers.h */,
 				D99203341F1B49A500B0698E /* o_dir.h */,
 				D99203351F1B49A500B0698E /* o_str.h */,
+				D9D89CC42145593D00373BE8 /* sslconf.h */,
 				D99203361F1B49A500B0698E /* thread_once.h */,
+				D9D89CC52145593D00373BE8 /* __DECC_INCLUDE_EPILOGUE.H */,
+				D9D89CC62145593D00373BE8 /* __DECC_INCLUDE_PROLOGUE.H */,
 			);
 			name = internal;
 			sourceTree = "<group>";
@@ -754,10 +760,13 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ADDRESS_SANITIZER_CONTAINER_OVERFLOW = YES;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++14";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_UNDEFINED_BEHAVIOR_SANITIZER_INTEGER = YES;
+				CLANG_UNDEFINED_BEHAVIOR_SANITIZER_NULLABILITY = YES;
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_COMMA = YES;
@@ -794,6 +803,8 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				LLVM_LTO = YES;
+				MACH_O_TYPE = mh_execute;
 				MACOSX_DEPLOYMENT_TARGET = 10.8;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -805,10 +816,13 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ADDRESS_SANITIZER_CONTAINER_OVERFLOW = YES;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++14";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_UNDEFINED_BEHAVIOR_SANITIZER_INTEGER = YES;
+				CLANG_UNDEFINED_BEHAVIOR_SANITIZER_NULLABILITY = YES;
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_COMMA = YES;
@@ -833,13 +847,15 @@
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = c11;
 				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_OPTIMIZATION_LEVEL = fast;
+				GCC_OPTIMIZATION_LEVEL = 3;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				LLVM_LTO = YES;
+				MACH_O_TYPE = mh_execute;
 				MACOSX_DEPLOYMENT_TARGET = 10.8;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				ONLY_ACTIVE_ARCH = YES;

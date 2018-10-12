@@ -30,17 +30,18 @@ extern ALTERNATE_SWAP_TABLE AlternateSwapList;
 extern DNSCURVE_CONFIGURATION_TABLE DNSCurveParameter, DNSCurveParameterModificating;
 #endif
 extern std::deque<SOCKET_REGISTER_DATA> SocketRegisterList;
-extern std::mutex LocalAddressLock[], SocketRegisterLock;
+extern std::mutex SocketRegisterLock;
+extern std::array<std::mutex, NETWORK_LAYER_PARTNUM> LocalAddressLock;
 
 //Functions
-bool MonitorSocketBinding(
+bool ListenMonitor_BindSocket(
 	const uint16_t Protocol, 
 	SOCKET_DATA &LocalSocketData);
-bool UDP_Monitor(
+bool ListenMonitor_UDP(
 	SOCKET_DATA LocalSocketData);
-bool TCP_Monitor(
+bool ListenMonitor_TCP(
 	SOCKET_DATA LocalSocketData);
-void AlternateServerMonitor(
+void AlternateServerSwitcher(
 	void);
 #if defined(PLATFORM_WIN)
 addrinfo *GetLocalAddressList(

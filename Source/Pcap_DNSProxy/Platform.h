@@ -351,6 +351,7 @@
 
 //C Standard Library and C++ Standard Template Library/STL headers
 #include <algorithm>               //Collection of functions especially designed to be used on ranges of elements algorithm support
+#include <array>                   //Container that encapsulates fixed size arrays support
 #include <atomic>                  //Atomic type support
 #include <condition_variable>      //Condition variable support
 #include <deque>                   //Double-ended queue support
@@ -400,21 +401,19 @@
 //Part 1 including files
 	#include <direct.h>                //Functions for directory handling and creation
 	#include <winsock2.h>              //WinSock 2.0+ support
-//	#include <winsvc.h>                //Service Control Manager
 
 //Part 2 including files(MUST be including after Part 1)
-//	#include <mstcpip.h>               //Microsoft-specific extensions to the core Winsock definitions.
+	#include <mstcpip.h>               //Microsoft-specific extensions to the core Winsock definitions.
 	#include <mswsock.h>               //Microsoft-specific extensions to the Windows Sockets API.
 	#include <windns.h>                //Windows DNS definitions and DNS API
 	#include <ws2tcpip.h>              //WinSock 2.0+ Extension for TCP/IP protocols
 
 //Part 3 including files(MUST be including after Part 2)
-//	#include <windows.h>               //Master include file
+//	#include <windows.h>               //Windows master header file
 
 //Part 4 including files(MUST be including after Part 3)
 	#include <iphlpapi.h>              //IP Stack for MIB-II and related functionality
 	#include <sddl.h>                  //Support and conversions routines necessary for SDDL
-//	#include <versionhelpers.h>        //Version Helper functions
 
 //Part 5 including files(MUST be including after Part 4)
 #ifndef ENABLE_TLS
@@ -594,7 +593,7 @@
 #endif
 
 //TCP Fast Open additional support
-//Using when no native support in system.
+//Active when no native support in system.
 #if defined(PLATFORM_LINUX)
 #ifndef _KERNEL_FASTOPEN
 	#define _KERNEL_FASTOPEN

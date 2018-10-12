@@ -164,6 +164,7 @@ size_t SOCKS_TCP_Request(
 	const size_t SendSize, 
 	std::unique_ptr<uint8_t[]> &OriginalRecv, 
 	size_t &RecvSize, 
+	const uint16_t QueryType, 
 	const SOCKET_DATA &LocalSocketData)
 {
 //Initialization
@@ -173,12 +174,10 @@ size_t SOCKS_TCP_Request(
 	memset(&SocketDataList.front(), 0, sizeof(SocketDataList.front()));
 	SocketDataList.front().Socket = INVALID_SOCKET;
 	ErrorCodeList.front() = 0;
+	const auto NetworkSpecific = SelectProtocol_Network(Parameter.SOCKS_Protocol_Network, Parameter.SOCKS_Address_IPv6.Storage.ss_family, Parameter.SOCKS_Address_IPv4.Storage.ss_family, Parameter.SOCKS_Protocol_IsAccordingType, QueryType, &LocalSocketData);
 
 //Socket initialization
-	if (Parameter.SOCKS_Address_IPv6.Storage.ss_family != 0 && //IPv6
-		((Parameter.SOCKS_Protocol_Network == REQUEST_MODE_NETWORK::BOTH && GlobalRunningStatus.GatewayAvailable_IPv6) || //Auto select
-		Parameter.SOCKS_Protocol_Network == REQUEST_MODE_NETWORK::IPV6 || //IPv6
-		(Parameter.SOCKS_Protocol_Network == REQUEST_MODE_NETWORK::IPV4 && Parameter.SOCKS_Address_IPv4.Storage.ss_family == 0))) //Non-IPv4
+	if (NetworkSpecific == AF_INET6)
 	{
 		SocketDataList.front().SockAddr.ss_family = AF_INET6;
 		reinterpret_cast<sockaddr_in6 *>(&SocketDataList.front().SockAddr)->sin6_addr = Parameter.SOCKS_Address_IPv6.IPv6.sin6_addr;
@@ -186,10 +185,7 @@ size_t SOCKS_TCP_Request(
 		SocketDataList.front().AddrLen = sizeof(sockaddr_in6);
 		SocketDataList.front().Socket = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
 	}
-	else if (Parameter.SOCKS_Address_IPv4.Storage.ss_family != 0 && //IPv4
-		((Parameter.SOCKS_Protocol_Network == REQUEST_MODE_NETWORK::BOTH && GlobalRunningStatus.GatewayAvailable_IPv4) || //Auto select
-		Parameter.SOCKS_Protocol_Network == REQUEST_MODE_NETWORK::IPV4 || //IPv4
-		(Parameter.SOCKS_Protocol_Network == REQUEST_MODE_NETWORK::IPV6 && Parameter.SOCKS_Address_IPv6.Storage.ss_family == 0))) //Non-IPv6
+	else if (NetworkSpecific == AF_INET)
 	{
 		SocketDataList.front().SockAddr.ss_family = AF_INET;
 		reinterpret_cast<sockaddr_in *>(&SocketDataList.front().SockAddr)->sin_addr = Parameter.SOCKS_Address_IPv4.IPv4.sin_addr;
@@ -212,8 +208,7 @@ size_t SOCKS_TCP_Request(
 	if (!SocketSetting(SocketDataList.front().Socket, SOCKET_SETTING_TYPE::NON_BLOCKING_MODE, true, nullptr) || 
 		!SocketSetting(SocketDataList.front().Socket, SOCKET_SETTING_TYPE::TCP_FAST_OPEN, true, nullptr) || 
 		(SocketDataList.front().SockAddr.ss_family == AF_INET6 && !SocketSetting(SocketDataList.front().Socket, SOCKET_SETTING_TYPE::HOP_LIMITS_IPV6, true, nullptr)) || 
-		(SocketDataList.front().SockAddr.ss_family == AF_INET && (!SocketSetting(SocketDataList.front().Socket, SOCKET_SETTING_TYPE::HOP_LIMITS_IPV4, true, nullptr)))) // || 
-//		!SocketSetting(SocketDataList.front().Socket, SOCKET_SETTING_TYPE::DO_NOT_FRAGMENT, true, nullptr))))
+		(SocketDataList.front().SockAddr.ss_family == AF_INET && (!SocketSetting(SocketDataList.front().Socket, SOCKET_SETTING_TYPE::HOP_LIMITS_IPV4, true, nullptr))))
 	{
 		SocketSetting(SocketDataList.front().Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
 		return EXIT_FAILURE;
@@ -301,6 +296,7 @@ size_t SOCKS_UDP_Request(
 	const size_t SendSize, 
 	std::unique_ptr<uint8_t[]> &OriginalRecv, 
 	size_t &RecvSize, 
+	const uint16_t QueryType, 
 	const SOCKET_DATA &LocalSocketData)
 {
 //Initialization
@@ -316,12 +312,10 @@ size_t SOCKS_UDP_Request(
 	TCPErrorCodeList.front() = 0;
 	UDPErrorCodeList.front() = 0;
 	LocalErrorCodeList.front() = 0;
+	const auto NetworkSpecific = SelectProtocol_Network(Parameter.SOCKS_Protocol_Network, Parameter.SOCKS_Address_IPv6.Storage.ss_family, Parameter.SOCKS_Address_IPv4.Storage.ss_family, Parameter.SOCKS_Protocol_IsAccordingType, QueryType, &LocalSocketData);
 
 //Socket initialization
-	if (Parameter.SOCKS_Address_IPv6.Storage.ss_family != 0 && //IPv6
-		((Parameter.SOCKS_Protocol_Network == REQUEST_MODE_NETWORK::BOTH && GlobalRunningStatus.GatewayAvailable_IPv6) || //Auto select
-		Parameter.SOCKS_Protocol_Network == REQUEST_MODE_NETWORK::IPV6 || //IPv6
-		(Parameter.SOCKS_Protocol_Network == REQUEST_MODE_NETWORK::IPV4 && Parameter.SOCKS_Address_IPv4.Storage.ss_family == 0))) //Non-IPv4
+	if (NetworkSpecific == AF_INET6)
 	{
 		if (!Parameter.SOCKS_UDP_NoHandshake)
 		{
@@ -345,10 +339,7 @@ size_t SOCKS_UDP_Request(
 		UDPSocketDataList.front().AddrLen = sizeof(sockaddr_in6);
 		UDPSocketDataList.front().Socket = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
 	}
-	else if (Parameter.SOCKS_Address_IPv4.Storage.ss_family != 0 && //IPv4
-		((Parameter.SOCKS_Protocol_Network == REQUEST_MODE_NETWORK::BOTH && GlobalRunningStatus.GatewayAvailable_IPv4) || //Auto select
-		Parameter.SOCKS_Protocol_Network == REQUEST_MODE_NETWORK::IPV4 || //IPv4
-		(Parameter.SOCKS_Protocol_Network == REQUEST_MODE_NETWORK::IPV6 && Parameter.SOCKS_Address_IPv6.Storage.ss_family == 0))) //Non-IPv6
+	else if (NetworkSpecific == AF_INET)
 	{
 		if (!Parameter.SOCKS_UDP_NoHandshake)
 		{
@@ -418,7 +409,7 @@ size_t SOCKS_UDP_Request(
 		}
 
 	//UDP connecting and get UDP socket infomation.
-		if (SocketConnecting(IPPROTO_UDP, UDPSocketDataList.front().Socket, reinterpret_cast<sockaddr *>(&UDPSocketDataList.front().SockAddr), UDPSocketDataList.front().AddrLen, nullptr, 0) == EXIT_FAILURE || 
+		if (SocketConnecting(IPPROTO_UDP, UDPSocketDataList.front().Socket, reinterpret_cast<const sockaddr *>(&UDPSocketDataList.front().SockAddr), UDPSocketDataList.front().AddrLen, nullptr, 0) == EXIT_FAILURE || 
 			getsockname(UDPSocketDataList.front().Socket, reinterpret_cast<sockaddr *>(&LocalSocketDataList.front().SockAddr), &LocalSocketDataList.front().AddrLen) == SOCKET_ERROR)
 		{
 			SocketSetting(UDPSocketDataList.front().Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
@@ -447,7 +438,7 @@ size_t SOCKS_UDP_Request(
 	}
 
 //UDP connecting again to bind a new socket data.
-	if (SocketConnecting(IPPROTO_UDP, UDPSocketDataList.front().Socket, reinterpret_cast<sockaddr *>(&UDPSocketDataList.front().SockAddr), UDPSocketDataList.front().AddrLen, nullptr, 0) == EXIT_FAILURE)
+	if (SocketConnecting(IPPROTO_UDP, UDPSocketDataList.front().Socket, reinterpret_cast<const sockaddr *>(&UDPSocketDataList.front().SockAddr), UDPSocketDataList.front().AddrLen, nullptr, 0) == EXIT_FAILURE)
 	{
 		SocketSetting(UDPSocketDataList.front().Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
 		if (!Parameter.SOCKS_UDP_NoHandshake)
@@ -655,7 +646,7 @@ bool SOCKS_SelectionExchange(
 	}
 
 //TCP connecting
-	auto RecvLen = SocketConnecting(IPPROTO_TCP, SocketDataList.front().Socket, reinterpret_cast<sockaddr *>(&SocketDataList.front().SockAddr), SocketDataList.front().AddrLen, SocketSelectingDataList.front().SendBuffer.get(), SocketSelectingDataList.front().SendSize);
+	auto RecvLen = SocketConnecting(IPPROTO_TCP, SocketDataList.front().Socket, reinterpret_cast<const sockaddr *>(&SocketDataList.front().SockAddr), SocketDataList.front().AddrLen, SocketSelectingDataList.front().SendBuffer.get(), SocketSelectingDataList.front().SendSize);
 	if (RecvLen == EXIT_FAILURE)
 	{
 		PrintError(LOG_LEVEL_TYPE::LEVEL_3, LOG_ERROR_TYPE::NETWORK, L"SOCKS connecting error", 0, nullptr, 0);
@@ -914,7 +905,7 @@ bool SOCKS_ClientCommandRequest(
 	else if (Parameter.SOCKS_Version == SOCKS_VERSION_4 || Parameter.SOCKS_Version == SOCKS_VERSION_CONFIG_4A) //SOCKS version 4 or 4a
 	{
 	//TCP connecting
-		RecvLen = SocketConnecting(IPPROTO_TCP, SocketDataList.front().Socket, reinterpret_cast<sockaddr *>(&SocketDataList.front().SockAddr), SocketDataList.front().AddrLen, SocketSelectingDataList.front().SendBuffer.get(), SocketSelectingDataList.front().SendSize);
+		RecvLen = SocketConnecting(IPPROTO_TCP, SocketDataList.front().Socket, reinterpret_cast<const sockaddr *>(&SocketDataList.front().SockAddr), SocketDataList.front().AddrLen, SocketSelectingDataList.front().SendBuffer.get(), SocketSelectingDataList.front().SendSize);
 		if (RecvLen == EXIT_FAILURE)
 		{
 			PrintError(LOG_LEVEL_TYPE::LEVEL_3, LOG_ERROR_TYPE::NETWORK, L"SOCKS connecting error", 0, nullptr, 0);
@@ -1683,7 +1674,7 @@ bool HTTP_CONNECT_ResponseBytesCheck(
 		{
 			IsGotResponseResult = true;
 		}
-		else if (HTTP_String.compare(0, strlen("HTTP/"), ("HTTP/")) == 0 && 
+		else if (HTTP_String.compare(0, strlen("HTTP/"), "HTTP/") == 0 && 
 			HTTP_String.find(ASCII_SPACE) != std::string::npos && HTTP_String.find("\r\n\r\n") != std::string::npos)
 		{
 			if (HTTP_String.find("\r\n") != std::string::npos)
@@ -1711,7 +1702,7 @@ bool HTTP_CONNECT_ResponseBytesCheck(
 
 		//HTTP version 1.x response
 			std::string HTTP_String(reinterpret_cast<const char *>(SocketSelectingDataList.front().RecvBuffer.get()));
-			if (HTTP_String.compare(0, strlen("HTTP/"), ("HTTP/")) == 0 && 
+			if (HTTP_String.compare(0, strlen("HTTP/"), "HTTP/") == 0 && 
 				HTTP_String.find(ASCII_SPACE) != std::string::npos && HTTP_String.find("\r\n\r\n") != std::string::npos)
 			{
 				if (HTTP_String.find("\r\n") != std::string::npos)
@@ -1798,7 +1789,7 @@ bool HTTP_CONNECT_ResponseBytesCheck(
 						if (HeaderBlockBuffer)
 							memcpy_s(HeaderBuffer.get(), HeaderBlockSize + ntohs(FrameHeader->Length_Low) + MEMORY_RESERVED_BYTES, HeaderBlockBuffer.get(), HeaderBlockLength);
 						std::swap(HeaderBlockBuffer, HeaderBuffer);
-						HeaderBlockSize += ntohs(FrameHeader->Length_Low) + MEMORY_RESERVED_BYTES;
+						HeaderBlockSize += static_cast<size_t>(ntohs(FrameHeader->Length_Low)) + MEMORY_RESERVED_BYTES;
 					}
 
 				//Write to buffer.
@@ -1860,7 +1851,7 @@ bool HTTP_CONNECT_ResponseBytesCheck(
 			else if (FrameHeader->Type == HTTP_2_FRAME_TYPE_RST_STREAM && Index + sizeof(http2_rst_stream_frame) <= SocketSelectingDataList.front().RecvLen) //RST_STREAM frame
 			{
 				std::wstring Message(L"HTTP CONNECT server response error");
-				HTTP_CONNECT_2_PrintLog(ntohl(reinterpret_cast<http2_rst_stream_frame *>(SocketSelectingDataList.front().RecvBuffer.get() + Index)->ErrorCode), Message);
+				PrintLog_HTTP_CONNECT_2(ntohl(reinterpret_cast<http2_rst_stream_frame *>(SocketSelectingDataList.front().RecvBuffer.get() + Index)->ErrorCode), Message);
 				PrintError(LOG_LEVEL_TYPE::LEVEL_3, LOG_ERROR_TYPE::HTTP_CONNECT, Message.c_str(), 0, nullptr, 0);
 
 				return false;
@@ -1909,7 +1900,7 @@ bool HTTP_CONNECT_ResponseBytesCheck(
 			else if (FrameHeader->Type == HTTP_2_FRAME_TYPE_GOAWAY && Index + sizeof(http2_goaway_frame) <= SocketSelectingDataList.front().RecvLen) //GOAWAY frame
 			{
 				std::wstring Message(L"HTTP CONNECT server response error");
-				HTTP_CONNECT_2_PrintLog(ntohl(reinterpret_cast<http2_goaway_frame *>(SocketSelectingDataList.front().RecvBuffer.get() + Index)->ErrorCode), Message);
+				PrintLog_HTTP_CONNECT_2(ntohl(reinterpret_cast<http2_goaway_frame *>(SocketSelectingDataList.front().RecvBuffer.get() + Index)->ErrorCode), Message);
 				PrintError(LOG_LEVEL_TYPE::LEVEL_3, LOG_ERROR_TYPE::HTTP_CONNECT, Message.c_str(), 0, nullptr, 0);
 
 				return false;
@@ -2016,11 +2007,12 @@ bool HTTP_CONNECT_2_ShutdownConnection(
 }
 
 //Transmission and reception of HTTP CONNECT protocol
-size_t HTTP_CONNECT_Request(
+size_t HTTP_CONNECT_TCP_Request(
 	const uint8_t * const OriginalSend, 
 	const size_t SendSize, 
 	std::unique_ptr<uint8_t[]> &OriginalRecv, 
 	size_t &RecvSize, 
+	const uint16_t QueryType, 
 	const SOCKET_DATA &LocalSocketData)
 {
 //HTTP CONNECT target domain check
@@ -2051,7 +2043,7 @@ size_t HTTP_CONNECT_Request(
 #endif
 
 //HTTP CONNECT handshake
-	if (!HTTP_CONNECT_Handshake(SocketDataList, SocketSelectingDataList, ErrorCodeList, TLS_Context))
+	if (!HTTP_CONNECT_Handshake(SocketDataList, SocketSelectingDataList, ErrorCodeList, QueryType, LocalSocketData, TLS_Context))
 		return EXIT_FAILURE;
 
 //HTTP version 1.x packet
@@ -2149,17 +2141,17 @@ bool HTTP_CONNECT_Handshake(
 	std::vector<SOCKET_DATA> &SocketDataList, 
 	std::vector<SOCKET_SELECTING_SERIAL_DATA> &SocketSelectingDataList, 
 	std::vector<ssize_t> &ErrorCodeList, 
+	const uint16_t QueryType, 
+	const SOCKET_DATA &LocalSocketData, 
 	void *TLS_Context)
 {
 //Socket data check
 	if (SocketDataList.empty() || SocketSelectingDataList.empty() || ErrorCodeList.empty())
 		return false;
+	const auto NetworkSpecific = SelectProtocol_Network(Parameter.HTTP_CONNECT_Protocol, Parameter.HTTP_CONNECT_Address_IPv6.Storage.ss_family, Parameter.HTTP_CONNECT_Address_IPv4.Storage.ss_family, Parameter.HTTP_CONNECT_IsAccordingType, QueryType, &LocalSocketData);
 
 //Socket initialization
-	if (Parameter.HTTP_CONNECT_Address_IPv6.Storage.ss_family != 0 && //IPv6
-		((Parameter.HTTP_CONNECT_Protocol == REQUEST_MODE_NETWORK::BOTH && GlobalRunningStatus.GatewayAvailable_IPv6) || //Auto select
-		Parameter.HTTP_CONNECT_Protocol == REQUEST_MODE_NETWORK::IPV6 || //IPv6
-		(Parameter.HTTP_CONNECT_Protocol == REQUEST_MODE_NETWORK::IPV4 && Parameter.HTTP_CONNECT_Address_IPv4.Storage.ss_family == 0))) //Non-IPv4
+	if (NetworkSpecific == AF_INET6)
 	{
 	#if defined(ENABLE_TLS)
 	#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
@@ -2189,10 +2181,7 @@ bool HTTP_CONNECT_Handshake(
 	#endif
 	#endif
 	}
-	else if (Parameter.HTTP_CONNECT_Address_IPv4.Storage.ss_family != 0 && //IPv4
-		((Parameter.HTTP_CONNECT_Protocol == REQUEST_MODE_NETWORK::BOTH && GlobalRunningStatus.GatewayAvailable_IPv4) || //Auto select
-		Parameter.HTTP_CONNECT_Protocol == REQUEST_MODE_NETWORK::IPV4 || //IPv4
-		(Parameter.HTTP_CONNECT_Protocol == REQUEST_MODE_NETWORK::IPV6 && Parameter.HTTP_CONNECT_Address_IPv6.Storage.ss_family == 0))) //Non-IPv6
+	else if (NetworkSpecific == AF_INET)
 	{
 	#if defined(ENABLE_TLS)
 	#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
@@ -2243,8 +2232,7 @@ bool HTTP_CONNECT_Handshake(
 	//Socket attribute settings
 		if (!SocketSetting(SocketDataList.front().Socket, SOCKET_SETTING_TYPE::TCP_FAST_OPEN, true, nullptr) || 
 			(SocketDataList.front().SockAddr.ss_family == AF_INET6 && !SocketSetting(SocketDataList.front().Socket, SOCKET_SETTING_TYPE::HOP_LIMITS_IPV6, true, nullptr)) || 
-			(SocketDataList.front().SockAddr.ss_family == AF_INET && (!SocketSetting(SocketDataList.front().Socket, SOCKET_SETTING_TYPE::HOP_LIMITS_IPV4, true, nullptr)))) // || 
-//			!SocketSetting(SocketDataList.front().Socket, SOCKET_SETTING_TYPE::DO_NOT_FRAGMENT, true, nullptr))))
+			(SocketDataList.front().SockAddr.ss_family == AF_INET && (!SocketSetting(SocketDataList.front().Socket, SOCKET_SETTING_TYPE::HOP_LIMITS_IPV4, true, nullptr))))
 		{
 			SocketSetting(SocketDataList.front().Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
 			return false;
@@ -2494,7 +2482,7 @@ bool HTTP_CONNECT_Exchange(
 //Normal process
 	else {
 	//TCP connecting
-		auto RecvLen = SocketConnecting(IPPROTO_TCP, SocketDataList.front().Socket, reinterpret_cast<sockaddr *>(&SocketDataList.front().SockAddr), SocketDataList.front().AddrLen, reinterpret_cast<const uint8_t *>(SocketSelectingDataList.front().SendBuffer.get()), SocketSelectingDataList.front().SendSize);
+		auto RecvLen = SocketConnecting(IPPROTO_TCP, SocketDataList.front().Socket, reinterpret_cast<const sockaddr *>(&SocketDataList.front().SockAddr), SocketDataList.front().AddrLen, reinterpret_cast<const uint8_t *>(SocketSelectingDataList.front().SendBuffer.get()), SocketSelectingDataList.front().SendSize);
 		if (RecvLen == EXIT_FAILURE)
 		{
 			PrintError(LOG_LEVEL_TYPE::LEVEL_3, LOG_ERROR_TYPE::NETWORK, L"HTTP CONNECT connecting error", 0, nullptr, 0);
@@ -2730,7 +2718,7 @@ size_t HTTP_CONNECT_Transport(
 						if (DataBlockBuffer)
 							memcpy_s(DataBuffer.get(), DataBlockSize + ntohs(FrameHeader->Length_Low) + MEMORY_RESERVED_BYTES, DataBlockBuffer.get(), DataBlockLength);
 						std::swap(DataBlockBuffer, DataBuffer);
-						DataBlockSize += ntohs(FrameHeader->Length_Low) + MEMORY_RESERVED_BYTES;
+						DataBlockSize += static_cast<size_t>(ntohs(FrameHeader->Length_Low)) + MEMORY_RESERVED_BYTES;
 					}
 
 				//Write to buffer.

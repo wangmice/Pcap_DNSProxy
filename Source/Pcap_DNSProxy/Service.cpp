@@ -127,17 +127,17 @@ BOOL WINAPI SignalHandler(
 		//Handle the CTRL-C signal.
 			case CTRL_C_EVENT:
 			{
-				PrintToScreen(true, L"[Notice] Get Control-C.\n");
+				PrintToScreen(true, false, L"[Notice] Get Control-C.\n");
 			}break;
 		//Handle the CTRL-Break signal.
 			case CTRL_BREAK_EVENT:
 			{
-				PrintToScreen(true, L"[Notice] Get Control-Break.\n");
+				PrintToScreen(true, false, L"[Notice] Get Control-Break.\n");
 			}break;
 		//Handle other signals which are all closing signal.
 			default:
 			{
-				PrintToScreen(true, L"[Notice] Get closing signal.\n");
+				PrintToScreen(true, false, L"[Notice] Get closing signal.\n");
 			}break;
 		}
 	}
@@ -504,12 +504,12 @@ bool WINAPI Flush_DNS_MailSlotSender(
 		if (GetLastError() == 0)
 		{
 			InnerMessage.append(L".\n");
-			PrintToScreen(true, InnerMessage.c_str());
+			PrintToScreen(true, false, InnerMessage.c_str());
 		}
 		else {
 			ErrorCodeToMessage(LOG_ERROR_TYPE::SYSTEM, GetLastError(), InnerMessage);
 			InnerMessage.append(L".\n");
-			PrintToScreen(true, InnerMessage.c_str(), GetLastError());
+			PrintToScreen(true, false, InnerMessage.c_str(), GetLastError());
 		}
 
 		return false;
@@ -538,12 +538,12 @@ bool WINAPI Flush_DNS_MailSlotSender(
 		if (GetLastError() == 0)
 		{
 			InnerMessage.append(L".\n");
-			PrintToScreen(true, InnerMessage.c_str());
+			PrintToScreen(true, false, InnerMessage.c_str());
 		}
 		else {
 			ErrorCodeToMessage(LOG_ERROR_TYPE::SYSTEM, GetLastError(), InnerMessage);
 			InnerMessage.append(L".\n");
-			PrintToScreen(true, InnerMessage.c_str(), GetLastError());
+			PrintToScreen(true, false, InnerMessage.c_str(), GetLastError());
 		}
 
 		return false;
@@ -551,7 +551,7 @@ bool WINAPI Flush_DNS_MailSlotSender(
 	else {
 		CloseHandle(
 			FileHandle);
-		PrintToScreen(true, L"[Notice] Flush DNS cache message was sent successfully.\n");
+		PrintToScreen(true, false, L"[Notice] Flush DNS cache message was sent successfully.\n");
 	}
 
 	return true;
@@ -562,7 +562,7 @@ bool CheckProcessExists(
 	void)
 {
 //Open current dectory to make a file mutex handle.
-	GlobalRunningStatus.Initialized_MutexHandle = open(GlobalRunningStatus.MBS_Path_Global->front().c_str(), O_RDONLY | O_NONBLOCK);
+	GlobalRunningStatus.Initialized_MutexHandle = open(GlobalRunningStatus.Path_Global_MBS->front().c_str(), O_RDONLY | O_NONBLOCK);
 	if (GlobalRunningStatus.Initialized_MutexHandle == RETURN_ERROR)
 	{
 		PrintError(LOG_LEVEL_TYPE::LEVEL_2, LOG_ERROR_TYPE::SYSTEM, L"Process already exists error", errno, nullptr, 0);
@@ -604,7 +604,7 @@ void SignalHandler(
 #endif
 
 //Print to screen.
-	PrintToScreen(true, L"[Notice] Get closing signal.\n");
+	PrintToScreen(true, false, L"[Notice] Get closing signal.\n");
 
 //Close all file handles.
 #if (defined(PLATFORM_LINUX) && !defined(PLATFORM_OPENWRT))
@@ -707,7 +707,7 @@ bool Flush_DNS_FIFO_Sender(
 		if (write(FIFO_Handle, Message.c_str(), Message.length() + NULL_TERMINATE_LENGTH) > 0)
 		{
 			close(FIFO_Handle);
-			PrintToScreen(true, L"[Notice] Flush DNS cache message was sent successfully.\n");
+			PrintToScreen(true, false, L"[Notice] Flush DNS cache message was sent successfully.\n");
 
 			return true;
 		}
@@ -721,12 +721,12 @@ bool Flush_DNS_FIFO_Sender(
 	if (errno == 0)
 	{
 		InnerMessage.append(L".\n");
-		PrintToScreen(true, InnerMessage.c_str());
+		PrintToScreen(true, false, InnerMessage.c_str());
 	}
 	else {
 		ErrorCodeToMessage(LOG_ERROR_TYPE::SYSTEM, errno, InnerMessage);
 		InnerMessage.append(L".\n");
-		PrintToScreen(true, InnerMessage.c_str(), errno);
+		PrintToScreen(true, false, InnerMessage.c_str(), errno);
 	}
 
 	return false;
@@ -753,9 +753,9 @@ void Flush_DNS_Cache(
 		if (DNSCacheIndexList.find(DomainString) != DNSCacheIndexList.end())
 		{
 		//Remove from DNS cache data list.
-			const auto MapRange = DNSCacheIndexList.equal_range(DomainString);
-			for (auto MapIter = MapRange.first;MapIter != MapRange.second;++MapIter)
-				DNSCacheList.erase(MapIter->second);
+			const auto CacheMapRange = DNSCacheIndexList.equal_range(DomainString);
+			for (auto CacheMapItem = CacheMapRange.first;CacheMapItem != CacheMapRange.second;++CacheMapItem)
+				DNSCacheList.erase(CacheMapItem->second);
 
 		//Remove from DNS cache index list.
 			while (DNSCacheIndexList.find(DomainString) != DNSCacheIndexList.end())
@@ -780,7 +780,7 @@ void Flush_DNS_Cache(
 	fwprintf_s(stderr, L"\n");
 #elif defined(PLATFORM_LINUX)
 #if defined(PLATFORM_OPENWRT)
-	system("/etc/init.d/dnsmasq restart 2>/dev/null"); //Dnsmasq manage DNS cache on OpenWrt
+	auto Result = system("/etc/init.d/dnsmasq restart 2>/dev/null"); //Dnsmasq manage DNS cache on OpenWrt
 #else
 	auto Result = system("service nscd restart 2>/dev/null"); //Name Service Cache Daemon service
 	Result = system("service dnsmasq restart 2>/dev/null"); //Dnsmasq service

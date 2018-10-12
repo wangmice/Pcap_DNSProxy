@@ -179,7 +179,7 @@ typedef enum class _socket_setting_type
 	REUSE, 
 	TCP_FAST_OPEN, 
 	TCP_NO_DELAY, 
-//	TCP_KEEP_ALIVE, 
+	TCP_KEEP_ALIVE, 
 	TIMEOUT, 
 	UDP_BLOCK_RESET
 }SOCKET_SETTING_TYPE;
@@ -190,7 +190,6 @@ typedef enum class _request_process_type_
 	LOCAL_IN_WHITE, 
 	DIRECT, 
 	TCP_NORMAL, 
-	TCP_WITHOUT_REGISTER, 
 	SOCKS_MAIN, 
 	SOCKS_CLIENT_SELECTION, 
 	SOCKS_USER_AUTH, 
@@ -209,8 +208,7 @@ typedef enum class _request_process_type_
 	DNSCURVE_MAIN, 
 	DNSCURVE_SIGN, 
 #endif
-	UDP_NORMAL, 
-	UDP_WITHOUT_REGISTER
+	UDP_NORMAL
 }REQUEST_PROCESS_TYPE;
 #if defined(ENABLE_LIBSODIUM)
 typedef enum class _dnscurve_server_type_
@@ -246,9 +244,10 @@ typedef enum class _tls_version_selection
 	#define OPENSSL_VERSION_1_0_1                     0x10001000L
 	#define OPENSSL_VERSION_1_0_2                     0x10002000L
 	#define OPENSSL_VERSION_1_1_0                     0x10100000L
+	#define OPENSSL_VERSION_1_1_1                     0x10101000L
 	#define OPENSSL_STATIC_BUFFER_SIZE                256U
-	#define OPENSSL_CIPHER_LIST_COMPATIBILITY         ("HIGH:!SSLv2:!aNULL:!kRSA:!PSK:!SRP:!MD5:!RC4")
-	#define OPENSSL_CIPHER_LIST_STRONG                ("HIGH:!SSLv2:!SSLv3:!aNULL:!kRSA:!PSK:!SRP:!MD5:!RC4")
+	#define OPENSSL_CIPHER_LIST_COMPATIBILITY         ("HIGH:!aNULL:!kRSA:!PSK:!SRP:!SM2:!SM3:!SM4:!SSLv2:!SSLv3:!MD5:!RC4")
+	#define OPENSSL_CIPHER_LIST_STRONG                ("HIGH:!aNULL:!kRSA:!PSK:!SRP:!SM2:!SM3:!SM4:!SSLv2:!SSLv3:!MD5:!RC4:!SHA1")
 #endif
 #endif
 
@@ -261,7 +260,7 @@ typedef struct _file_data_
 {
 	std::wstring                         FileName;
 #if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-	std::string                          MBS_FileName;
+	std::string                          FileName_MBS;
 #endif
 	time_t                               ModificationTime;
 }FileData, FILE_DATA;
@@ -304,7 +303,8 @@ typedef struct _dns_server_data_
 		//IPv6 header status
 			struct _ipv6_header_status_
 			{
-				uint32_t                             VersionTrafficFlow;
+				uint32_t                             VersionTrafficClass;
+				uint32_t                             FlowLabel;
 				uint8_t                              HopLimit_StaticLoad;
 				uint8_t                              HopLimit_DynamicMark;
 			}IPv6_HeaderStatus;
@@ -312,6 +312,7 @@ typedef struct _dns_server_data_
 		//IPv4 header status
 			struct _ipv4_header_status_
 			{
+				uint8_t                              Version;
 				uint8_t                              IHL;
 				uint8_t                              DSCP_ECN;
 				uint16_t                             ID;
@@ -355,23 +356,23 @@ typedef struct _socket_selecting_serial_data_
 typedef struct _dns_packet_data_
 {
 //Packet attributes block
-	uint8_t                                                    *Buffer;
-	size_t                                                     BufferSize;
-	size_t                                                     Length;
-	ADDRESS_UNION_DATA                                         LocalTarget;
-	uint16_t                                                   Protocol;
-	bool                                                       IsLocalRequest;
-	bool                                                       IsLocalInBlack;
-	bool                                                       IsLocalInWhite;
+	uint8_t                              *Buffer;
+	size_t                               BufferSize;
+	size_t                               Length;
+	ADDRESS_UNION_DATA                   LocalTarget;
+	uint16_t                             Protocol;
+	uint16_t                             QueryType;
+	bool                                 IsLocalRequest;
+	bool                                 IsLocalInWhite;
 //Packet structure block
-	size_t                                                     Records_QuestionLen;
-	size_t                                                     Records_AnswerCount;
-	size_t                                                     Records_AuthorityCount;
-	size_t                                                     Records_AdditionalCount;
-	std::vector<size_t>                                        Records_Location;
-	std::vector<size_t>                                        Records_Length;
-	size_t                                                     EDNS_Location;
-	size_t                                                     EDNS_Length;
+	size_t                               Records_QuestionLen;
+	size_t                               Records_AnswerCount;
+	size_t                               Records_AuthorityCount;
+	size_t                               Records_AdditionalCount;
+	std::vector<size_t>                  Records_Location;
+	std::vector<size_t>                  Records_Length;
+	size_t                               EDNS_Location;
+	size_t                               EDNS_Length;
 }DNSPacketData, DNS_PACKET_DATA;
 
 //DNS Cache Data structure
@@ -434,7 +435,8 @@ public:
 //[DNS] block
 	REQUEST_MODE_NETWORK                 RequestMode_Network;
 	REQUEST_MODE_TRANSPORT               RequestMode_Transport;
-	REQUEST_MODE_DIRECT                  DirectRequest;
+	bool                                 RequestMode_IsAccordingType;
+	REQUEST_MODE_DIRECT                  DirectRequest_Protocol;
 	DNS_CACHE_TYPE                       DNS_CacheType;
 	size_t                               DNS_CacheParameter;
 	size_t                               DNS_CacheSinglePrefix_IPv6;
@@ -443,6 +445,7 @@ public:
 //[Local DNS] block
 	REQUEST_MODE_NETWORK                 LocalProtocol_Network;
 	REQUEST_MODE_TRANSPORT               LocalProtocol_Transport;
+	bool                                 LocalProtocol_IsAccordingType;
 	bool                                 IsLocalHosts;
 	bool                                 IsLocalRouting;
 	bool                                 IsLocalForce;
@@ -549,6 +552,7 @@ public:
 	size_t                               SOCKS_Version;
 	REQUEST_MODE_NETWORK                 SOCKS_Protocol_Network;
 	REQUEST_MODE_TRANSPORT               SOCKS_Protocol_Transport;
+	bool                                 SOCKS_Protocol_IsAccordingType;
 	bool                                 SOCKS_UDP_NoHandshake;
 	bool                                 SOCKS_Only;
 	ADDRESS_UNION_DATA                   SOCKS_Address_IPv6;
@@ -562,6 +566,7 @@ public:
 	size_t                               SOCKS_PasswordLength;
 	bool                                 HTTP_CONNECT_Proxy;
 	REQUEST_MODE_NETWORK                 HTTP_CONNECT_Protocol;
+	bool                                 HTTP_CONNECT_IsAccordingType;
 	bool                                 HTTP_CONNECT_Only;
 	ADDRESS_UNION_DATA                   HTTP_CONNECT_Address_IPv6;
 	ADDRESS_UNION_DATA                   HTTP_CONNECT_Address_IPv4;
@@ -570,7 +575,7 @@ public:
 	TLS_VERSION_SELECTION                HTTP_CONNECT_TLS_Version;
 	bool                                 HTTP_CONNECT_TLS_Validation;
 	std::wstring                         *HTTP_CONNECT_TLS_SNI;
-	std::string                          *MBS_HTTP_CONNECT_TLS_SNI;
+	std::string                          *HTTP_CONNECT_TLS_SNI_MBS;
 #if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 	std::string                          *HTTP_CONNECT_TLS_AddressString_IPv6;
 	std::string                          *HTTP_CONNECT_TLS_AddressString_IPv4;
@@ -598,12 +603,10 @@ public:
 //Member functions(Public)
 	ConfigurationTable(
 		void);
-/* No need copy constructor
-	ConfigurationTable(
-		const ConfigurationTable &Reference);
-	ConfigurationTable & operator=(
-		const ConfigurationTable &Reference);
-*/
+//	ConfigurationTable(
+//		const ConfigurationTable &Reference);
+//	ConfigurationTable & operator=(
+//		const ConfigurationTable &Reference);
 	void SetToMonitorItem(
 		void);
 	void MonitorItemToUsing(
@@ -613,12 +616,10 @@ public:
 	~ConfigurationTable(
 		void);
 
-/* No need copy constructor
 //Member functions(Private)
-private:
-	void CopyMemberOperator(
-		const ConfigurationTable &Reference);
-*/
+//private:
+//	void CopyMemberOperator(
+//		const ConfigurationTable &Reference);
 }CONFIGURATION_TABLE;
 
 //Global status class
@@ -647,7 +648,8 @@ public:
 #endif
 	std::vector<SYSTEM_SOCKET>           *LocalListeningSocket;
 	std::default_random_engine           *RandomEngine;
-	uint8_t                              *DomainTable;
+	uint8_t                              *DomainTable_Normal;
+	uint8_t                              *DomainTable_Upper;
 #if !defined(ENABLE_LIBSODIUM)
 	uint8_t                              *Base64_EncodeTable;
 	int8_t                               *Base64_DecodeTable;
@@ -661,10 +663,10 @@ public:
 	std::vector<std::wstring>            *FileList_Hosts;
 	std::vector<std::wstring>            *FileList_IPFilter;
 #if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-	std::vector<std::string>             *MBS_Path_Global;
-	std::string                          *MBS_Path_ErrorLog;
-	std::vector<std::string>             *MBS_FileList_Hosts;
-	std::vector<std::string>             *MBS_FileList_IPFilter;
+	std::vector<std::string>             *Path_Global_MBS;
+	std::string                          *Path_ErrorLog_MBS;
+	std::vector<std::string>             *FileList_Hosts_MBS;
+	std::vector<std::string>             *FileList_IPFilter_MBS;
 #endif
 	uint64_t                             ConfigFileModifiedTime;
 
@@ -687,21 +689,17 @@ public:
 //Member functions(Public)
 	GlobalStatus(
 		void);
-/* No need copy constructor
-	GlobalStatus(
-		const GlobalStatus &Reference);
-	GlobalStatus & operator=(
-		const GlobalStatus &Reference);
-*/
+//	GlobalStatus(
+//		const GlobalStatus &Reference);
+//	GlobalStatus & operator=(
+//		const GlobalStatus &Reference);
 	~GlobalStatus(
 		void);
 
-/* No need copy constructor
 //Member functions(Private)
-private:
-	void CopyMemberOperator(
-		const GlobalStatus &Reference);
-*/
+//private:
+//	void CopyMemberOperator(
+//		const GlobalStatus &Reference);
 }GLOBAL_STATUS;
 
 //IP address ranges class
@@ -754,7 +752,7 @@ public:
 	std::string                          PatternString;
 
 //Redefine operator functions
-//	ResultBlacklistTable() = default; //No need to set default.
+//	ResultBlacklistTable() = default;
 //	ResultBlacklistTable(const ResultBlacklistTable &) = delete;
 //	ResultBlacklistTable & operator=(const ResultBlacklistTable &) = delete;
 }RESULT_BLACKLIST_TABLE;
@@ -767,7 +765,7 @@ public:
 	std::vector<ADDRESS_RANGE_TABLE>     Address_Source;
 
 //Redefine operator functions
-//	AddressHostsTable() = default; //No need to set default.
+//	AddressHostsTable() = default;
 //	AddressHostsTable(const AddressHostsTable &) = delete;
 //	AddressHostsTable & operator=(const AddressHostsTable &) = delete;
 }ADDRESS_HOSTS_TABLE;
@@ -794,8 +792,8 @@ public:
 typedef class AlternateSwapTable
 {
 public:
-	size_t                               TimeoutTimes[ALTERNATE_SERVER_NUM];
-	bool                                 IsSwap[ALTERNATE_SERVER_NUM];
+	std::array<size_t, ALTERNATE_SERVER_NUM>   TimeoutTimes;
+	std::array<bool, ALTERNATE_SERVER_NUM>     IsSwapped;
 
 //Redefine operator functions
 //	AlternateSwapTable() = default;
@@ -845,6 +843,102 @@ public:
 	DiffernetFileSetHosts(
 		void);
 }DIFFERNET_FILE_SET_HOSTS;
+
+//Socket value table class
+typedef class SocketValueTable
+{
+public:
+	std::vector<SOCKET_DATA>                  ValueSet;
+
+//Redefine operator functions
+	SocketValueTable() = default;
+	SocketValueTable(const SocketValueTable &) = delete;
+	SocketValueTable & operator=(const SocketValueTable &) = delete;
+
+//Member functions
+//	SocketValueTable(
+//		void);
+	bool SocketValueInit(
+		const uint16_t SocketNetwork, 
+		const uint16_t SocketType, 
+		const uint16_t SocketTransport, 
+		const uint16_t SocketPort, 
+		const void * const SocketAddress, 
+		ssize_t * const ErrorCode);
+	void ClearAllSocket(
+		const bool IsPrintError);
+	~SocketValueTable(
+		void);
+}SOCKET_VALUE_TABLE;
+
+#if defined(ENABLE_PCAP)
+//Original socket send only event table class
+typedef class EventTable_SocketSend
+{
+public:
+	uint16_t                                  Protocol;
+	timeval                                   SocketTimeout;
+	timeval                                   IntervalTimeout;
+	event_base                                *EventBase;
+	std::vector<event *>                      *EventList;
+	SOCKET_VALUE_TABLE                        *SocketValue;
+	uint8_t                                   *SendBuffer;
+	uint8_t                                   *RecvBuffer;
+	size_t                                    SendSize;
+	size_t                                    RecvSize;
+	size_t                                    TotalSleepTime;
+	size_t                                    OnceTimes;
+	size_t                                    RetestTimes;
+	uint64_t                                  FileModifiedTime;
+	uint16_t                                  PacketSequence;
+
+//Redefine operator functions
+//	EventTable_SocketSend() = default;
+	EventTable_SocketSend(const EventTable_SocketSend &) = delete;
+	EventTable_SocketSend & operator=(const EventTable_SocketSend &) = delete;
+
+//Member functions
+	EventTable_SocketSend(
+		void);
+	~EventTable_SocketSend(
+		void);
+}EVENT_TABLE_SOCKET_SEND;
+
+//Bufferevent transmission once event table class
+typedef class EventTable_TransmissionOnce
+{
+public:
+	uint16_t                                  Protocol_Network;
+	std::vector<uint16_t>                     *Protocol_Transport;
+	std::vector<timeval>                      *SocketTimeout;
+	timeval                                   IntervalTimeout;
+	event_base                                *EventBase;
+	std::vector<event *>                      *EventList;
+	std::vector<bufferevent *>                *EventBufferList;
+	SOCKET_VALUE_TABLE                        *SocketValue;
+	std::vector<std::unique_ptr<uint8_t[]>>   *SendBuffer;
+	uint8_t                                   *RecvBuffer;
+	size_t                                    SendSize;
+	std::vector<size_t>                       *SendLen;
+	std::vector<size_t>                       *SendTimes;
+	size_t                                    RecvSize;
+	size_t                                    TotalSleepTime;
+	size_t                                    OnceTimes;
+	size_t                                    RetestTimes;
+	uint64_t                                  FileModifiedTime;
+
+//Redefine operator functions
+//	EventTable_TransmissionOnce() = default;
+	EventTable_TransmissionOnce(const EventTable_TransmissionOnce &) = delete;
+	EventTable_TransmissionOnce & operator=(const EventTable_TransmissionOnce &) = delete;
+
+//Member functions
+	EventTable_TransmissionOnce(
+		void);
+	~EventTable_TransmissionOnce(
+		void);
+}EVENT_TABLE_TRANSMISSION_ONCE;
+#endif
 
 //Socket Selecting Once table class
 typedef class SocketSelectingOnceTable
@@ -918,6 +1012,7 @@ public:
 	size_t                                  DNSCurvePayloadSize;
 	REQUEST_MODE_NETWORK                    DNSCurveProtocol_Network;
 	REQUEST_MODE_TRANSPORT                  DNSCurveProtocol_Transport;
+	bool                                    DNSCurveProtocol_IsAccordingType;
 #if defined(PLATFORM_WIN)
 	DWORD                                   DNSCurve_SocketTimeout_Reliable;
 	DWORD                                   DNSCurve_SocketTimeout_Unreliable;
@@ -932,7 +1027,7 @@ public:
 //[DNSCurve Database] block
 	std::wstring                            *DatabaseName;
 #if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-	std::string                             *MBS_DatabaseName;
+	std::string                             *DatabaseName_MBS;
 #endif
 	std::string                             *Database_Target_Server_Main_IPv6;
 	std::string                             *Database_Target_Server_Alternate_IPv6;
@@ -955,12 +1050,10 @@ public:
 //Member functions(Public)
 	DNSCurveConfigurationTable(
 		void);
-/* No need copy constructor
-	DNSCurveConfigurationTable(
-		const DNSCurveConfigurationTable &Reference);
-	DNSCurveConfigurationTable & operator=(
-		const DNSCurveConfigurationTable &Reference);
-*/
+//	DNSCurveConfigurationTable(
+//		const DNSCurveConfigurationTable &Reference);
+//	DNSCurveConfigurationTable & operator=(
+//		const DNSCurveConfigurationTable &Reference);
 	void SetToMonitorItem(
 		void);
 	void MonitorItemToUsing(
@@ -970,12 +1063,10 @@ public:
 	~DNSCurveConfigurationTable(
 		void);
 
-/* No need copy constructor
 //Member functions(Private)
-private:
-	void CopyMemberOperator(
-		const DNSCurveConfigurationTable &Reference);
-*/
+//private:
+//	void CopyMemberOperator(
+//		const DNSCurveConfigurationTable &Reference);
 }DNSCURVE_CONFIGURATION_TABLE;
 
 //DNSCurve Socket Selecting table class
@@ -993,10 +1084,8 @@ public:
 
 //Redefine operator functions
 //	DNSCurveSocketSelectingTable() = default;
-/* std::move is used to indicate that an object t may be "moved from", i.e. allowing the efficient transfer of resources from t to another object.
-	DNSCurveSocketSelectingTable(const DNSCurveSocketSelectingTable &) = delete;
-	DNSCurveSocketSelectingTable & operator=(const DNSCurveSocketSelectingTable &) = delete;
-*/
+//	DNSCurveSocketSelectingTable(const DNSCurveSocketSelectingTable &) = delete;
+//	DNSCurveSocketSelectingTable & operator=(const DNSCurveSocketSelectingTable &) = delete;
 
 //Member functions
 	DNSCurveSocketSelectingTable(

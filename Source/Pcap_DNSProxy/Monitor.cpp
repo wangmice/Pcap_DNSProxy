@@ -25,8 +25,8 @@ void MonitorLauncher(
 {
 //Network monitor(Mark Local DNS address to PTR records)
 	ParameterModificating.SetToMonitorItem();
-	std::thread NetworkInformationMonitorThread(std::bind(NetworkInformationMonitor));
-	NetworkInformationMonitorThread.detach();
+	std::thread Thread_NetworkInformationMonitor(std::bind(NetworkInformationMonitor));
+	Thread_NetworkInformationMonitor.detach();
 
 //DNSCurve initialization(Encryption mode)
 #if defined(ENABLE_LIBSODIUM)
@@ -39,22 +39,22 @@ void MonitorLauncher(
 #endif
 
 //Read parameter(Monitor mode)
-	std::thread ReadParameterThread(std::bind(ReadParameter, false));
-	ReadParameterThread.detach();
+	std::thread Thread_ReadParameter(std::bind(ReadParameter, false));
+	Thread_ReadParameter.detach();
 
 //Read Hosts monitor
 	if (!GlobalRunningStatus.FileList_Hosts->empty())
 	{
-		std::thread ReadHostsThread(std::bind(ReadHosts));
-		ReadHostsThread.detach();
+		std::thread Thread_ReadHosts(std::bind(ReadHosts));
+		Thread_ReadHosts.detach();
 	}
 
 //Read IPFilter monitor
 	if (!GlobalRunningStatus.FileList_IPFilter->empty() && 
 		(Parameter.OperationMode == LISTEN_MODE::CUSTOM || Parameter.DataCheck_Blacklist || Parameter.IsLocalRouting))
 	{
-		std::thread ReadIPFilterThread(std::bind(ReadIPFilter));
-		ReadIPFilterThread.detach();
+		std::thread Thread_ReadIPFilter(std::bind(ReadIPFilter));
+		Thread_ReadIPFilter.detach();
 	}
 
 //Capture monitor
@@ -63,9 +63,9 @@ void MonitorLauncher(
 	//Force protocol(TCP).
 		Parameter.RequestMode_Transport != REQUEST_MODE_TRANSPORT::FORCE_TCP && 
 	//Direct Request mode
-		!(Parameter.DirectRequest == REQUEST_MODE_DIRECT::BOTH || 
-		(Parameter.DirectRequest == REQUEST_MODE_DIRECT::IPV6 && Parameter.Target_Server_Main_IPv4.AddressData.Storage.ss_family == 0 && 
-		Parameter.DirectRequest == REQUEST_MODE_DIRECT::IPV4 && Parameter.Target_Server_Main_IPv6.AddressData.Storage.ss_family == 0)) && 
+		Parameter.DirectRequest_Protocol != REQUEST_MODE_DIRECT::BOTH && 
+		!(Parameter.DirectRequest_Protocol == REQUEST_MODE_DIRECT::IPV6 && Parameter.Target_Server_Main_IPv4.AddressData.Storage.ss_family == 0) && 
+		!(Parameter.DirectRequest_Protocol == REQUEST_MODE_DIRECT::IPV4 && Parameter.Target_Server_Main_IPv6.AddressData.Storage.ss_family == 0) && 
 	//SOCKS request only mode
 		!(Parameter.SOCKS_Proxy && Parameter.SOCKS_Only) && 
 	//HTTP CONNECT request only mode
@@ -77,44 +77,40 @@ void MonitorLauncher(
 		)
 	{
 	#if defined(ENABLE_PCAP)
-		std::thread CaptureInitializationThread(std::bind(CaptureInit));
-		CaptureInitializationThread.detach();
+		std::thread Thread_CaptureInitialization(std::bind(CaptureInit));
+		Thread_CaptureInitialization.detach();
 	#endif
 
 	//Get Hop Limits with normal DNS request(IPv6).
 		if (Parameter.Target_Server_Main_IPv6.AddressData.Storage.ss_family != 0 && 
-			(Parameter.RequestMode_Network == REQUEST_MODE_NETWORK::BOTH || Parameter.RequestMode_Network == REQUEST_MODE_NETWORK::IPV6 || //IPv6
-			(Parameter.RequestMode_Network == REQUEST_MODE_NETWORK::IPV4 && Parameter.Target_Server_Main_IPv4.AddressData.Storage.ss_family == 0))) //Non-IPv4
+			(Parameter.RequestMode_Network == REQUEST_MODE_NETWORK::BOTH || Parameter.RequestMode_Network == REQUEST_MODE_NETWORK::IPV6)) //IPv6
 		{
-			std::thread IPv6TestDoaminThread(std::bind(DomainTestRequest, static_cast<uint16_t>(AF_INET6)));
-			IPv6TestDoaminThread.detach();
+			std::thread Thread_TestDoamin_IPv6(std::bind(TestRequest_Domain, static_cast<uint16_t>(AF_INET6)));
+			Thread_TestDoamin_IPv6.detach();
 		}
 
 	//Get TTL with normal DNS request(IPv4).
 		if (Parameter.Target_Server_Main_IPv4.AddressData.Storage.ss_family != 0 && 
-			(Parameter.RequestMode_Network == REQUEST_MODE_NETWORK::BOTH || Parameter.RequestMode_Network == REQUEST_MODE_NETWORK::IPV4 || //IPv4
-			(Parameter.RequestMode_Network == REQUEST_MODE_NETWORK::IPV6 && Parameter.Target_Server_Main_IPv6.AddressData.Storage.ss_family == 0))) //Non-IPv6
+			(Parameter.RequestMode_Network == REQUEST_MODE_NETWORK::BOTH || Parameter.RequestMode_Network == REQUEST_MODE_NETWORK::IPV4)) //IPv4
 		{
-			std::thread IPv4TestDoaminThread(std::bind(DomainTestRequest, static_cast<uint16_t>(AF_INET)));
-			IPv4TestDoaminThread.detach();
+			std::thread Thread_TestDoamin_IPv4(std::bind(TestRequest_Domain, static_cast<uint16_t>(AF_INET)));
+			Thread_TestDoamin_IPv4.detach();
 		}
 
 	//Get Hop Limits with ICMPv6 echo(IPv6).
 		if (Parameter.Target_Server_Main_IPv6.AddressData.Storage.ss_family != 0 && 
-			(Parameter.RequestMode_Network == REQUEST_MODE_NETWORK::BOTH || Parameter.RequestMode_Network == REQUEST_MODE_NETWORK::IPV6 || //IPv6
-			(Parameter.RequestMode_Network == REQUEST_MODE_NETWORK::IPV4 && Parameter.Target_Server_Main_IPv4.AddressData.Storage.ss_family == 0))) //Non-IPv4
+			(Parameter.RequestMode_Network == REQUEST_MODE_NETWORK::BOTH || Parameter.RequestMode_Network == REQUEST_MODE_NETWORK::IPV6)) //IPv6
 		{
-			std::thread ICMPv6Thread(std::bind(ICMP_TestRequest, static_cast<uint16_t>(AF_INET6)));
-			ICMPv6Thread.detach();
+			std::thread Thread_ICMPv6(std::bind(TestRequest_ICMP, static_cast<uint16_t>(AF_INET6)));
+			Thread_ICMPv6.detach();
 		}
 
 	//Get TTL with ICMP echo(IPv4).
 		if (Parameter.Target_Server_Main_IPv4.AddressData.Storage.ss_family != 0 && 
-			(Parameter.RequestMode_Network == REQUEST_MODE_NETWORK::BOTH || Parameter.RequestMode_Network == REQUEST_MODE_NETWORK::IPV4 || //IPv4
-			(Parameter.RequestMode_Network == REQUEST_MODE_NETWORK::IPV6 && Parameter.Target_Server_Main_IPv6.AddressData.Storage.ss_family == 0))) //Non-IPv6
+			(Parameter.RequestMode_Network == REQUEST_MODE_NETWORK::BOTH || Parameter.RequestMode_Network == REQUEST_MODE_NETWORK::IPV4)) //IPv4
 		{
-			std::thread ICMP_Thread(std::bind(ICMP_TestRequest, static_cast<uint16_t>(AF_INET)));
-			ICMP_Thread.detach();
+			std::thread Thread_ICMP(std::bind(TestRequest_ICMP, static_cast<uint16_t>(AF_INET)));
+			Thread_ICMP.detach();
 		}
 	}
 #endif
@@ -130,19 +126,19 @@ void MonitorLauncher(
 		)) || Parameter.Target_Server_Local_Alternate_IPv6.Storage.ss_family != 0 || 
 		Parameter.Target_Server_Local_Alternate_IPv4.Storage.ss_family != 0)
 	{
-		std::thread AlternateServerMonitorThread(std::bind(AlternateServerMonitor));
-		AlternateServerMonitorThread.detach();
+		std::thread Thread_AlternateServerSwitcher(std::bind(AlternateServerSwitcher));
+		Thread_AlternateServerSwitcher.detach();
 	}
 
 //MailSlot and FIFO monitor
 	if (Parameter.IsProcessUnique)
 	{
 	#if defined(PLATFORM_WIN)
-		std::thread Flush_DNS_MailSlotMonitorThread(std::bind(Flush_DNS_MailSlotMonitor));
-		Flush_DNS_MailSlotMonitorThread.detach();
+		std::thread Thread_Flush_DNS_MailSlotMonitor(std::bind(Flush_DNS_MailSlotMonitor));
+		Thread_Flush_DNS_MailSlotMonitor.detach();
 	#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-		std::thread Flush_DNS_FIFO_MonitorThread(std::bind(Flush_DNS_FIFO_Monitor));
-		Flush_DNS_FIFO_MonitorThread.detach();
+		std::thread Thread_Flush_DNS_FIFO_Monitor(std::bind(Flush_DNS_FIFO_Monitor));
+		Thread_Flush_DNS_FIFO_Monitor.detach();
 	#endif
 	}
 
@@ -181,7 +177,7 @@ bool MonitorInit(
 			//Listen Address available(IPv6)
 				if (Parameter.ListenAddress_IPv6 != nullptr)
 				{
-					for (const auto &ListenAddressIter:*Parameter.ListenAddress_IPv6)
+					for (const auto &ListenAddressItem:*Parameter.ListenAddress_IPv6)
 					{
 						if (!SocketSetting(LocalSocketData.Socket, SOCKET_SETTING_TYPE::INVALID_CHECK, false, nullptr))
 						{
@@ -196,15 +192,15 @@ bool MonitorInit(
 							}
 						}
 
-						reinterpret_cast<sockaddr_in6 *>(&LocalSocketData.SockAddr)->sin6_addr = reinterpret_cast<const sockaddr_in6 *>(&ListenAddressIter)->sin6_addr;
-						reinterpret_cast<sockaddr_in6 *>(&LocalSocketData.SockAddr)->sin6_port = reinterpret_cast<const sockaddr_in6 *>(&ListenAddressIter)->sin6_port;
+						reinterpret_cast<sockaddr_in6 *>(&LocalSocketData.SockAddr)->sin6_addr = reinterpret_cast<const sockaddr_in6 *>(&ListenAddressItem)->sin6_addr;
+						reinterpret_cast<sockaddr_in6 *>(&LocalSocketData.SockAddr)->sin6_port = reinterpret_cast<const sockaddr_in6 *>(&ListenAddressItem)->sin6_port;
 
 					//Try to bind socket to system.
-						if (!MonitorSocketBinding(IPPROTO_UDP, LocalSocketData))
+						if (!ListenMonitor_BindSocket(IPPROTO_UDP, LocalSocketData))
 						{
 						//Close all sockets.
-							for (auto &SocketDataIter:LocalSocketDataList)
-								SocketSetting(SocketDataIter.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
+							for (auto &SocketDataItem:LocalSocketDataList)
+								SocketSetting(SocketDataItem.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
 
 							return false;
 						}
@@ -227,7 +223,7 @@ bool MonitorInit(
 							reinterpret_cast<sockaddr_in6 *>(&LocalSocketData.SockAddr)->sin6_addr = in6addr_any;
 
 					//Set monitor port.
-						for (const auto &ListenPortIter:*Parameter.ListenPort)
+						for (const auto &ListenPortItem:*Parameter.ListenPort)
 						{
 							if (!SocketSetting(LocalSocketData.Socket, SOCKET_SETTING_TYPE::INVALID_CHECK, false, nullptr))
 							{
@@ -242,14 +238,14 @@ bool MonitorInit(
 								}
 							}
 
-							reinterpret_cast<sockaddr_in6 *>(&LocalSocketData.SockAddr)->sin6_port = ListenPortIter;
+							reinterpret_cast<sockaddr_in6 *>(&LocalSocketData.SockAddr)->sin6_port = ListenPortItem;
 
 						//Try to bind socket to system.
-							if (!MonitorSocketBinding(IPPROTO_UDP, LocalSocketData))
+							if (!ListenMonitor_BindSocket(IPPROTO_UDP, LocalSocketData))
 							{
 							//Close all sockets.
-								for (auto &SocketDataIter:LocalSocketDataList)
-									SocketSetting(SocketDataIter.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
+								for (auto &SocketDataItem:LocalSocketDataList)
+									SocketSetting(SocketDataItem.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
 
 								return false;
 							}
@@ -283,7 +279,7 @@ bool MonitorInit(
 			//Listen Address available(IPv6)
 				if (Parameter.ListenAddress_IPv6 != nullptr)
 				{
-					for (const auto &ListenAddressIter:*Parameter.ListenAddress_IPv6)
+					for (const auto &ListenAddressItem:*Parameter.ListenAddress_IPv6)
 					{
 						if (!SocketSetting(LocalSocketData.Socket, SOCKET_SETTING_TYPE::INVALID_CHECK, false, nullptr))
 						{
@@ -298,15 +294,15 @@ bool MonitorInit(
 							}
 						}
 
-						reinterpret_cast<sockaddr_in6 *>(&LocalSocketData.SockAddr)->sin6_addr = reinterpret_cast<const sockaddr_in6 *>(&ListenAddressIter)->sin6_addr;
-						reinterpret_cast<sockaddr_in6 *>(&LocalSocketData.SockAddr)->sin6_port = reinterpret_cast<const sockaddr_in6 *>(&ListenAddressIter)->sin6_port;
+						reinterpret_cast<sockaddr_in6 *>(&LocalSocketData.SockAddr)->sin6_addr = reinterpret_cast<const sockaddr_in6 *>(&ListenAddressItem)->sin6_addr;
+						reinterpret_cast<sockaddr_in6 *>(&LocalSocketData.SockAddr)->sin6_port = reinterpret_cast<const sockaddr_in6 *>(&ListenAddressItem)->sin6_port;
 
 					//Try to bind socket to system.
-						if (!MonitorSocketBinding(IPPROTO_TCP, LocalSocketData))
+						if (!ListenMonitor_BindSocket(IPPROTO_TCP, LocalSocketData))
 						{
 						//Close all sockets.
-							for (auto &SocketDataIter:LocalSocketDataList)
-								SocketSetting(SocketDataIter.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
+							for (auto &SocketDataItem:LocalSocketDataList)
+								SocketSetting(SocketDataItem.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
 
 							return false;
 						}
@@ -329,7 +325,7 @@ bool MonitorInit(
 							reinterpret_cast<sockaddr_in6 *>(&LocalSocketData.SockAddr)->sin6_addr = in6addr_any;
 
 					//Set monitor port.
-						for (const auto &ListenPortIter:*Parameter.ListenPort)
+						for (const auto &ListenPortItem:*Parameter.ListenPort)
 						{
 							if (!SocketSetting(LocalSocketData.Socket, SOCKET_SETTING_TYPE::INVALID_CHECK, false, nullptr))
 							{
@@ -344,14 +340,14 @@ bool MonitorInit(
 								}
 							}
 
-							reinterpret_cast<sockaddr_in6 *>(&LocalSocketData.SockAddr)->sin6_port = ListenPortIter;
+							reinterpret_cast<sockaddr_in6 *>(&LocalSocketData.SockAddr)->sin6_port = ListenPortItem;
 
 						//Try to bind socket to system.
-							if (!MonitorSocketBinding(IPPROTO_TCP, LocalSocketData))
+							if (!ListenMonitor_BindSocket(IPPROTO_TCP, LocalSocketData))
 							{
 							//Close all sockets.
-								for (auto &SocketDataIter:LocalSocketDataList)
-									SocketSetting(SocketDataIter.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
+								for (auto &SocketDataItem:LocalSocketDataList)
+									SocketSetting(SocketDataItem.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
 
 								return false;
 							}
@@ -388,7 +384,7 @@ bool MonitorInit(
 			//Listen Address available(IPv4)
 				if (Parameter.ListenAddress_IPv4 != nullptr)
 				{
-					for (const auto &ListenAddressIter:*Parameter.ListenAddress_IPv4)
+					for (const auto &ListenAddressItem:*Parameter.ListenAddress_IPv4)
 					{
 						if (!SocketSetting(LocalSocketData.Socket, SOCKET_SETTING_TYPE::INVALID_CHECK, false, nullptr))
 						{
@@ -403,15 +399,15 @@ bool MonitorInit(
 							}
 						}
 
-						reinterpret_cast<sockaddr_in *>(&LocalSocketData.SockAddr)->sin_addr = reinterpret_cast<const sockaddr_in *>(&ListenAddressIter)->sin_addr;
-						reinterpret_cast<sockaddr_in *>(&LocalSocketData.SockAddr)->sin_port = reinterpret_cast<const sockaddr_in *>(&ListenAddressIter)->sin_port;
+						reinterpret_cast<sockaddr_in *>(&LocalSocketData.SockAddr)->sin_addr = reinterpret_cast<const sockaddr_in *>(&ListenAddressItem)->sin_addr;
+						reinterpret_cast<sockaddr_in *>(&LocalSocketData.SockAddr)->sin_port = reinterpret_cast<const sockaddr_in *>(&ListenAddressItem)->sin_port;
 
 					//Try to bind socket to system.
-						if (!MonitorSocketBinding(IPPROTO_UDP, LocalSocketData))
+						if (!ListenMonitor_BindSocket(IPPROTO_UDP, LocalSocketData))
 						{
 						//Close all sockets.
-							for (auto &SocketDataIter:LocalSocketDataList)
-								SocketSetting(SocketDataIter.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
+							for (auto &SocketDataItem:LocalSocketDataList)
+								SocketSetting(SocketDataItem.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
 
 							return false;
 						}
@@ -434,7 +430,7 @@ bool MonitorInit(
 							reinterpret_cast<sockaddr_in *>(&LocalSocketData.SockAddr)->sin_addr.s_addr = INADDR_ANY;
 
 					//Set monitor port.
-						for (const auto &ListenPortIter:*Parameter.ListenPort)
+						for (const auto &ListenPortItem:*Parameter.ListenPort)
 						{
 							if (!SocketSetting(LocalSocketData.Socket, SOCKET_SETTING_TYPE::INVALID_CHECK, false, nullptr))
 							{
@@ -449,14 +445,14 @@ bool MonitorInit(
 								}
 							}
 
-							reinterpret_cast<sockaddr_in *>(&LocalSocketData.SockAddr)->sin_port = ListenPortIter;
+							reinterpret_cast<sockaddr_in *>(&LocalSocketData.SockAddr)->sin_port = ListenPortItem;
 
 						//Try to bind socket to system.
-							if (!MonitorSocketBinding(IPPROTO_UDP, LocalSocketData))
+							if (!ListenMonitor_BindSocket(IPPROTO_UDP, LocalSocketData))
 							{
 							//Close all sockets.
-								for (auto &SocketDataIter:LocalSocketDataList)
-									SocketSetting(SocketDataIter.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
+								for (auto &SocketDataItem:LocalSocketDataList)
+									SocketSetting(SocketDataItem.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
 
 								return false;
 							}
@@ -490,7 +486,7 @@ bool MonitorInit(
 			//Listen Address available(IPv4)
 				if (Parameter.ListenAddress_IPv4 != nullptr)
 				{
-					for (const auto &ListenAddressIter:*Parameter.ListenAddress_IPv4)
+					for (const auto &ListenAddressItem:*Parameter.ListenAddress_IPv4)
 					{
 						if (!SocketSetting(LocalSocketData.Socket, SOCKET_SETTING_TYPE::INVALID_CHECK, false, nullptr))
 						{
@@ -505,15 +501,15 @@ bool MonitorInit(
 							}
 						}
 
-						reinterpret_cast<sockaddr_in *>(&LocalSocketData.SockAddr)->sin_addr = reinterpret_cast<const sockaddr_in *>(&ListenAddressIter)->sin_addr;
-						reinterpret_cast<sockaddr_in *>(&LocalSocketData.SockAddr)->sin_port = reinterpret_cast<const sockaddr_in *>(&ListenAddressIter)->sin_port;
+						reinterpret_cast<sockaddr_in *>(&LocalSocketData.SockAddr)->sin_addr = reinterpret_cast<const sockaddr_in *>(&ListenAddressItem)->sin_addr;
+						reinterpret_cast<sockaddr_in *>(&LocalSocketData.SockAddr)->sin_port = reinterpret_cast<const sockaddr_in *>(&ListenAddressItem)->sin_port;
 
 					//Try to bind socket to system.
-						if (!MonitorSocketBinding(IPPROTO_TCP, LocalSocketData))
+						if (!ListenMonitor_BindSocket(IPPROTO_TCP, LocalSocketData))
 						{
 						//Close all sockets.
-							for (auto &SocketDataIter:LocalSocketDataList)
-								SocketSetting(SocketDataIter.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
+							for (auto &SocketDataItem:LocalSocketDataList)
+								SocketSetting(SocketDataItem.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
 
 							return false;
 						}
@@ -536,7 +532,7 @@ bool MonitorInit(
 							reinterpret_cast<sockaddr_in *>(&LocalSocketData.SockAddr)->sin_addr.s_addr = INADDR_ANY;
 
 					//Set monitor port.
-						for (const auto &ListenPortIter:*Parameter.ListenPort)
+						for (const auto &ListenPortItem:*Parameter.ListenPort)
 						{
 							if (!SocketSetting(LocalSocketData.Socket, SOCKET_SETTING_TYPE::INVALID_CHECK, false, nullptr))
 							{
@@ -553,14 +549,14 @@ bool MonitorInit(
 								GlobalRunningStatus.LocalListeningSocket->push_back(LocalSocketData.Socket);
 							}
 
-							reinterpret_cast<sockaddr_in *>(&LocalSocketData.SockAddr)->sin_port = ListenPortIter;
+							reinterpret_cast<sockaddr_in *>(&LocalSocketData.SockAddr)->sin_port = ListenPortItem;
 
 						//Try to bind socket to system.
-							if (!MonitorSocketBinding(IPPROTO_TCP, LocalSocketData))
+							if (!ListenMonitor_BindSocket(IPPROTO_TCP, LocalSocketData))
 							{
 							//Close all sockets.
-								for (auto &SocketDataIter:LocalSocketDataList)
-									SocketSetting(SocketDataIter.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
+								for (auto &SocketDataItem:LocalSocketDataList)
+									SocketSetting(SocketDataItem.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
 
 								return false;
 							}
@@ -585,8 +581,8 @@ bool MonitorInit(
 		for (size_t MonitorThreadIndex = 0;MonitorThreadIndex < Parameter.ThreadPoolBaseNum;++MonitorThreadIndex)
 		{
 		//Start monitor consumer thread.
-			std::thread MonitorConsumerThread(std::bind(MonitorRequestConsumer));
-			MonitorConsumerThread.detach();
+			std::thread Thread_MonitorConsumer(std::bind(MonitorRequestConsumer));
+			Thread_MonitorConsumer.detach();
 		}
 
 		*GlobalRunningStatus.ThreadRunningNum += Parameter.ThreadPoolBaseNum;
@@ -602,14 +598,14 @@ bool MonitorInit(
 		//UDP Monitor
 			if (LocalSocketProtocol.at(MonitorThreadIndex) == IPPROTO_UDP)
 			{
-				std::thread MonitorThreadTemp(UDP_Monitor, LocalSocketDataList.at(MonitorThreadIndex));
-				MonitorThreadList.push_back(std::move(MonitorThreadTemp));
+				std::thread ThreadTemp_Monitor(ListenMonitor_UDP, LocalSocketDataList.at(MonitorThreadIndex));
+				MonitorThreadList.push_back(std::move(ThreadTemp_Monitor));
 			}
 		//TCP Monitor
 			else if (LocalSocketProtocol.at(MonitorThreadIndex) == IPPROTO_TCP)
 			{
-				std::thread MonitorThreadTemp(TCP_Monitor, LocalSocketDataList.at(MonitorThreadIndex));
-				MonitorThreadList.push_back(std::move(MonitorThreadTemp));
+				std::thread ThreadTemp_Monitor(ListenMonitor_TCP, LocalSocketDataList.at(MonitorThreadIndex));
+				MonitorThreadList.push_back(std::move(ThreadTemp_Monitor));
 			}
 		//Not supported protocol
 			else {
@@ -617,8 +613,8 @@ bool MonitorInit(
 				MonitorThreadList.clear();
 
 			//Close all sockets.
-				for (auto &SocketDataIter:LocalSocketDataList)
-					SocketSetting(SocketDataIter.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
+				for (auto &SocketDataItem:LocalSocketDataList)
+					SocketSetting(SocketDataItem.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
 
 				return false;
 			}
@@ -626,13 +622,13 @@ bool MonitorInit(
 	}
 	else {
 	//Close all sockets.
-		for (auto &SocketDataIter:LocalSocketDataList)
-			SocketSetting(SocketDataIter.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
+		for (auto &SocketDataItem:LocalSocketDataList)
+			SocketSetting(SocketDataItem.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
 
 	//Print error messages(UDP).
-		for (const auto &ProtocolIter:LocalSocketProtocol)
+		for (const auto &ProtocolItem:LocalSocketProtocol)
 		{
-			if (ProtocolIter == IPPROTO_UDP)
+			if (ProtocolItem == IPPROTO_UDP)
 			{
 				PrintError(LOG_LEVEL_TYPE::LEVEL_1, LOG_ERROR_TYPE::NETWORK, L"Bind UDP Monitor socket error", 0, nullptr, 0);
 				break;
@@ -640,9 +636,9 @@ bool MonitorInit(
 		}
 
 	//Print error messages(TCP).
-		for (const auto &ProtocolIter:LocalSocketProtocol)
+		for (const auto &ProtocolItem:LocalSocketProtocol)
 		{
-			if (ProtocolIter == IPPROTO_TCP)
+			if (ProtocolItem == IPPROTO_TCP)
 			{
 				PrintError(LOG_LEVEL_TYPE::LEVEL_1, LOG_ERROR_TYPE::NETWORK, L"Bind TCP Monitor socket error", 0, nullptr, 0);
 				break;
@@ -653,21 +649,21 @@ bool MonitorInit(
 	}
 
 //Join all threads.
-	for (auto &ThreadIter:MonitorThreadList)
+	for (auto &ThreadItem:MonitorThreadList)
 	{
-		if (ThreadIter.joinable())
-			ThreadIter.join();
+		if (ThreadItem.joinable())
+			ThreadItem.join();
 	}
 
 //Close all sockets.
-	for (auto &SocketDataIter:LocalSocketDataList)
-		SocketSetting(SocketDataIter.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
+	for (auto &SocketDataItem:LocalSocketDataList)
+		SocketSetting(SocketDataItem.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
 
 	return true;
 }
 
-//Socket binding of monitor process
-bool MonitorSocketBinding(
+//Bind and transfer socket to monitor process
+bool ListenMonitor_BindSocket(
 	const uint16_t Protocol, 
 	SOCKET_DATA &LocalSocketData)
 {
@@ -733,8 +729,8 @@ bool MonitorSocketBinding(
 	return true;
 }
 
-//Local DNS server with UDP protocol
-bool UDP_Monitor(
+//Listen UDP request
+bool ListenMonitor_UDP(
 	SOCKET_DATA LocalSocketData)
 {
 //Initialization
@@ -743,10 +739,22 @@ bool UDP_Monitor(
 	memset(RecvBuffer.get(), 0, (PACKET_NORMAL_MAXSIZE + MEMORY_RESERVED_BYTES) * Parameter.ThreadPoolMaxNum);
 	memset(SendBuffer.get(), 0, PACKET_NORMAL_MAXSIZE + MEMORY_RESERVED_BYTES);
 	MONITOR_QUEUE_DATA MonitorQueryData;
+	MonitorQueryData.first.Buffer = nullptr;
+	MonitorQueryData.first.BufferSize = PACKET_NORMAL_MAXSIZE;
+	MonitorQueryData.first.Length = 0;
+	memset(&MonitorQueryData.first.LocalTarget, 0, sizeof(MonitorQueryData.first.LocalTarget));
+	MonitorQueryData.first.Protocol = IPPROTO_UDP;
+	MonitorQueryData.first.QueryType = 0;
+	MonitorQueryData.first.IsLocalRequest = false;
+	MonitorQueryData.first.IsLocalInWhite = false;
+	MonitorQueryData.first.Records_QuestionLen = 0;
+	MonitorQueryData.first.Records_AnswerCount = 0;
+	MonitorQueryData.first.Records_AuthorityCount = 0;
+	MonitorQueryData.first.Records_AdditionalCount = 0;
+	MonitorQueryData.first.EDNS_Location = 0;
+	MonitorQueryData.first.EDNS_Length = 0;
 	fd_set ReadFDS;
 	memset(&ReadFDS, 0, sizeof(ReadFDS));
-	MonitorQueryData.first.BufferSize = PACKET_NORMAL_MAXSIZE;
-	MonitorQueryData.first.Protocol = IPPROTO_UDP;
 	const auto SocketDataPointer = &MonitorQueryData.second;
 	uint64_t LastRegisterTime = 0, NowTime = 0;
 	if (Parameter.QueueResetTime > 0)
@@ -830,8 +838,8 @@ bool UDP_Monitor(
 				else {
 					MonitorQueryData.first.Buffer = RecvBuffer.get() + (PACKET_NORMAL_MAXSIZE + MEMORY_RESERVED_BYTES) * Index;
 					MonitorQueryData.first.Length = RecvLen;
+					MonitorQueryData.first.QueryType = 0;
 					MonitorQueryData.first.IsLocalRequest = false;
-					MonitorQueryData.first.IsLocalInBlack = false;
 					MonitorQueryData.first.IsLocalInWhite = false;
 					memset(&MonitorQueryData.first.LocalTarget, 0, sizeof(MonitorQueryData.first.LocalTarget));
 					MonitorQueryData.first.Records_QuestionLen = 0;
@@ -854,8 +862,8 @@ bool UDP_Monitor(
 					MonitorRequestProvider(MonitorQueryData);
 				}
 				else { //New thread mode
-					std::thread RequestProcessThread(std::bind(EnterRequestProcess, MonitorQueryData, nullptr, 0));
-					RequestProcessThread.detach();
+					std::thread Thread_RequestProcess(std::bind(EnterRequestProcess, MonitorQueryData, nullptr, 0));
+					Thread_RequestProcess.detach();
 				}
 
 				Index = (Index + 1U) % Parameter.ThreadPoolMaxNum;
@@ -890,16 +898,28 @@ bool UDP_Monitor(
 	return true;
 }
 
-//Local DNS server with TCP protocol
-bool TCP_Monitor(
+//Listen TCP request
+bool ListenMonitor_TCP(
 	SOCKET_DATA LocalSocketData)
 {
 //Initialization
 	MONITOR_QUEUE_DATA MonitorQueryData;
+	MonitorQueryData.first.Buffer = nullptr;
+	MonitorQueryData.first.BufferSize = Parameter.LargeBufferSize;
+	MonitorQueryData.first.Length = 0;
+	memset(&MonitorQueryData.first.LocalTarget, 0, sizeof(MonitorQueryData.first.LocalTarget));
+	MonitorQueryData.first.Protocol = IPPROTO_TCP;
+	MonitorQueryData.first.QueryType = 0;
+	MonitorQueryData.first.IsLocalRequest = false;
+	MonitorQueryData.first.IsLocalInWhite = false;
+	MonitorQueryData.first.Records_QuestionLen = 0;
+	MonitorQueryData.first.Records_AnswerCount = 0;
+	MonitorQueryData.first.Records_AuthorityCount = 0;
+	MonitorQueryData.first.Records_AdditionalCount = 0;
+	MonitorQueryData.first.EDNS_Location = 0;
+	MonitorQueryData.first.EDNS_Length = 0;
 	fd_set ReadFDS;
 	memset(&ReadFDS, 0, sizeof(ReadFDS));
-	MonitorQueryData.first.BufferSize = Parameter.LargeBufferSize;
-	MonitorQueryData.first.Protocol = IPPROTO_TCP;
 	const auto SocketDataPointer = &MonitorQueryData.second;
 	uint64_t LastRegisterTime = 0, NowTime = 0;
 	if (Parameter.QueueResetTime > 0)
@@ -990,8 +1010,8 @@ bool TCP_Monitor(
 					MonitorRequestProvider(MonitorQueryData);
 				}
 				else { //New thread mode
-					std::thread TCP_AcceptProcessThread(std::bind(TCP_AcceptProcess, MonitorQueryData, nullptr, 0));
-					TCP_AcceptProcessThread.detach();
+					std::thread Thread_TCP_AcceptProcess(std::bind(TCP_AcceptProcess, MonitorQueryData, nullptr, 0));
+					Thread_TCP_AcceptProcess.detach();
 				}
 
 				Index = (Index + 1U) % Parameter.ThreadPoolMaxNum;
@@ -1192,8 +1212,8 @@ bool TCP_AcceptProcess(
 	{
 		MonitorQueryData.first.Buffer = RecvBuffer.get() + sizeof(uint16_t);
 		MonitorQueryData.first.Length = LengthValue;
+		MonitorQueryData.first.QueryType = 0;
 		MonitorQueryData.first.IsLocalRequest = false;
-		MonitorQueryData.first.IsLocalInBlack = false;
 		MonitorQueryData.first.IsLocalInWhite = false;
 		memset(&MonitorQueryData.first.LocalTarget, 0, sizeof(MonitorQueryData.first.LocalTarget));
 		MonitorQueryData.first.Records_QuestionLen = 0;
@@ -1238,12 +1258,12 @@ bool TCP_AcceptProcess(
 }
 
 //Alternate DNS servers switcher
-void AlternateServerMonitor(
+void AlternateServerSwitcher(
 	void)
 {
 //Initialization
 	size_t Index = 0;
-	uint64_t RangeTimer[ALTERNATE_SERVER_NUM]{0}, SwapTimer[ALTERNATE_SERVER_NUM]{0};
+	std::array<uint64_t, ALTERNATE_SERVER_NUM> RangeTimer{}, SwapTimer{};
 
 //Start Switcher.
 	for (;;)
@@ -1252,31 +1272,31 @@ void AlternateServerMonitor(
 		for (Index = 0;Index < ALTERNATE_SERVER_NUM;++Index)
 		{
 		//Reset TimeoutTimes out of alternate time range.
-			if (RangeTimer[Index] <= GetCurrentSystemTime())
+			if (RangeTimer.at(Index) <= GetCurrentSystemTime())
 			{
-				RangeTimer[Index] = GetCurrentSystemTime() + Parameter.AlternateTimeRange;
-				AlternateSwapList.TimeoutTimes[Index] = 0;
+				RangeTimer.at(Index) = GetCurrentSystemTime() + Parameter.AlternateTimeRange;
+				AlternateSwapList.TimeoutTimes.at(Index) = 0;
 
 				continue;
 			}
 
 		//Reset alternate switching.
-			if (AlternateSwapList.IsSwap[Index])
+			if (AlternateSwapList.IsSwapped.at(Index))
 			{
-				if (SwapTimer[Index] <= GetCurrentSystemTime())
+				if (SwapTimer.at(Index) <= GetCurrentSystemTime())
 				{
-					AlternateSwapList.IsSwap[Index] = false;
-					AlternateSwapList.TimeoutTimes[Index] = 0;
-					SwapTimer[Index] = 0;
+					AlternateSwapList.IsSwapped.at(Index) = false;
+					AlternateSwapList.TimeoutTimes.at(Index) = 0;
+					SwapTimer.at(Index) = 0;
 				}
 			}
 			else {
 			//Mark alternate switching.
-				if (AlternateSwapList.TimeoutTimes[Index] >= Parameter.AlternateTimes)
+				if (AlternateSwapList.TimeoutTimes.at(Index) >= Parameter.AlternateTimes)
 				{
-					AlternateSwapList.IsSwap[Index] = true;
-					AlternateSwapList.TimeoutTimes[Index] = 0;
-					SwapTimer[Index] = GetCurrentSystemTime() + Parameter.AlternateResetTime;
+					AlternateSwapList.IsSwapped.at(Index) = true;
+					AlternateSwapList.TimeoutTimes.at(Index) = 0;
+					SwapTimer.at(Index) = GetCurrentSystemTime() + Parameter.AlternateResetTime;
 				}
 			}
 		}
@@ -1348,7 +1368,7 @@ bool GetBestInterfaceAddress(
 		return false;
 	}
 
-//Check parameter.
+//Get socket information from system.
 	if (Protocol == AF_INET6)
 	{
 		reinterpret_cast<sockaddr_in6 *>(&SockAddr)->sin6_addr = reinterpret_cast<const sockaddr_in6 *>(OriginalSockAddr)->sin6_addr;
@@ -1356,7 +1376,7 @@ bool GetBestInterfaceAddress(
 		AddrLen = sizeof(sockaddr_in6);
 
 	//UDP connecting
-		if (connect(InterfaceSocket, reinterpret_cast<sockaddr *>(&SockAddr), sizeof(sockaddr_in6)) == SOCKET_ERROR || 
+		if (connect(InterfaceSocket, reinterpret_cast<const sockaddr *>(&SockAddr), sizeof(sockaddr_in6)) == SOCKET_ERROR || 
 			getsockname(InterfaceSocket, reinterpret_cast<sockaddr *>(&SockAddr), &AddrLen) == SOCKET_ERROR || 
 			SockAddr.ss_family != AF_INET6 || AddrLen != sizeof(sockaddr_in6) || 
 			CheckEmptyBuffer(&reinterpret_cast<sockaddr_in6 *>(&SockAddr)->sin6_addr, sizeof(reinterpret_cast<sockaddr_in6 *>(&SockAddr)->sin6_addr)))
@@ -1374,7 +1394,7 @@ bool GetBestInterfaceAddress(
 		AddrLen = sizeof(sockaddr_in);
 
 	//UDP connecting
-		if (connect(InterfaceSocket, reinterpret_cast<sockaddr *>(&SockAddr), sizeof(sockaddr_in)) == SOCKET_ERROR || 
+		if (connect(InterfaceSocket, reinterpret_cast<const sockaddr *>(&SockAddr), sizeof(sockaddr_in)) == SOCKET_ERROR || 
 			getsockname(InterfaceSocket, reinterpret_cast<sockaddr *>(&SockAddr), &AddrLen) == SOCKET_ERROR || 
 			SockAddr.ss_family != AF_INET || AddrLen != sizeof(sockaddr_in) || 
 			CheckEmptyBuffer(&reinterpret_cast<sockaddr_in *>(&SockAddr)->sin_addr, sizeof(reinterpret_cast<sockaddr_in *>(&SockAddr)->sin_addr)))
@@ -1454,10 +1474,10 @@ void GetGatewayInformation(
 	//Multiple list(IPv6)
 		if (Parameter.Target_Server_IPv6_Multiple != nullptr)
 		{
-			for (const auto &DNSServerDataIter:*Parameter.Target_Server_IPv6_Multiple)
+			for (const auto &DNS_ServerDataItem:*Parameter.Target_Server_IPv6_Multiple)
 			{
 				if (GetBestInterfaceEx(
-						reinterpret_cast<sockaddr *>(const_cast<sockaddr_in6 *>(&DNSServerDataIter.AddressData.IPv6)), 
+						reinterpret_cast<sockaddr *>(const_cast<sockaddr_in6 *>(&DNS_ServerDataItem.AddressData.IPv6)), 
 						&AdaptersIndex) != NO_ERROR)
 				{
 					GlobalRunningStatus.GatewayAvailable_IPv6 = false;
@@ -1490,9 +1510,9 @@ void GetGatewayInformation(
 	//Multiple list(IPv6)
 		if (Parameter.Target_Server_IPv6_Multiple != nullptr)
 		{
-			for (const auto &DNSServerDataIter:*Parameter.Target_Server_IPv6_Multiple)
+			for (const auto &DNS_ServerDataItem:*Parameter.Target_Server_IPv6_Multiple)
 			{
-				if (!GetBestInterfaceAddress(AF_INET6, &DNSServerDataIter.AddressData.Storage))
+				if (!GetBestInterfaceAddress(AF_INET6, &DNS_ServerDataItem.AddressData.Storage))
 				{
 					GlobalRunningStatus.GatewayAvailable_IPv6 = false;
 					return;
@@ -1558,10 +1578,10 @@ void GetGatewayInformation(
 	//Multiple list(IPv4)
 		if (Parameter.Target_Server_IPv4_Multiple != nullptr)
 		{
-			for (const auto &DNSServerDataIter:*Parameter.Target_Server_IPv4_Multiple)
+			for (const auto &DNS_ServerDataItem:*Parameter.Target_Server_IPv4_Multiple)
 			{
 				if (GetBestInterfaceEx(
-						reinterpret_cast<sockaddr *>(const_cast<sockaddr_in *>(&DNSServerDataIter.AddressData.IPv4)), 
+						reinterpret_cast<sockaddr *>(const_cast<sockaddr_in *>(&DNS_ServerDataItem.AddressData.IPv4)), 
 						&AdaptersIndex) != NO_ERROR)
 				{
 					GlobalRunningStatus.GatewayAvailable_IPv4 = false;
@@ -1594,9 +1614,9 @@ void GetGatewayInformation(
 	//Multiple list(IPv4)
 		if (Parameter.Target_Server_IPv4_Multiple != nullptr)
 		{
-			for (const auto &DNSServerDataIter:*Parameter.Target_Server_IPv4_Multiple)
+			for (const auto &DNS_ServerDataItem:*Parameter.Target_Server_IPv4_Multiple)
 			{
-				if (!GetBestInterfaceAddress(AF_INET, &DNSServerDataIter.AddressData.Storage))
+				if (!GetBestInterfaceAddress(AF_INET, &DNS_ServerDataItem.AddressData.Storage))
 				{
 					GlobalRunningStatus.GatewayAvailable_IPv4 = false;
 					return;
@@ -1617,23 +1637,23 @@ void NetworkInformationMonitor(
 {
 //Initialization
 #if (defined(PLATFORM_WIN) || defined(PLATFORM_LINUX))
-	uint8_t AddrBuffer[ADDRESS_STRING_MAXSIZE + MEMORY_RESERVED_BYTES]{0};
+	std::array<uint8_t, ADDRESS_STRING_MAXSIZE + MEMORY_RESERVED_BYTES> AddrBuffer{};
 	std::string DomainString;
 #if defined(PLATFORM_WIN)
-	uint8_t HostName[DOMAIN_MAXSIZE + MEMORY_RESERVED_BYTES]{0};
-	addrinfo *LocalAddressList = nullptr, *LocalAddressTableIter = nullptr;
+	std::array<uint8_t, DOMAIN_MAXSIZE + MEMORY_RESERVED_BYTES> HostName{};
+	addrinfo *LocalAddressList = nullptr, *LocalAddressItem = nullptr;
 #elif defined(PLATFORM_LINUX)
-	ifaddrs *InterfaceAddressList = nullptr, *InterfaceAddressIter = nullptr;
+	ifaddrs *InterfaceAddressList = nullptr, *InterfaceAddressItem = nullptr;
 	auto IsErrorFirstPrint = true;
 #endif
 #elif defined(PLATFORM_MACOS)
-	ifaddrs *InterfaceAddressList = nullptr, *InterfaceAddressIter = nullptr;
+	ifaddrs *InterfaceAddressList = nullptr, *InterfaceAddressItem = nullptr;
 	auto IsErrorFirstPrint = true;
 #endif
 	dns_hdr *DNS_Header = nullptr;
 	dns_qry *DNS_Query = nullptr;
 	void *DNS_Record = nullptr;
-	std::unique_lock<std::mutex> LocalAddressMutexIPv6(LocalAddressLock[NETWORK_LAYER_TYPE_IPV6], std::defer_lock), LocalAddressMutexIPv4(LocalAddressLock[NETWORK_LAYER_TYPE_IPV4], std::defer_lock), SocketRegisterMutex(SocketRegisterLock, std::defer_lock);
+	std::unique_lock<std::mutex> LocalAddressMutexIPv6(LocalAddressLock.at(NETWORK_LAYER_TYPE_IPV6), std::defer_lock), LocalAddressMutexIPv4(LocalAddressLock.at(NETWORK_LAYER_TYPE_IPV4), std::defer_lock), SocketRegisterMutex(SocketRegisterLock, std::defer_lock);
 
 //Start listening Monitor.
 	for (;;)
@@ -1642,8 +1662,8 @@ void NetworkInformationMonitor(
 		if (Parameter.ListenProtocol_Network == LISTEN_PROTOCOL_NETWORK::BOTH || Parameter.ListenProtocol_Network == LISTEN_PROTOCOL_NETWORK::IPV6)
 		{
 		#if defined(PLATFORM_WIN)
-			memset(HostName, 0, DOMAIN_MAXSIZE);
-			LocalAddressList = GetLocalAddressList(AF_INET6, HostName);
+			HostName.fill(0);
+			LocalAddressList = GetLocalAddressList(AF_INET6, HostName.data());
 			if (LocalAddressList == nullptr)
 		#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 			errno = 0;
@@ -1653,11 +1673,13 @@ void NetworkInformationMonitor(
 			#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 				PrintError(LOG_LEVEL_TYPE::LEVEL_3, LOG_ERROR_TYPE::NETWORK, L"Get local machine address error", errno, nullptr, 0);
 				if (InterfaceAddressList != nullptr)
+				{
 					freeifaddrs(InterfaceAddressList);
-				InterfaceAddressList = nullptr;
+					InterfaceAddressList = nullptr;
+				}
 			#endif
 
-				goto JumpToRestart;
+				goto JumpTo_Restart;
 			}
 			else {
 				LocalAddressMutexIPv6.lock();
@@ -1682,14 +1704,14 @@ void NetworkInformationMonitor(
 
 			//Read addresses list and convert to Fully Qualified Domain Name/FQDN PTR record.
 			#if defined(PLATFORM_WIN)
-				for (LocalAddressTableIter = LocalAddressList;LocalAddressTableIter != nullptr;LocalAddressTableIter = LocalAddressTableIter->ai_next)
+				for (LocalAddressItem = LocalAddressList;LocalAddressItem != nullptr;LocalAddressItem = LocalAddressItem->ai_next)
 				{
-					if (LocalAddressTableIter->ai_family == AF_INET6 && LocalAddressTableIter->ai_addrlen == sizeof(sockaddr_in6) && 
-						LocalAddressTableIter->ai_addr->sa_family == AF_INET6)
+					if (LocalAddressItem->ai_family == AF_INET6 && LocalAddressItem->ai_addrlen == sizeof(sockaddr_in6) && 
+						LocalAddressItem->ai_addr->sa_family == AF_INET6)
 			#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-				for (InterfaceAddressIter = InterfaceAddressList;InterfaceAddressIter != nullptr;InterfaceAddressIter = InterfaceAddressIter->ifa_next)
+				for (InterfaceAddressItem = InterfaceAddressList;InterfaceAddressItem != nullptr;InterfaceAddressItem = InterfaceAddressItem->ifa_next)
 				{
-					if (InterfaceAddressIter->ifa_addr != nullptr && InterfaceAddressIter->ifa_addr->sa_family == AF_INET6)
+					if (InterfaceAddressItem->ifa_addr != nullptr && InterfaceAddressItem->ifa_addr->sa_family == AF_INET6)
 			#endif
 					{
 					//Mark local addresses(B part).
@@ -1705,9 +1727,9 @@ void NetworkInformationMonitor(
 							reinterpret_cast<dns_record_aaaa *>(DNS_Record)->Type = htons(DNS_TYPE_AAAA);
 							reinterpret_cast<dns_record_aaaa *>(DNS_Record)->Length = htons(sizeof(reinterpret_cast<dns_record_aaaa *>(DNS_Record)->Address));
 						#if defined(PLATFORM_WIN)
-							reinterpret_cast<dns_record_aaaa *>(DNS_Record)->Address = reinterpret_cast<sockaddr_in6 *>(LocalAddressTableIter->ai_addr)->sin6_addr;
+							reinterpret_cast<dns_record_aaaa *>(DNS_Record)->Address = reinterpret_cast<sockaddr_in6 *>(LocalAddressItem->ai_addr)->sin6_addr;
 						#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-							reinterpret_cast<dns_record_aaaa *>(DNS_Record)->Address = reinterpret_cast<sockaddr_in6 *>(InterfaceAddressIter->ifa_addr)->sin6_addr;
+							reinterpret_cast<dns_record_aaaa *>(DNS_Record)->Address = reinterpret_cast<sockaddr_in6 *>(InterfaceAddressItem->ifa_addr)->sin6_addr;
 						#endif
 							GlobalRunningStatus.LocalAddress_Length[NETWORK_LAYER_TYPE_IPV6] += sizeof(dns_record_aaaa);
 							++DNS_Header->Answer;
@@ -1718,50 +1740,50 @@ void NetworkInformationMonitor(
 						DomainString.clear();
 						for (ssize_t Index = sizeof(in6_addr) / sizeof(uint8_t) - 1U;Index >= 0;--Index)
 						{
-							memset(AddrBuffer, 0, ADDRESS_STRING_MAXSIZE);
+							AddrBuffer.fill(0);
 
 						#if defined(PLATFORM_WIN)
-							if (reinterpret_cast<sockaddr_in6 *>(LocalAddressTableIter->ai_addr)->sin6_addr.s6_addr[Index] == 0)
+							if (reinterpret_cast<sockaddr_in6 *>(LocalAddressItem->ai_addr)->sin6_addr.s6_addr[Index] == 0)
 						#elif defined(PLATFORM_LINUX)
-							if (reinterpret_cast<sockaddr_in6 *>(InterfaceAddressIter->ifa_addr)->sin6_addr.s6_addr[Index] == 0)
+							if (reinterpret_cast<sockaddr_in6 *>(InterfaceAddressItem->ifa_addr)->sin6_addr.s6_addr[Index] == 0)
 						#endif
 							{
 								DomainString.append("0.0.");
 							}
 						#if defined(PLATFORM_WIN)
-							else if (reinterpret_cast<sockaddr_in6 *>(LocalAddressTableIter->ai_addr)->sin6_addr.s6_addr[Index] < 0x10)
+							else if (reinterpret_cast<sockaddr_in6 *>(LocalAddressItem->ai_addr)->sin6_addr.s6_addr[Index] < 0x10)
 						#elif defined(PLATFORM_LINUX)
-							else if (reinterpret_cast<sockaddr_in6 *>(InterfaceAddressIter->ifa_addr)->sin6_addr.s6_addr[Index] < 0x10)
+							else if (reinterpret_cast<sockaddr_in6 *>(InterfaceAddressItem->ifa_addr)->sin6_addr.s6_addr[Index] < 0x10)
 						#endif
 							{
 							#if defined(PLATFORM_WIN)
-								if (sprintf_s(reinterpret_cast<char *>(AddrBuffer), ADDRESS_STRING_MAXSIZE, ("%x"), reinterpret_cast<sockaddr_in6 *>(LocalAddressTableIter->ai_addr)->sin6_addr.s6_addr[Index]) < 0 || 
+								if (snprintf(reinterpret_cast<char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE, "%x", reinterpret_cast<sockaddr_in6 *>(LocalAddressItem->ai_addr)->sin6_addr.s6_addr[Index]) < 0 || 
 							#elif defined(PLATFORM_LINUX)
-								if (sprintf(reinterpret_cast<char *>(AddrBuffer), ("%x"), reinterpret_cast<sockaddr_in6 *>(InterfaceAddressIter->ifa_addr)->sin6_addr.s6_addr[Index]) < 0 || 
+								if (snprintf(reinterpret_cast<char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE, "%x", reinterpret_cast<sockaddr_in6 *>(InterfaceAddressItem->ifa_addr)->sin6_addr.s6_addr[Index]) < 0 || 
 							#endif
-									strnlen_s(reinterpret_cast<const char *>(AddrBuffer), ADDRESS_STRING_MAXSIZE) != 1U)
+									strnlen_s(reinterpret_cast<const char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE) != 1U)
 								{
 									goto StopLoop;
 								}
 								else {
-									DomainString.append(reinterpret_cast<const char *>(AddrBuffer));
+									DomainString.append(reinterpret_cast<const char *>(AddrBuffer.data()));
 									DomainString.append(".0.");
 								}
 							}
 							else {
 							#if defined(PLATFORM_WIN)
-								if (sprintf_s(reinterpret_cast<char *>(AddrBuffer), ADDRESS_STRING_MAXSIZE, ("%x"), reinterpret_cast<sockaddr_in6 *>(LocalAddressTableIter->ai_addr)->sin6_addr.s6_addr[Index]) < 0 || 
+								if (snprintf(reinterpret_cast<char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE, "%x", reinterpret_cast<sockaddr_in6 *>(LocalAddressItem->ai_addr)->sin6_addr.s6_addr[Index]) < 0 || 
 							#elif defined(PLATFORM_LINUX)
-								if (sprintf(reinterpret_cast<char *>(AddrBuffer), ("%x"), reinterpret_cast<sockaddr_in6 *>(InterfaceAddressIter->ifa_addr)->sin6_addr.s6_addr[Index]) < 0 || 
+								if (snprintf(reinterpret_cast<char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE, "%x", reinterpret_cast<sockaddr_in6 *>(InterfaceAddressItem->ifa_addr)->sin6_addr.s6_addr[Index]) < 0 || 
 							#endif
-									strnlen_s(reinterpret_cast<const char *>(AddrBuffer), ADDRESS_STRING_MAXSIZE) != 2U)
+									strnlen_s(reinterpret_cast<const char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE) != 2U)
 								{
 									goto StopLoop;
 								}
 								else {
-									DomainString.append(reinterpret_cast<const char *>(AddrBuffer + 1U), 1U);
+									DomainString.append(reinterpret_cast<const char *>(AddrBuffer.data() + 1U), 1U);
 									DomainString.append(".");
-									DomainString.append(reinterpret_cast<const char *>(AddrBuffer), 1U);
+									DomainString.append(reinterpret_cast<const char *>(AddrBuffer.data()), 1U);
 									DomainString.append(".");
 								}
 							}
@@ -1803,8 +1825,8 @@ void NetworkInformationMonitor(
 		if (Parameter.ListenProtocol_Network == LISTEN_PROTOCOL_NETWORK::BOTH || Parameter.ListenProtocol_Network == LISTEN_PROTOCOL_NETWORK::IPV4)
 		{
 		#if defined(PLATFORM_WIN)
-			memset(HostName, 0, DOMAIN_MAXSIZE);
-			LocalAddressList = GetLocalAddressList(AF_INET, HostName);
+			HostName.fill(0);
+			LocalAddressList = GetLocalAddressList(AF_INET, HostName.data());
 			if (LocalAddressList == nullptr)
 		#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 			errno = 0;
@@ -1814,11 +1836,13 @@ void NetworkInformationMonitor(
 			#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 				PrintError(LOG_LEVEL_TYPE::LEVEL_3, LOG_ERROR_TYPE::NETWORK, L"Get local machine address error", errno, nullptr, 0);
 				if (InterfaceAddressList != nullptr)
+				{
 					freeifaddrs(InterfaceAddressList);
-				InterfaceAddressList = nullptr;
+					InterfaceAddressList = nullptr;
+				}
 			#endif
 
-				goto JumpToRestart;
+				goto JumpTo_Restart;
 			}
 			else {
 				LocalAddressMutexIPv4.lock();
@@ -1843,14 +1867,14 @@ void NetworkInformationMonitor(
 
 			//Read addresses list and convert to Fully Qualified Domain Name/FQDN PTR record.
 			#if defined(PLATFORM_WIN)
-				for (LocalAddressTableIter = LocalAddressList;LocalAddressTableIter != nullptr;LocalAddressTableIter = LocalAddressTableIter->ai_next)
+				for (LocalAddressItem = LocalAddressList;LocalAddressItem != nullptr;LocalAddressItem = LocalAddressItem->ai_next)
 				{
-					if (LocalAddressTableIter->ai_family == AF_INET && LocalAddressTableIter->ai_addrlen == sizeof(sockaddr_in) && 
-						LocalAddressTableIter->ai_addr->sa_family == AF_INET)
+					if (LocalAddressItem->ai_family == AF_INET && LocalAddressItem->ai_addrlen == sizeof(sockaddr_in) && 
+						LocalAddressItem->ai_addr->sa_family == AF_INET)
 			#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-				for (InterfaceAddressIter = InterfaceAddressList;InterfaceAddressIter != nullptr;InterfaceAddressIter = InterfaceAddressIter->ifa_next)
+				for (InterfaceAddressItem = InterfaceAddressList;InterfaceAddressItem != nullptr;InterfaceAddressItem = InterfaceAddressItem->ifa_next)
 				{
-					if (InterfaceAddressIter->ifa_addr != nullptr && InterfaceAddressIter->ifa_addr->sa_family == AF_INET)
+					if (InterfaceAddressItem->ifa_addr != nullptr && InterfaceAddressItem->ifa_addr->sa_family == AF_INET)
 			#endif
 					{
 					//Mark local addresses(B part).
@@ -1866,9 +1890,9 @@ void NetworkInformationMonitor(
 							reinterpret_cast<dns_record_a *>(DNS_Record)->Type = htons(DNS_TYPE_A);
 							reinterpret_cast<dns_record_a *>(DNS_Record)->Length = htons(sizeof(reinterpret_cast<dns_record_a *>(DNS_Record)->Address));
 						#if defined(PLATFORM_WIN)
-							reinterpret_cast<dns_record_a *>(DNS_Record)->Address = reinterpret_cast<sockaddr_in *>(LocalAddressTableIter->ai_addr)->sin_addr;
+							reinterpret_cast<dns_record_a *>(DNS_Record)->Address = reinterpret_cast<sockaddr_in *>(LocalAddressItem->ai_addr)->sin_addr;
 						#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-							reinterpret_cast<dns_record_a *>(DNS_Record)->Address = reinterpret_cast<sockaddr_in *>(InterfaceAddressIter->ifa_addr)->sin_addr;
+							reinterpret_cast<dns_record_a *>(DNS_Record)->Address = reinterpret_cast<sockaddr_in *>(InterfaceAddressItem->ifa_addr)->sin_addr;
 						#endif
 							GlobalRunningStatus.LocalAddress_Length[NETWORK_LAYER_TYPE_IPV4] += sizeof(dns_record_a);
 							++DNS_Header->Answer;
@@ -1876,39 +1900,39 @@ void NetworkInformationMonitor(
 
 					#if (defined(PLATFORM_WIN) || defined(PLATFORM_LINUX))
 					//Convert from binary to DNS PTR response.
-						memset(AddrBuffer, 0, ADDRESS_STRING_MAXSIZE);
+						AddrBuffer.fill(0);
 						DomainString.clear();
 					#if defined(PLATFORM_WIN)
-						sprintf_s(reinterpret_cast<char *>(AddrBuffer), ADDRESS_STRING_MAXSIZE, ("%u"), *((reinterpret_cast<uint8_t *>(&reinterpret_cast<sockaddr_in *>(LocalAddressTableIter->ai_addr)->sin_addr)) + sizeof(uint8_t) * 3U));
+						snprintf(reinterpret_cast<char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE, "%u", *((reinterpret_cast<uint8_t *>(&reinterpret_cast<sockaddr_in *>(LocalAddressItem->ai_addr)->sin_addr)) + sizeof(uint8_t) * 3U));
 					#elif defined(PLATFORM_LINUX)
-						sprintf(reinterpret_cast<char *>(AddrBuffer), ("%u"), *((reinterpret_cast<uint8_t *>(&reinterpret_cast<sockaddr_in *>(InterfaceAddressIter->ifa_addr)->sin_addr)) + sizeof(uint8_t) * 3U));
+						snprintf(reinterpret_cast<char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE, "%u", *((reinterpret_cast<uint8_t *>(&reinterpret_cast<sockaddr_in *>(InterfaceAddressItem->ifa_addr)->sin_addr)) + sizeof(uint8_t) * 3U));
 					#endif
-						DomainString.append(reinterpret_cast<const char *>(AddrBuffer));
-						memset(AddrBuffer, 0, ADDRESS_STRING_MAXSIZE);
+						DomainString.append(reinterpret_cast<const char *>(AddrBuffer.data()));
+						AddrBuffer.fill(0);
 						DomainString.append(".");
 					#if defined(PLATFORM_WIN)
-						sprintf_s(reinterpret_cast<char *>(AddrBuffer), ADDRESS_STRING_MAXSIZE, ("%u"), *((reinterpret_cast<uint8_t *>(&reinterpret_cast<sockaddr_in *>(LocalAddressTableIter->ai_addr)->sin_addr)) + sizeof(uint8_t) * 2U));
+						snprintf(reinterpret_cast<char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE, "%u", *((reinterpret_cast<uint8_t *>(&reinterpret_cast<sockaddr_in *>(LocalAddressItem->ai_addr)->sin_addr)) + sizeof(uint8_t) * 2U));
 					#elif defined(PLATFORM_LINUX)
-						sprintf(reinterpret_cast<char *>(AddrBuffer), ("%u"), *((reinterpret_cast<uint8_t *>(&reinterpret_cast<sockaddr_in *>(InterfaceAddressIter->ifa_addr)->sin_addr)) + sizeof(uint8_t) * 2U));
+						snprintf(reinterpret_cast<char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE, "%u", *((reinterpret_cast<uint8_t *>(&reinterpret_cast<sockaddr_in *>(InterfaceAddressItem->ifa_addr)->sin_addr)) + sizeof(uint8_t) * 2U));
 					#endif
-						DomainString.append(reinterpret_cast<const char *>(AddrBuffer));
-						memset(AddrBuffer, 0, ADDRESS_STRING_MAXSIZE);
+						DomainString.append(reinterpret_cast<const char *>(AddrBuffer.data()));
+						AddrBuffer.fill(0);
 						DomainString.append(".");
 					#if defined(PLATFORM_WIN)
-						sprintf_s(reinterpret_cast<char *>(AddrBuffer), ADDRESS_STRING_MAXSIZE, ("%u"), *((reinterpret_cast<uint8_t *>(&reinterpret_cast<sockaddr_in *>(LocalAddressTableIter->ai_addr)->sin_addr)) + sizeof(uint8_t)));
+						snprintf(reinterpret_cast<char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE, "%u", *((reinterpret_cast<uint8_t *>(&reinterpret_cast<sockaddr_in *>(LocalAddressItem->ai_addr)->sin_addr)) + sizeof(uint8_t)));
 					#elif defined(PLATFORM_LINUX)
-						sprintf(reinterpret_cast<char *>(AddrBuffer), ("%u"), *((reinterpret_cast<uint8_t *>(&reinterpret_cast<sockaddr_in *>(InterfaceAddressIter->ifa_addr)->sin_addr)) + sizeof(uint8_t)));
+						snprintf(reinterpret_cast<char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE, "%u", *((reinterpret_cast<uint8_t *>(&reinterpret_cast<sockaddr_in *>(InterfaceAddressItem->ifa_addr)->sin_addr)) + sizeof(uint8_t)));
 					#endif
-						DomainString.append(reinterpret_cast<const char *>(AddrBuffer));
-						memset(AddrBuffer, 0, ADDRESS_STRING_MAXSIZE);
+						DomainString.append(reinterpret_cast<const char *>(AddrBuffer.data()));
+						AddrBuffer.fill(0);
 						DomainString.append(".");
 					#if defined(PLATFORM_WIN)
-						sprintf_s(reinterpret_cast<char *>(AddrBuffer), ADDRESS_STRING_MAXSIZE, ("%u"), *(reinterpret_cast<uint8_t *>(&reinterpret_cast<sockaddr_in *>(LocalAddressTableIter->ai_addr)->sin_addr)));
+						snprintf(reinterpret_cast<char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE, "%u", *(reinterpret_cast<uint8_t *>(&reinterpret_cast<sockaddr_in *>(LocalAddressItem->ai_addr)->sin_addr)));
 					#elif defined(PLATFORM_LINUX)
-						sprintf(reinterpret_cast<char *>(AddrBuffer), ("%u"), *(reinterpret_cast<uint8_t *>(&reinterpret_cast<sockaddr_in *>(InterfaceAddressIter->ifa_addr)->sin_addr)));
+						snprintf(reinterpret_cast<char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE, "%u", *(reinterpret_cast<uint8_t *>(&reinterpret_cast<sockaddr_in *>(InterfaceAddressItem->ifa_addr)->sin_addr)));
 					#endif
-						DomainString.append(reinterpret_cast<const char *>(AddrBuffer));
-						memset(AddrBuffer, 0, ADDRESS_STRING_MAXSIZE);
+						DomainString.append(reinterpret_cast<const char *>(AddrBuffer.data()));
+						AddrBuffer.fill(0);
 
 					//Register to global list.
 						DomainString.append(".in-addr.arpa");
@@ -1939,17 +1963,6 @@ void NetworkInformationMonitor(
 			}
 		}
 
-	//Free all lists.
-	#if defined(PLATFORM_WIN)
-		if (LocalAddressList != nullptr)
-			freeaddrinfo(LocalAddressList);
-		LocalAddressList = nullptr;
-	#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-		if (InterfaceAddressList != nullptr)
-			freeifaddrs(InterfaceAddressList);
-		InterfaceAddressList = nullptr;
-	#endif
-
 	//Get gateway information and check.
 		GetGatewayInformation(AF_INET6);
 		GetGatewayInformation(AF_INET);
@@ -1968,7 +1981,22 @@ void NetworkInformationMonitor(
 		}
 
 	//Jump here to restart.
-	JumpToRestart:
+	JumpTo_Restart:
+
+	//Free all lists.
+	#if defined(PLATFORM_WIN)
+		if (LocalAddressList != nullptr)
+		{
+			freeaddrinfo(LocalAddressList);
+			LocalAddressList = nullptr;
+		}
+	#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+		if (InterfaceAddressList != nullptr)
+		{
+			freeifaddrs(InterfaceAddressList);
+			InterfaceAddressList = nullptr;
+		}
+	#endif
 
 	//Close all socket registers.
 		SocketRegisterMutex.lock();

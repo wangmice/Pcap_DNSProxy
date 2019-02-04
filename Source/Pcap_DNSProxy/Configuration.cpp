@@ -1,6 +1,6 @@
 ﻿// This code is part of Pcap_DNSProxy
 // Pcap_DNSProxy, a local DNS server based on WinPcap and LibPcap
-// Copyright (C) 2012-2018 Chengr28
+// Copyright (C) 2012-2019 Chengr28
 // 
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -133,7 +133,7 @@ bool ReadSupport_ReadText(
 			//About this check process, please visit https://en.wikipedia.org/wiki/UTF-8.
 				if (FileBuffer.get()[Index] > 0xE0 && Index >= 3U)
 				{
-					SingleText = ((static_cast<uint16_t>(FileBuffer.get()[Index] & 0x0F)) << 12U) + ((static_cast<uint16_t>(FileBuffer.get()[Index + 1U] & 0x3F)) << 6U) + static_cast<uint16_t>(FileBuffer.get()[Index + 2U] & 0x3F);
+					SingleText = ((static_cast<const uint16_t>(FileBuffer.get()[Index] & 0x0F)) << 12U) + ((static_cast<const uint16_t>(FileBuffer.get()[Index + 1U] & 0x3F)) << 6U) + static_cast<const uint16_t>(FileBuffer.get()[Index + 2U] & 0x3F);
 
 				//Next line format
 					if (SingleText == UNICODE_LINE_SEPARATOR || 
@@ -173,7 +173,7 @@ bool ReadSupport_ReadText(
 				}
 				else if (FileBuffer.get()[Index] > 0xC0 && Index >= 2U)
 				{
-					SingleText = ((static_cast<uint16_t>(FileBuffer.get()[Index] & 0x1F)) << 6U) + static_cast<uint16_t>(FileBuffer.get()[Index] & 0x3F);
+					SingleText = ((static_cast<const uint16_t>(FileBuffer.get()[Index] & 0x1F)) << 6U) + static_cast<const uint16_t>(FileBuffer.get()[Index] & 0x3F);
 
 				//Next line format
 					if (SingleText == UNICODE_NEXT_LINE)
@@ -474,14 +474,14 @@ bool ReadParameter(
 
 	//Create file list.
 		const wchar_t *WCS_ConfigFileNameList[] = CONFIG_FILE_NAME_LIST_WCS;
-	#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+	#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 		const char *ConfigFileNameList_MBS[] = CONFIG_FILE_NAME_LIST_MBS;
 	#endif
 		for (FileIndex = 0;FileIndex < sizeof(WCS_ConfigFileNameList) / sizeof(wchar_t *);++FileIndex)
 		{
 			FileDataTemp.FileName = GlobalRunningStatus.Path_Global->front();
 			FileDataTemp.FileName.append(WCS_ConfigFileNameList[FileIndex]);
-		#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+		#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 			FileDataTemp.FileName_MBS = GlobalRunningStatus.Path_Global_MBS->front();
 			FileDataTemp.FileName_MBS.append(ConfigFileNameList_MBS[FileIndex]);
 		#endif
@@ -495,7 +495,7 @@ bool ReadParameter(
 		{
 		#if defined(PLATFORM_WIN)
 			if (_wfopen_s(&FileHandle, FileList_Config.at(FileIndex).FileName.c_str(), L"rb") != 0 || FileHandle == nullptr)
-		#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+		#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 			FileHandle = fopen(FileList_Config.at(FileIndex).FileName_MBS.c_str(), "rb");
 			if (FileHandle == nullptr)
 		#endif
@@ -537,7 +537,7 @@ bool ReadParameter(
 	}
 
 //File Monitor
-	for (;;)
+	while (!GlobalRunningStatus.IsNeedExit)
 	{
 	//Jump here to restart.
 	#if defined(ENABLE_LIBSODIUM)
@@ -562,7 +562,7 @@ bool ReadParameter(
 		//Read configuration file.
 		#if defined(PLATFORM_WIN)
 			if (_wfopen_s(&FileHandle, FileList_Config.at(FileIndex).FileName.c_str(), L"rb") != 0 || FileHandle == nullptr)
-		#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+		#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 			FileHandle = fopen(FileList_Config.at(FileIndex).FileName_MBS.c_str(), "rb");
 			if (FileHandle == nullptr)
 		#endif
@@ -612,7 +612,7 @@ bool ReadParameter(
 				{
 					FileDataTemp.FileName = GlobalRunningStatus.Path_Global->at(FileIndex);
 					FileDataTemp.FileName.append(*DNSCurveParameter.DatabaseName);
-				#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+				#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 					FileDataTemp.FileName_MBS = GlobalRunningStatus.Path_Global_MBS->at(FileIndex);
 					FileDataTemp.FileName_MBS.append(*DNSCurveParameter.DatabaseName_MBS);
 				#endif
@@ -624,7 +624,7 @@ bool ReadParameter(
 			else {
 				delete DNSCurveParameter.DatabaseName;
 				DNSCurveParameter.DatabaseName = nullptr;
-			#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+			#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 				delete DNSCurveParameter.DatabaseName_MBS;
 				DNSCurveParameter.DatabaseName_MBS = nullptr;
 			#endif
@@ -666,7 +666,7 @@ bool ReadParameter(
 			//Read DNSCurve database file.
 			#if defined(PLATFORM_WIN)
 				if (_wfopen_s(&FileHandle, FileList_DNSCurveDatabase.at(FileIndex).FileName.c_str(), L"rb") != 0 || FileHandle == nullptr)
-			#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+			#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 				FileHandle = fopen(FileList_DNSCurveDatabase.at(FileIndex).FileName_MBS.c_str(), "rb");
 				if (FileHandle == nullptr)
 			#endif
@@ -733,8 +733,8 @@ bool ReadParameter(
 					DNSCurveParameterModificating.MonitorItemReset();
 			#endif
 
-			//Mark configuration file modified time and flush DNS cache.
-				Flush_DNS_Cache(nullptr);
+			//Mark configuration file modified time and flush domain cache.
+				FlushDomainCache_Main(nullptr);
 				GlobalRunningStatus.ConfigFileModifiedTime = GetCurrentSystemTime();
 			}
 		}
@@ -748,11 +748,14 @@ bool ReadParameter(
 	#if defined(ENABLE_LIBSODIUM)
 		IsDNSCurveFileModified = false;
 	#endif
+
+	//Next loop
 		Sleep(Parameter.FileRefreshTime);
 	}
 
-//Monitor terminated
-	PrintError(LOG_LEVEL_TYPE::LEVEL_2, LOG_ERROR_TYPE::SYSTEM, L"Read Parameter module Monitor terminated", 0, nullptr, 0);
+//Loop terminated
+	if (!GlobalRunningStatus.IsNeedExit)
+		PrintError(LOG_LEVEL_TYPE::LEVEL_2, LOG_ERROR_TYPE::SYSTEM, L"Read Parameter module Monitor terminated", 0, nullptr, 0);
 	return false;
 }
 
@@ -770,7 +773,7 @@ void ReadIPFilter(
 		{
 			FileDataTemp.FileName = GlobalRunningStatus.Path_Global->at(Index);
 			FileDataTemp.FileName.append(GlobalRunningStatus.FileList_IPFilter->at(FileIndex));
-		#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+		#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 			FileDataTemp.FileName_MBS = GlobalRunningStatus.Path_Global_MBS->at(Index);
 			FileDataTemp.FileName_MBS.append(GlobalRunningStatus.FileList_IPFilter_MBS->at(FileIndex));
 		#endif
@@ -786,7 +789,7 @@ void ReadIPFilter(
 	std::unique_lock<std::mutex> IPFilterFileMutex(IPFilterFileLock, std::defer_lock);
 
 //File Monitor
-	for (;;)
+	while (!GlobalRunningStatus.IsNeedExit)
 	{
 	//Reset parameters.
 		IsFileModified = false;
@@ -805,7 +808,7 @@ void ReadIPFilter(
 		//Open file handle.
 		#if defined(PLATFORM_WIN)
 			if (_wfopen_s(&FileHandle, FileList_IPFilter.at(FileIndex).FileName.c_str(), L"rb") != 0 || FileHandle == nullptr)
-		#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+		#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 			FileHandle = fopen(FileList_IPFilter.at(FileIndex).FileName_MBS.c_str(), "rb");
 			if (FileHandle == nullptr)
 		#endif
@@ -856,13 +859,16 @@ void ReadIPFilter(
 		IPFilterFileMutex.unlock();
 		IPFilterFileSetModificating->shrink_to_fit();
 
-	//Flush DNS cache and auto-refresh.
-		Flush_DNS_Cache(nullptr);
+	//Flush domain cache and auto-refresh.
+		FlushDomainCache_Main(nullptr);
+
+	//Next loop
 		Sleep(Parameter.FileRefreshTime);
 	}
 
-//Monitor terminated
-	PrintError(LOG_LEVEL_TYPE::LEVEL_2, LOG_ERROR_TYPE::SYSTEM, L"Read IPFilter module Monitor terminated", 0, nullptr, 0);
+//Loop terminated
+	if (!GlobalRunningStatus.IsNeedExit)
+		PrintError(LOG_LEVEL_TYPE::LEVEL_2, LOG_ERROR_TYPE::SYSTEM, L"Read IPFilter module Monitor terminated", 0, nullptr, 0);
 	return;
 }
 
@@ -880,7 +886,7 @@ void ReadHosts(
 		{
 			FileDataTemp.FileName = GlobalRunningStatus.Path_Global->at(Index);
 			FileDataTemp.FileName.append(GlobalRunningStatus.FileList_Hosts->at(FileIndex));
-		#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+		#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 			FileDataTemp.FileName_MBS = GlobalRunningStatus.Path_Global_MBS->at(Index);
 			FileDataTemp.FileName_MBS.append(GlobalRunningStatus.FileList_Hosts_MBS->at(FileIndex));
 		#endif
@@ -896,7 +902,7 @@ void ReadHosts(
 	std::unique_lock<std::mutex> HostsFileMutex(HostsFileLock, std::defer_lock);
 
 //File Monitor
-	for (;;)
+	while (!GlobalRunningStatus.IsNeedExit)
 	{
 	//Reset parameters.
 		IsFileModified = false;
@@ -915,7 +921,7 @@ void ReadHosts(
 		//Open file handle.
 		#if defined(PLATFORM_WIN)
 			if (_wfopen_s(&FileHandle, FileList_Hosts.at(FileIndex).FileName.c_str(), L"rb") != 0 || FileHandle == nullptr)
-		#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+		#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 			FileHandle = fopen(FileList_Hosts.at(FileIndex).FileName_MBS.c_str(), "rb");
 			if (FileHandle == nullptr)
 		#endif
@@ -966,13 +972,16 @@ void ReadHosts(
 		HostsFileMutex.unlock();
 		HostsFileSetModificating->shrink_to_fit();
 
-	//Flush DNS cache and auto-refresh.
-		Flush_DNS_Cache(nullptr);
+	//Flush domain cache and auto-refresh.
+		FlushDomainCache_Main(nullptr);
+
+	//Next loop
 		Sleep(Parameter.FileRefreshTime);
 	}
 
-//Monitor terminated
-	PrintError(LOG_LEVEL_TYPE::LEVEL_2, LOG_ERROR_TYPE::SYSTEM, L"Read Hosts module Monitor terminated", 0, nullptr, 0);
+//Loop terminated
+	if (!GlobalRunningStatus.IsNeedExit)
+		PrintError(LOG_LEVEL_TYPE::LEVEL_2, LOG_ERROR_TYPE::SYSTEM, L"Read Hosts module Monitor terminated", 0, nullptr, 0);
 	return;
 }
 
@@ -989,7 +998,7 @@ bool ReadSupport_FileAttributesLoop(
 	LARGE_INTEGER FileSizeData;
 	memset(&FileAttributeData, 0, sizeof(FileAttributeData));
 	memset(&FileSizeData, 0, sizeof(FileSizeData));
-#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 	struct stat FileStatData;
 	memset(&FileStatData, 0, sizeof(FileStatData));
 #endif
@@ -1000,7 +1009,7 @@ bool ReadSupport_FileAttributesLoop(
 			FileListItem.FileName.c_str(), 
 			GetFileExInfoStandard, 
 			&FileAttributeData) == 0)
-#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 	if (stat(FileListItem.FileName_MBS.c_str(), &FileStatData) != 0)
 #endif
 	{
@@ -1024,9 +1033,9 @@ bool ReadSupport_FileAttributesLoop(
 #if defined(PLATFORM_WIN)
 	FileSizeData.HighPart = FileAttributeData.nFileSizeHigh;
 	FileSizeData.LowPart = FileAttributeData.nFileSizeLow;
-	if (FileSizeData.QuadPart < 0 || static_cast<uint64_t>(FileSizeData.QuadPart) >= FILE_READING_MAXSIZE)
-#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-	if (FileStatData.st_size >= static_cast<off_t>(FILE_READING_MAXSIZE))
+	if (FileSizeData.QuadPart < 0 || static_cast<const uint64_t>(FileSizeData.QuadPart) >= FILE_READING_MAXSIZE)
+#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+	if (FileStatData.st_size >= static_cast<const off_t>(FILE_READING_MAXSIZE))
 #endif
 	{
 	//Clear list data.
@@ -1063,7 +1072,7 @@ bool ReadSupport_FileAttributesLoop(
 	FileSizeData.HighPart = FileAttributeData.ftLastWriteTime.dwHighDateTime;
 	FileSizeData.LowPart = FileAttributeData.ftLastWriteTime.dwLowDateTime;
 	if (FileListItem.ModificationTime > 0 && FileSizeData.QuadPart == FileListItem.ModificationTime)
-#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 	if (FileListItem.ModificationTime > 0 && FileStatData.st_mtime == FileListItem.ModificationTime)
 #endif
 	{
@@ -1076,7 +1085,7 @@ bool ReadSupport_FileAttributesLoop(
 	else {
 	#if defined(PLATFORM_WIN)
 		FileListItem.ModificationTime = FileSizeData.QuadPart;
-	#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+	#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 		FileListItem.ModificationTime = FileStatData.st_mtime;
 	#endif
 	}

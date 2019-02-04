@@ -1,6 +1,6 @@
 ﻿// This code is part of Pcap_DNSProxy
 // Pcap_DNSProxy, a local DNS server based on WinPcap and LibPcap
-// Copyright (C) 2012-2018 Chengr28
+// Copyright (C) 2012-2019 Chengr28
 // 
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -38,14 +38,14 @@ bool FirewallTest(
 		if (!SocketValue_FirewallTest.SocketValueInit(AF_INET6, SOCK_DGRAM, IPPROTO_UDP, 0, nullptr, &ErrorCode))
 			return false;
 		reinterpret_cast<sockaddr_in6 *>(&SocketValue_FirewallTest.ValueSet.front().SockAddr)->sin6_addr = in6addr_any;
-		GenerateRandomBuffer(&reinterpret_cast<sockaddr_in6 *>(&SocketValue_FirewallTest.ValueSet.front().SockAddr)->sin6_port, sizeof(reinterpret_cast<sockaddr_in6 *>(&SocketValue_FirewallTest.ValueSet.front().SockAddr)->sin6_port), &RandomDistribution, 0, 0);
+		GenerateRandomBuffer(&reinterpret_cast<sockaddr_in6 *>(&SocketValue_FirewallTest.ValueSet.front().SockAddr)->sin6_port, sizeof(reinterpret_cast<const sockaddr_in6 *>(&SocketValue_FirewallTest.ValueSet.front().SockAddr)->sin6_port), &RandomDistribution, 0, 0);
 
 	//Bind local socket.
 		while (bind(SocketValue_FirewallTest.ValueSet.front().Socket, reinterpret_cast<const sockaddr *>(&SocketValue_FirewallTest.ValueSet.front().SockAddr), SocketValue_FirewallTest.ValueSet.front().AddrLen) == SOCKET_ERROR)
 		{
 			if (Index < LOOP_MAX_LARGE_TIMES && WSAGetLastError() == WSAEADDRINUSE)
 			{
-				GenerateRandomBuffer(&reinterpret_cast<sockaddr_in6 *>(&SocketValue_FirewallTest.ValueSet.front().SockAddr)->sin6_port, sizeof(reinterpret_cast<sockaddr_in6 *>(&SocketValue_FirewallTest.ValueSet.front().SockAddr)->sin6_port), &RandomDistribution, 0, 0);
+				GenerateRandomBuffer(&reinterpret_cast<sockaddr_in6 *>(&SocketValue_FirewallTest.ValueSet.front().SockAddr)->sin6_port, sizeof(reinterpret_cast<const sockaddr_in6 *>(&SocketValue_FirewallTest.ValueSet.front().SockAddr)->sin6_port), &RandomDistribution, 0, 0);
 				++Index;
 			}
 			else {
@@ -61,14 +61,14 @@ bool FirewallTest(
 		if (!SocketValue_FirewallTest.SocketValueInit(AF_INET, SOCK_DGRAM, IPPROTO_UDP, 0, nullptr, &ErrorCode))
 			return false;
 		reinterpret_cast<sockaddr_in *>(&SocketValue_FirewallTest.ValueSet.front().SockAddr)->sin_addr.s_addr = INADDR_ANY;
-		GenerateRandomBuffer(&reinterpret_cast<sockaddr_in *>(&SocketValue_FirewallTest.ValueSet.front().SockAddr)->sin_port, sizeof(reinterpret_cast<sockaddr_in *>(&SocketValue_FirewallTest.ValueSet.front().SockAddr)->sin_port), &RandomDistribution, 0, 0);
+		GenerateRandomBuffer(&reinterpret_cast<sockaddr_in *>(&SocketValue_FirewallTest.ValueSet.front().SockAddr)->sin_port, sizeof(reinterpret_cast<const sockaddr_in *>(&SocketValue_FirewallTest.ValueSet.front().SockAddr)->sin_port), &RandomDistribution, 0, 0);
 
 	//Bind local socket.
 		while (bind(SocketValue_FirewallTest.ValueSet.front().Socket, reinterpret_cast<const sockaddr *>(&SocketValue_FirewallTest.ValueSet.front().SockAddr), SocketValue_FirewallTest.ValueSet.front().AddrLen) == SOCKET_ERROR)
 		{
 			if (Index < LOOP_MAX_LARGE_TIMES && WSAGetLastError() == WSAEADDRINUSE)
 			{
-				GenerateRandomBuffer(&reinterpret_cast<sockaddr_in *>(&SocketValue_FirewallTest.ValueSet.front().SockAddr)->sin_port, sizeof(reinterpret_cast<sockaddr_in *>(&SocketValue_FirewallTest.ValueSet.front().SockAddr)->sin_port), &RandomDistribution, 0, 0);
+				GenerateRandomBuffer(&reinterpret_cast<sockaddr_in *>(&SocketValue_FirewallTest.ValueSet.front().SockAddr)->sin_port, sizeof(reinterpret_cast<const sockaddr_in *>(&SocketValue_FirewallTest.ValueSet.front().SockAddr)->sin_port), &RandomDistribution, 0, 0);
 				++Index;
 			}
 			else {
@@ -113,15 +113,15 @@ bool LoadBufferEvent_DomainTest(
 		//Socket settings
 			if (
 			//Main
-				!EventArgument_Domain->SocketValue->SocketValueInit(AF_INET6, SOCK_STREAM, IPPROTO_TCP, ntohs(Parameter.Target_Server_Main_IPv6.AddressData.IPv6.sin6_port), &Parameter.Target_Server_Main_IPv6.AddressData.IPv6.sin6_addr, &ErrorCode) || 
+				!EventArgument_Domain->SocketValue->SocketValueInit(AF_INET6, SOCK_STREAM, IPPROTO_TCP, ntoh16(Parameter.Target_Server_Main_IPv6.AddressData.IPv6.sin6_port), &Parameter.Target_Server_Main_IPv6.AddressData.IPv6.sin6_addr, &ErrorCode) || 
 				!SocketSetting(EventArgument_Domain->SocketValue->ValueSet.back().Socket, SOCKET_SETTING_TYPE::NON_BLOCKING_MODE, true, nullptr) || 
-				!SocketSetting(EventArgument_Domain->SocketValue->ValueSet.back().Socket, SOCKET_SETTING_TYPE::TCP_FAST_OPEN, true, nullptr) || 
+				!SocketSetting(EventArgument_Domain->SocketValue->ValueSet.back().Socket, SOCKET_SETTING_TYPE::TCP_FAST_OPEN_NORMAL, true, nullptr) || 
 				!SocketSetting(EventArgument_Domain->SocketValue->ValueSet.back().Socket, SOCKET_SETTING_TYPE::HOP_LIMITS_IPV6, true, nullptr) || 
 			//Alternate
 				(Parameter.Target_Server_Alternate_IPv6.AddressData.Storage.ss_family != 0 && 
-				(!EventArgument_Domain->SocketValue->SocketValueInit(AF_INET6, SOCK_STREAM, IPPROTO_TCP, ntohs(Parameter.Target_Server_Alternate_IPv6.AddressData.IPv6.sin6_port), &Parameter.Target_Server_Alternate_IPv6.AddressData.IPv6.sin6_addr, &ErrorCode) || 
+				(!EventArgument_Domain->SocketValue->SocketValueInit(AF_INET6, SOCK_STREAM, IPPROTO_TCP, ntoh16(Parameter.Target_Server_Alternate_IPv6.AddressData.IPv6.sin6_port), &Parameter.Target_Server_Alternate_IPv6.AddressData.IPv6.sin6_addr, &ErrorCode) || 
 				!SocketSetting(EventArgument_Domain->SocketValue->ValueSet.back().Socket, SOCKET_SETTING_TYPE::NON_BLOCKING_MODE, true, nullptr) || 
-				!SocketSetting(EventArgument_Domain->SocketValue->ValueSet.back().Socket, SOCKET_SETTING_TYPE::TCP_FAST_OPEN, true, nullptr) || 
+				!SocketSetting(EventArgument_Domain->SocketValue->ValueSet.back().Socket, SOCKET_SETTING_TYPE::TCP_FAST_OPEN_NORMAL, true, nullptr) || 
 				!SocketSetting(EventArgument_Domain->SocketValue->ValueSet.back().Socket, SOCKET_SETTING_TYPE::HOP_LIMITS_IPV6, true, nullptr))))
 			{
 				PrintError(LOG_LEVEL_TYPE::LEVEL_2, LOG_ERROR_TYPE::NETWORK, L"Domain Test event initialization error", ErrorCode, nullptr, 0);
@@ -134,7 +134,7 @@ bool LoadBufferEvent_DomainTest(
 			#if defined(PLATFORM_WIN)
 				SocketTimeout.tv_sec = Parameter.SocketTimeout_Reliable_Once / SECOND_TO_MILLISECOND;
 				SocketTimeout.tv_usec = Parameter.SocketTimeout_Reliable_Once % SECOND_TO_MILLISECOND * MICROSECOND_TO_MILLISECOND;
-			#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+			#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 				SocketTimeout = Parameter.SocketTimeout_Reliable_Once;
 			#endif
 
@@ -164,15 +164,15 @@ bool LoadBufferEvent_DomainTest(
 				}
 			}
 
-		//Multiple list(IPv6)
+		//Multiple list
 			if (Parameter.Target_Server_IPv6_Multiple != nullptr)
 			{
 				for (const auto &DNS_ServerDataItem:*Parameter.Target_Server_IPv6_Multiple)
 				{
 					ErrorCode = 0;
-					if (!EventArgument_Domain->SocketValue->SocketValueInit(AF_INET6, SOCK_STREAM, IPPROTO_TCP, ntohs(DNS_ServerDataItem.AddressData.IPv6.sin6_port), &DNS_ServerDataItem.AddressData.IPv6.sin6_addr, &ErrorCode) || 
+					if (!EventArgument_Domain->SocketValue->SocketValueInit(AF_INET6, SOCK_STREAM, IPPROTO_TCP, ntoh16(DNS_ServerDataItem.AddressData.IPv6.sin6_port), &DNS_ServerDataItem.AddressData.IPv6.sin6_addr, &ErrorCode) || 
 						!SocketSetting(EventArgument_Domain->SocketValue->ValueSet.back().Socket, SOCKET_SETTING_TYPE::NON_BLOCKING_MODE, true, nullptr) || 
-						!SocketSetting(EventArgument_Domain->SocketValue->ValueSet.back().Socket, SOCKET_SETTING_TYPE::TCP_FAST_OPEN, true, nullptr) || 
+						!SocketSetting(EventArgument_Domain->SocketValue->ValueSet.back().Socket, SOCKET_SETTING_TYPE::TCP_FAST_OPEN_NORMAL, true, nullptr) || 
 						!SocketSetting(EventArgument_Domain->SocketValue->ValueSet.back().Socket, SOCKET_SETTING_TYPE::HOP_LIMITS_IPV6, true, nullptr))
 					{
 						PrintError(LOG_LEVEL_TYPE::LEVEL_2, LOG_ERROR_TYPE::NETWORK, L"Domain Test event initialization error", ErrorCode, nullptr, 0);
@@ -185,7 +185,7 @@ bool LoadBufferEvent_DomainTest(
 					#if defined(PLATFORM_WIN)
 						SocketTimeout.tv_sec = Parameter.SocketTimeout_Reliable_Once / SECOND_TO_MILLISECOND;
 						SocketTimeout.tv_usec = Parameter.SocketTimeout_Reliable_Once % SECOND_TO_MILLISECOND * MICROSECOND_TO_MILLISECOND;
-					#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+					#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 						SocketTimeout = Parameter.SocketTimeout_Reliable_Once;
 					#endif
 
@@ -211,12 +211,12 @@ bool LoadBufferEvent_DomainTest(
 			ErrorCode = 0;
 			if (
 			//Main
-				!EventArgument_Domain->SocketValue->SocketValueInit(AF_INET6, SOCK_DGRAM, IPPROTO_UDP, ntohs(Parameter.Target_Server_Main_IPv6.AddressData.IPv6.sin6_port), &Parameter.Target_Server_Main_IPv6.AddressData.IPv6.sin6_addr, &ErrorCode) || 
+				!EventArgument_Domain->SocketValue->SocketValueInit(AF_INET6, SOCK_DGRAM, IPPROTO_UDP, ntoh16(Parameter.Target_Server_Main_IPv6.AddressData.IPv6.sin6_port), &Parameter.Target_Server_Main_IPv6.AddressData.IPv6.sin6_addr, &ErrorCode) || 
 				!SocketSetting(EventArgument_Domain->SocketValue->ValueSet.back().Socket, SOCKET_SETTING_TYPE::NON_BLOCKING_MODE, true, nullptr) || 
 				!SocketSetting(EventArgument_Domain->SocketValue->ValueSet.back().Socket, SOCKET_SETTING_TYPE::HOP_LIMITS_IPV6, true, nullptr) || 
 			//Alternate
 				(Parameter.Target_Server_Alternate_IPv6.AddressData.Storage.ss_family != 0 && 
-				(!EventArgument_Domain->SocketValue->SocketValueInit(AF_INET6, SOCK_DGRAM, IPPROTO_UDP, ntohs(Parameter.Target_Server_Alternate_IPv6.AddressData.IPv6.sin6_port), &Parameter.Target_Server_Alternate_IPv6.AddressData.IPv6.sin6_addr, &ErrorCode) || 
+				(!EventArgument_Domain->SocketValue->SocketValueInit(AF_INET6, SOCK_DGRAM, IPPROTO_UDP, ntoh16(Parameter.Target_Server_Alternate_IPv6.AddressData.IPv6.sin6_port), &Parameter.Target_Server_Alternate_IPv6.AddressData.IPv6.sin6_addr, &ErrorCode) || 
 				!SocketSetting(EventArgument_Domain->SocketValue->ValueSet.back().Socket, SOCKET_SETTING_TYPE::NON_BLOCKING_MODE, true, nullptr) || 
 				!SocketSetting(EventArgument_Domain->SocketValue->ValueSet.back().Socket, SOCKET_SETTING_TYPE::HOP_LIMITS_IPV6, true, nullptr))))
 			{
@@ -230,7 +230,7 @@ bool LoadBufferEvent_DomainTest(
 			#if defined(PLATFORM_WIN)
 				SocketTimeout.tv_sec = Parameter.SocketTimeout_Unreliable_Once / SECOND_TO_MILLISECOND;
 				SocketTimeout.tv_usec = Parameter.SocketTimeout_Unreliable_Once % SECOND_TO_MILLISECOND * MICROSECOND_TO_MILLISECOND;
-			#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+			#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 				SocketTimeout = Parameter.SocketTimeout_Unreliable_Once;
 			#endif
 
@@ -260,13 +260,13 @@ bool LoadBufferEvent_DomainTest(
 				}
 			}
 
-		//Multiple list(IPv6)
+		//Multiple list
 			if (Parameter.Target_Server_IPv6_Multiple != nullptr)
 			{
 				for (const auto &DNS_ServerDataItem:*Parameter.Target_Server_IPv6_Multiple)
 				{
 					ErrorCode = 0;
-					if (!EventArgument_Domain->SocketValue->SocketValueInit(AF_INET6, SOCK_DGRAM, IPPROTO_UDP, ntohs(DNS_ServerDataItem.AddressData.IPv6.sin6_port), &DNS_ServerDataItem.AddressData.IPv6.sin6_addr, &ErrorCode) || 
+					if (!EventArgument_Domain->SocketValue->SocketValueInit(AF_INET6, SOCK_DGRAM, IPPROTO_UDP, ntoh16(DNS_ServerDataItem.AddressData.IPv6.sin6_port), &DNS_ServerDataItem.AddressData.IPv6.sin6_addr, &ErrorCode) || 
 						!SocketSetting(EventArgument_Domain->SocketValue->ValueSet.back().Socket, SOCKET_SETTING_TYPE::NON_BLOCKING_MODE, true, nullptr) || 
 						!SocketSetting(EventArgument_Domain->SocketValue->ValueSet.back().Socket, SOCKET_SETTING_TYPE::HOP_LIMITS_IPV6, true, nullptr))
 					{
@@ -280,7 +280,7 @@ bool LoadBufferEvent_DomainTest(
 					#if defined(PLATFORM_WIN)
 						SocketTimeout.tv_sec = Parameter.SocketTimeout_Unreliable_Once / SECOND_TO_MILLISECOND;
 						SocketTimeout.tv_usec = Parameter.SocketTimeout_Unreliable_Once % SECOND_TO_MILLISECOND * MICROSECOND_TO_MILLISECOND;
-					#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+					#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 						SocketTimeout = Parameter.SocketTimeout_Unreliable_Once;
 					#endif
 
@@ -308,15 +308,15 @@ bool LoadBufferEvent_DomainTest(
 			ErrorCode = 0;
 			if (
 			//Main
-				!EventArgument_Domain->SocketValue->SocketValueInit(AF_INET, SOCK_STREAM, IPPROTO_TCP, ntohs(Parameter.Target_Server_Main_IPv4.AddressData.IPv4.sin_port), &Parameter.Target_Server_Main_IPv4.AddressData.IPv4.sin_addr, &ErrorCode) || 
+				!EventArgument_Domain->SocketValue->SocketValueInit(AF_INET, SOCK_STREAM, IPPROTO_TCP, ntoh16(Parameter.Target_Server_Main_IPv4.AddressData.IPv4.sin_port), &Parameter.Target_Server_Main_IPv4.AddressData.IPv4.sin_addr, &ErrorCode) || 
 				!SocketSetting(EventArgument_Domain->SocketValue->ValueSet.back().Socket, SOCKET_SETTING_TYPE::NON_BLOCKING_MODE, true, nullptr) || 
-				!SocketSetting(EventArgument_Domain->SocketValue->ValueSet.back().Socket, SOCKET_SETTING_TYPE::TCP_FAST_OPEN, true, nullptr) || 
+				!SocketSetting(EventArgument_Domain->SocketValue->ValueSet.back().Socket, SOCKET_SETTING_TYPE::TCP_FAST_OPEN_NORMAL, true, nullptr) || 
 				!SocketSetting(EventArgument_Domain->SocketValue->ValueSet.back().Socket, SOCKET_SETTING_TYPE::HOP_LIMITS_IPV4, true, nullptr) || 
 			//Alternate
 				(Parameter.Target_Server_Alternate_IPv4.AddressData.Storage.ss_family != 0 && 
-				(!EventArgument_Domain->SocketValue->SocketValueInit(AF_INET, SOCK_STREAM, IPPROTO_TCP, ntohs(Parameter.Target_Server_Alternate_IPv4.AddressData.IPv4.sin_port), &Parameter.Target_Server_Alternate_IPv4.AddressData.IPv4.sin_addr, &ErrorCode) || 
+				(!EventArgument_Domain->SocketValue->SocketValueInit(AF_INET, SOCK_STREAM, IPPROTO_TCP, ntoh16(Parameter.Target_Server_Alternate_IPv4.AddressData.IPv4.sin_port), &Parameter.Target_Server_Alternate_IPv4.AddressData.IPv4.sin_addr, &ErrorCode) || 
 				!SocketSetting(EventArgument_Domain->SocketValue->ValueSet.back().Socket, SOCKET_SETTING_TYPE::NON_BLOCKING_MODE, true, nullptr) || 
-				!SocketSetting(EventArgument_Domain->SocketValue->ValueSet.back().Socket, SOCKET_SETTING_TYPE::TCP_FAST_OPEN, true, nullptr) || 
+				!SocketSetting(EventArgument_Domain->SocketValue->ValueSet.back().Socket, SOCKET_SETTING_TYPE::TCP_FAST_OPEN_NORMAL, true, nullptr) || 
 				!SocketSetting(EventArgument_Domain->SocketValue->ValueSet.back().Socket, SOCKET_SETTING_TYPE::HOP_LIMITS_IPV4, true, nullptr))))
 			{
 				PrintError(LOG_LEVEL_TYPE::LEVEL_2, LOG_ERROR_TYPE::NETWORK, L"Domain Test event initialization error", ErrorCode, nullptr, 0);
@@ -329,7 +329,7 @@ bool LoadBufferEvent_DomainTest(
 			#if defined(PLATFORM_WIN)
 				SocketTimeout.tv_sec = Parameter.SocketTimeout_Reliable_Once / SECOND_TO_MILLISECOND;
 				SocketTimeout.tv_usec = Parameter.SocketTimeout_Reliable_Once % SECOND_TO_MILLISECOND * MICROSECOND_TO_MILLISECOND;
-			#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+			#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 				SocketTimeout = Parameter.SocketTimeout_Reliable_Once;
 			#endif
 
@@ -345,7 +345,7 @@ bool LoadBufferEvent_DomainTest(
 				EventArgument_Domain->SendTimes->push_back(0);
 
 			//Alternate
-				if (Parameter.Target_Server_Alternate_IPv6.AddressData.Storage.ss_family != 0)
+				if (Parameter.Target_Server_Alternate_IPv4.AddressData.Storage.ss_family != 0)
 				{
 					EventArgument_Domain->Protocol_Transport->push_back(IPPROTO_TCP);
 					EventArgument_Domain->SocketTimeout->push_back(SocketTimeout);
@@ -359,15 +359,15 @@ bool LoadBufferEvent_DomainTest(
 				}
 			}
 
-		//Multiple list(IPv4)
+		//Multiple list
 			if (Parameter.Target_Server_IPv4_Multiple != nullptr)
 			{
 				for (const auto &DNS_ServerDataItem:*Parameter.Target_Server_IPv4_Multiple)
 				{
 					ErrorCode = 0;
-					if (!EventArgument_Domain->SocketValue->SocketValueInit(AF_INET, SOCK_STREAM, IPPROTO_TCP, ntohs(DNS_ServerDataItem.AddressData.IPv4.sin_port), &DNS_ServerDataItem.AddressData.IPv4.sin_addr, &ErrorCode) || 
+					if (!EventArgument_Domain->SocketValue->SocketValueInit(AF_INET, SOCK_STREAM, IPPROTO_TCP, ntoh16(DNS_ServerDataItem.AddressData.IPv4.sin_port), &DNS_ServerDataItem.AddressData.IPv4.sin_addr, &ErrorCode) || 
 						!SocketSetting(EventArgument_Domain->SocketValue->ValueSet.back().Socket, SOCKET_SETTING_TYPE::NON_BLOCKING_MODE, true, nullptr) || 
-						!SocketSetting(EventArgument_Domain->SocketValue->ValueSet.back().Socket, SOCKET_SETTING_TYPE::TCP_FAST_OPEN, true, nullptr) || 
+						!SocketSetting(EventArgument_Domain->SocketValue->ValueSet.back().Socket, SOCKET_SETTING_TYPE::TCP_FAST_OPEN_NORMAL, true, nullptr) || 
 						!SocketSetting(EventArgument_Domain->SocketValue->ValueSet.back().Socket, SOCKET_SETTING_TYPE::HOP_LIMITS_IPV4, true, nullptr))
 					{
 						PrintError(LOG_LEVEL_TYPE::LEVEL_2, LOG_ERROR_TYPE::NETWORK, L"Domain Test event initialization error", ErrorCode, nullptr, 0);
@@ -380,7 +380,7 @@ bool LoadBufferEvent_DomainTest(
 					#if defined(PLATFORM_WIN)
 						SocketTimeout.tv_sec = Parameter.SocketTimeout_Reliable_Once / SECOND_TO_MILLISECOND;
 						SocketTimeout.tv_usec = Parameter.SocketTimeout_Reliable_Once % SECOND_TO_MILLISECOND * MICROSECOND_TO_MILLISECOND;
-					#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+					#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 						SocketTimeout = Parameter.SocketTimeout_Reliable_Once;
 					#endif
 
@@ -406,13 +406,13 @@ bool LoadBufferEvent_DomainTest(
 			ErrorCode = 0;
 			if (
 			//Main
-				!EventArgument_Domain->SocketValue->SocketValueInit(AF_INET, SOCK_DGRAM, IPPROTO_UDP, ntohs(Parameter.Target_Server_Main_IPv4.AddressData.IPv4.sin_port), &Parameter.Target_Server_Main_IPv4.AddressData.IPv4.sin_addr, &ErrorCode) || 
+				!EventArgument_Domain->SocketValue->SocketValueInit(AF_INET, SOCK_DGRAM, IPPROTO_UDP, ntoh16(Parameter.Target_Server_Main_IPv4.AddressData.IPv4.sin_port), &Parameter.Target_Server_Main_IPv4.AddressData.IPv4.sin_addr, &ErrorCode) || 
 				!SocketSetting(EventArgument_Domain->SocketValue->ValueSet.back().Socket, SOCKET_SETTING_TYPE::NON_BLOCKING_MODE, true, nullptr) || 
 				!SocketSetting(EventArgument_Domain->SocketValue->ValueSet.back().Socket, SOCKET_SETTING_TYPE::HOP_LIMITS_IPV4, true, nullptr) || 
 				!SocketSetting(EventArgument_Domain->SocketValue->ValueSet.back().Socket, SOCKET_SETTING_TYPE::DO_NOT_FRAGMENT, true, nullptr) || 
 			//Alternate
 				(Parameter.Target_Server_Alternate_IPv4.AddressData.Storage.ss_family != 0 && 
-				(!EventArgument_Domain->SocketValue->SocketValueInit(AF_INET, SOCK_DGRAM, IPPROTO_UDP, ntohs(Parameter.Target_Server_Alternate_IPv4.AddressData.IPv4.sin_port), &Parameter.Target_Server_Alternate_IPv4.AddressData.IPv4.sin_addr, &ErrorCode) || 
+				(!EventArgument_Domain->SocketValue->SocketValueInit(AF_INET, SOCK_DGRAM, IPPROTO_UDP, ntoh16(Parameter.Target_Server_Alternate_IPv4.AddressData.IPv4.sin_port), &Parameter.Target_Server_Alternate_IPv4.AddressData.IPv4.sin_addr, &ErrorCode) || 
 				!SocketSetting(EventArgument_Domain->SocketValue->ValueSet.back().Socket, SOCKET_SETTING_TYPE::NON_BLOCKING_MODE, true, nullptr) || 
 				!SocketSetting(EventArgument_Domain->SocketValue->ValueSet.back().Socket, SOCKET_SETTING_TYPE::HOP_LIMITS_IPV4, true, nullptr) || 
 				!SocketSetting(EventArgument_Domain->SocketValue->ValueSet.back().Socket, SOCKET_SETTING_TYPE::DO_NOT_FRAGMENT, true, nullptr))))
@@ -427,7 +427,7 @@ bool LoadBufferEvent_DomainTest(
 			#if defined(PLATFORM_WIN)
 				SocketTimeout.tv_sec = Parameter.SocketTimeout_Unreliable_Once / SECOND_TO_MILLISECOND;
 				SocketTimeout.tv_usec = Parameter.SocketTimeout_Unreliable_Once % SECOND_TO_MILLISECOND * MICROSECOND_TO_MILLISECOND;
-			#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+			#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 				SocketTimeout = Parameter.SocketTimeout_Unreliable_Once;
 			#endif
 
@@ -443,7 +443,7 @@ bool LoadBufferEvent_DomainTest(
 				EventArgument_Domain->SendTimes->push_back(0);
 
 			//Alternate
-				if (Parameter.Target_Server_Alternate_IPv6.AddressData.Storage.ss_family != 0)
+				if (Parameter.Target_Server_Alternate_IPv4.AddressData.Storage.ss_family != 0)
 				{
 					EventArgument_Domain->Protocol_Transport->push_back(IPPROTO_UDP);
 					EventArgument_Domain->SocketTimeout->push_back(SocketTimeout);
@@ -457,13 +457,13 @@ bool LoadBufferEvent_DomainTest(
 				}
 			}
 
-		//Multiple list(IPv4)
+		//Multiple list
 			if (Parameter.Target_Server_IPv4_Multiple != nullptr)
 			{
 				for (const auto &DNS_ServerDataItem:*Parameter.Target_Server_IPv4_Multiple)
 				{
 					ErrorCode = 0;
-					if (!EventArgument_Domain->SocketValue->SocketValueInit(AF_INET, SOCK_DGRAM, IPPROTO_UDP, ntohs(DNS_ServerDataItem.AddressData.IPv4.sin_port), &DNS_ServerDataItem.AddressData.IPv4.sin_addr, &ErrorCode) || 
+					if (!EventArgument_Domain->SocketValue->SocketValueInit(AF_INET, SOCK_DGRAM, IPPROTO_UDP, ntoh16(DNS_ServerDataItem.AddressData.IPv4.sin_port), &DNS_ServerDataItem.AddressData.IPv4.sin_addr, &ErrorCode) || 
 						!SocketSetting(EventArgument_Domain->SocketValue->ValueSet.back().Socket, SOCKET_SETTING_TYPE::NON_BLOCKING_MODE, true, nullptr) || 
 						!SocketSetting(EventArgument_Domain->SocketValue->ValueSet.back().Socket, SOCKET_SETTING_TYPE::HOP_LIMITS_IPV4, true, nullptr) || 
 						!SocketSetting(EventArgument_Domain->SocketValue->ValueSet.back().Socket, SOCKET_SETTING_TYPE::DO_NOT_FRAGMENT, true, nullptr))
@@ -478,7 +478,7 @@ bool LoadBufferEvent_DomainTest(
 					#if defined(PLATFORM_WIN)
 						SocketTimeout.tv_sec = Parameter.SocketTimeout_Unreliable_Once / SECOND_TO_MILLISECOND;
 						SocketTimeout.tv_usec = Parameter.SocketTimeout_Unreliable_Once % SECOND_TO_MILLISECOND * MICROSECOND_TO_MILLISECOND;
-					#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+					#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 						SocketTimeout = Parameter.SocketTimeout_Unreliable_Once;
 					#endif
 
@@ -505,7 +505,7 @@ bool LoadBufferEvent_DomainTest(
 	dns_hdr *DNS_Header = nullptr;
 	dns_qry *DNS_Query = nullptr;
 	bufferevent *BufferEvent = nullptr;
-	size_t Result = 0, Index = 0;
+	size_t ResultValue = 0, Index = 0;
 	for (Index = 0;Index < EventArgument_Domain->SocketValue->ValueSet.size();++Index)
 	{
 	//Transport layer check and match DNS header location.
@@ -531,31 +531,32 @@ bool LoadBufferEvent_DomainTest(
 
 		//DNS header
 			DNS_Header->ID = Parameter.DomainTest_ID;
-			DNS_Header->Flags = htons(DNS_FLAG_REQUEST_STANDARD);
-			DNS_Header->Question = htons(UINT16_NUM_ONE);
+			DNS_Header->Flags = hton16(DNS_FLAG_REQUEST_STANDARD);
+			DNS_Header->Question = hton16(UINT16_NUM_ONE);
 			EventArgument_Domain->SendLen->at(Index) += sizeof(dns_hdr);
 
 		//Make fixed domain to test.
 			if (Parameter.DomainTest_Data != nullptr)
 			{
 				memset(EventArgument_Domain->RecvBuffer, 0, EventArgument_Domain->RecvSize);
-				const auto DomainLength = StringToPacketQuery(Parameter.DomainTest_Data, EventArgument_Domain->RecvBuffer);
-				if (DomainLength > DOMAIN_MINSIZE && DomainLength + sizeof(uint16_t) + sizeof(dns_hdr) < EventArgument_Domain->SendSize)
+				const auto DomainLength = StringToPacketQuery(Parameter.DomainTest_Data, EventArgument_Domain->RecvBuffer, EventArgument_Domain->RecvSize);
+				if (DomainLength > DOMAIN_MINSIZE && DomainLength < DOMAIN_MAXSIZE && 
+					DomainLength + sizeof(uint16_t) + sizeof(dns_hdr) < EventArgument_Domain->SendSize)
 				{
 				//Copy test domain.
 					memcpy_s(EventArgument_Domain->SendBuffer->at(Index).get() + EventArgument_Domain->SendLen->at(Index), EventArgument_Domain->SendSize - EventArgument_Domain->SendLen->at(Index), EventArgument_Domain->RecvBuffer, DomainLength);
 					memset(EventArgument_Domain->RecvBuffer, 0, EventArgument_Domain->RecvSize);
 					EventArgument_Domain->SendLen->at(Index) += DomainLength;
 					DNS_Query = reinterpret_cast<dns_qry *>(EventArgument_Domain->SendBuffer->at(Index).get() + EventArgument_Domain->SendLen->at(Index));
-					DNS_Query->Classes = htons(DNS_CLASS_INTERNET);
+					DNS_Query->Classes = hton16(DNS_CLASS_INTERNET);
 					if (EventArgument_Domain->Protocol_Network == AF_INET6)
 					{
-						DNS_Query->Type = htons(DNS_TYPE_AAAA);
+						DNS_Query->Type = hton16(DNS_TYPE_AAAA);
 						EventArgument_Domain->SendLen->at(Index) += sizeof(dns_qry);
 					}
 					else if (EventArgument_Domain->Protocol_Network == AF_INET)
 					{
-						DNS_Query->Type = htons(DNS_TYPE_A);
+						DNS_Query->Type = hton16(DNS_TYPE_A);
 						EventArgument_Domain->SendLen->at(Index) += sizeof(dns_qry);
 					}
 
@@ -565,7 +566,7 @@ bool LoadBufferEvent_DomainTest(
 
 				//TCP DNS header(Part 2)
 					if (EventArgument_Domain->Protocol_Transport->at(Index) == IPPROTO_TCP)
-						*reinterpret_cast<uint16_t *>(EventArgument_Domain->SendBuffer->at(Index).get()) = htons(static_cast<uint16_t>(EventArgument_Domain->SendLen->at(Index) - sizeof(uint16_t)));
+						*reinterpret_cast<uint16_t *>(EventArgument_Domain->SendBuffer->at(Index).get()) = hton16(static_cast<const uint16_t>(EventArgument_Domain->SendLen->at(Index) - sizeof(uint16_t)));
 				}
 				else {
 					PrintError(LOG_LEVEL_TYPE::LEVEL_2, LOG_ERROR_TYPE::NETWORK, L"Domain Test event error", 0, nullptr, 0);
@@ -579,31 +580,31 @@ bool LoadBufferEvent_DomainTest(
 		{
 		//Clear data except fixed part.
 			memset(EventArgument_Domain->RecvBuffer, 0, EventArgument_Domain->RecvSize);
-			GenerateRandomDomain(EventArgument_Domain->RecvBuffer);
+			GenerateRandomDomain(EventArgument_Domain->RecvBuffer, EventArgument_Domain->RecvSize);
 			if (EventArgument_Domain->Protocol_Transport->at(Index) == IPPROTO_TCP)
 			{
 				memset(EventArgument_Domain->SendBuffer->at(Index).get() + sizeof(uint16_t) + sizeof(dns_hdr), 0, EventArgument_Domain->SendSize - sizeof(uint16_t) - sizeof(dns_hdr));
-				EventArgument_Domain->SendLen->at(Index) = sizeof(uint16_t) +  sizeof(dns_hdr) + StringToPacketQuery(EventArgument_Domain->RecvBuffer, EventArgument_Domain->SendBuffer->at(Index).get() + sizeof(uint16_t) + sizeof(dns_hdr));
+				EventArgument_Domain->SendLen->at(Index) = sizeof(uint16_t) +  sizeof(dns_hdr) + StringToPacketQuery(EventArgument_Domain->RecvBuffer, EventArgument_Domain->SendBuffer->at(Index).get() + sizeof(uint16_t) + sizeof(dns_hdr), EventArgument_Domain->SendSize - sizeof(dns_hdr));
 				memset(EventArgument_Domain->RecvBuffer, 0, EventArgument_Domain->RecvSize);
 			}
 			else if (EventArgument_Domain->Protocol_Transport->at(Index) == IPPROTO_UDP)
 			{
 				memset(EventArgument_Domain->SendBuffer->at(Index).get() + sizeof(dns_hdr), 0, EventArgument_Domain->SendSize - sizeof(dns_hdr));
-				EventArgument_Domain->SendLen->at(Index) = sizeof(dns_hdr) + StringToPacketQuery(EventArgument_Domain->RecvBuffer, EventArgument_Domain->SendBuffer->at(Index).get() + sizeof(dns_hdr));
+				EventArgument_Domain->SendLen->at(Index) = sizeof(dns_hdr) + StringToPacketQuery(EventArgument_Domain->RecvBuffer, EventArgument_Domain->SendBuffer->at(Index).get() + sizeof(dns_hdr), EventArgument_Domain->SendSize - sizeof(dns_hdr));
 				memset(EventArgument_Domain->RecvBuffer, 0, EventArgument_Domain->RecvSize);
 			}
 
 		//Make DNS query data.
 			DNS_Query = reinterpret_cast<dns_qry *>(EventArgument_Domain->SendBuffer->at(Index).get() + EventArgument_Domain->SendLen->at(Index));
-			DNS_Query->Classes = htons(DNS_CLASS_INTERNET);
+			DNS_Query->Classes = hton16(DNS_CLASS_INTERNET);
 			if (EventArgument_Domain->Protocol_Network == AF_INET6)
 			{
-				DNS_Query->Type = htons(DNS_TYPE_AAAA);
+				DNS_Query->Type = hton16(DNS_TYPE_AAAA);
 				EventArgument_Domain->SendLen->at(Index) += sizeof(dns_qry);
 			}
 			else if (EventArgument_Domain->Protocol_Network == AF_INET)
 			{
-				DNS_Query->Type = htons(DNS_TYPE_A);
+				DNS_Query->Type = hton16(DNS_TYPE_A);
 				EventArgument_Domain->SendLen->at(Index) += sizeof(dns_qry);
 			}
 
@@ -616,7 +617,7 @@ bool LoadBufferEvent_DomainTest(
 
 		//TCP DNS header(Part 2)
 			if (EventArgument_Domain->Protocol_Transport->at(Index) == IPPROTO_TCP)
-				*reinterpret_cast<uint16_t *>(EventArgument_Domain->SendBuffer->at(Index).get()) = htons(static_cast<uint16_t>(EventArgument_Domain->SendLen->at(Index) - sizeof(uint16_t)));
+				*reinterpret_cast<uint16_t *>(EventArgument_Domain->SendBuffer->at(Index).get()) = hton16(static_cast<const uint16_t>(EventArgument_Domain->SendLen->at(Index) - sizeof(uint16_t)));
 		}
 
 	//Bufferevent initialization
@@ -640,7 +641,7 @@ bool LoadBufferEvent_DomainTest(
 		#if defined(PLATFORM_WIN)
 			EventArgument_Domain->SocketTimeout->at(Index).tv_sec = Parameter.SocketTimeout_Reliable_Once / SECOND_TO_MILLISECOND;
 			EventArgument_Domain->SocketTimeout->at(Index).tv_usec = Parameter.SocketTimeout_Reliable_Once % SECOND_TO_MILLISECOND * MICROSECOND_TO_MILLISECOND;
-		#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+		#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 			EventArgument_Domain->SocketTimeout->at(Index) = Parameter.SocketTimeout_Reliable_Once;
 		#endif
 
@@ -656,7 +657,7 @@ bool LoadBufferEvent_DomainTest(
 		#if defined(PLATFORM_WIN)
 			EventArgument_Domain->SocketTimeout->at(Index).tv_sec = Parameter.SocketTimeout_Unreliable_Once / SECOND_TO_MILLISECOND;
 			EventArgument_Domain->SocketTimeout->at(Index).tv_usec = Parameter.SocketTimeout_Unreliable_Once % SECOND_TO_MILLISECOND * MICROSECOND_TO_MILLISECOND;
-		#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+		#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 			EventArgument_Domain->SocketTimeout->at(Index) = Parameter.SocketTimeout_Unreliable_Once;
 		#endif
 
@@ -679,8 +680,8 @@ bool LoadBufferEvent_DomainTest(
 		}
 
 	//Connect to server and reset send times.
-		Result = SocketConnecting(EventArgument_Domain->Protocol_Transport->at(Index), EventArgument_Domain->SocketValue->ValueSet.at(Index).Socket, reinterpret_cast<const sockaddr *>(&EventArgument_Domain->SocketValue->ValueSet.at(Index).SockAddr), EventArgument_Domain->SocketValue->ValueSet.at(Index).AddrLen, EventArgument_Domain->SendBuffer->at(Index).get(), EventArgument_Domain->SendLen->at(Index));
-		if (Result == EXIT_FAILURE)
+		ResultValue = SocketConnecting(EventArgument_Domain->Protocol_Transport->at(Index), EventArgument_Domain->SocketValue->ValueSet.at(Index).Socket, reinterpret_cast<const sockaddr *>(&EventArgument_Domain->SocketValue->ValueSet.at(Index).SockAddr), EventArgument_Domain->SocketValue->ValueSet.at(Index).AddrLen, EventArgument_Domain->SendBuffer->at(Index).get(), EventArgument_Domain->SendLen->at(Index));
+		if (ResultValue == EXIT_FAILURE)
 		{
 			if (EventArgument_Domain->EventBufferList->back() != nullptr)
 			{
@@ -690,7 +691,7 @@ bool LoadBufferEvent_DomainTest(
 
 			SocketSetting(EventArgument_Domain->SocketValue->ValueSet.at(Index).Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
 		}
-		else if (Result >= DNS_PACKET_MINSIZE)
+		else if (ResultValue >= DNS_PACKET_MINSIZE)
 		{
 			EventArgument_Domain->SendTimes->at(Index) = 1U;
 		}
@@ -702,7 +703,7 @@ bool LoadBufferEvent_DomainTest(
 	return true;
 }
 
-//Get Hop Limits(IPv6) and TTL(IPv4) via normal DNS request
+//Get Hop Limits and TTL via normal DNS request
 bool TestRequest_Domain(
 	const uint16_t Protocol)
 {
@@ -775,7 +776,7 @@ bool TestRequest_Domain(
 	}
 
 //Event loop
-	for (;;)
+	while (!GlobalRunningStatus.IsNeedExit)
 	{
 	//Start event loop.
 		event_base_dispatch(EventArgument_Domain.EventBase);
@@ -784,8 +785,9 @@ bool TestRequest_Domain(
 		Sleep(SENDING_INTERVAL_TIME);
 	}
 
-//Monitor terminated
-	PrintError(LOG_LEVEL_TYPE::LEVEL_2, LOG_ERROR_TYPE::SYSTEM, L"Domain Test module Monitor terminated", 0, nullptr, 0);
+//Loop terminated
+	if (!GlobalRunningStatus.IsNeedExit)
+		PrintError(LOG_LEVEL_TYPE::LEVEL_2, LOG_ERROR_TYPE::SYSTEM, L"Domain Test module Monitor terminated", 0, nullptr, 0);
 	return false;
 }
 
@@ -834,7 +836,7 @@ bool TestRequest_ICMP(
 		ErrorCode = 0;
 		if (
 		//Main
-		#if (defined(PLATFORM_WIN) || defined(PLATFORM_LINUX))
+		#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_WIN))
 			!SocketValue_ICMP.SocketValueInit(AF_INET6, SOCK_RAW, IPPROTO_ICMPV6, 0, &Parameter.Target_Server_Main_IPv6.AddressData.IPv6.sin6_addr, &ErrorCode) || 
 		#elif defined(PLATFORM_MACOS)
 			!SocketValue_ICMP.SocketValueInit(AF_INET6, SOCK_DGRAM, IPPROTO_ICMPV6, 0, &Parameter.Target_Server_Main_IPv6.AddressData.IPv6.sin6_addr, &ErrorCode) || 
@@ -844,7 +846,7 @@ bool TestRequest_ICMP(
 //			!SocketSetting(SocketValue_ICMP.ValueSet.back().Socket, SOCKET_SETTING_TYPE::CHECKSUM_IPV6, true, &OptionValue) //ICMPv6 protocol checksum will always be calculated by network stack in all platforms.
 		//Alternate
 			(Parameter.Target_Server_Alternate_IPv6.AddressData.Storage.ss_family != 0 && 
-		#if (defined(PLATFORM_WIN) || defined(PLATFORM_LINUX))
+		#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_WIN))
 			(!SocketValue_ICMP.SocketValueInit(AF_INET6, SOCK_RAW, IPPROTO_ICMPV6, 0, &Parameter.Target_Server_Alternate_IPv6.AddressData.IPv6.sin6_addr, &ErrorCode) || 
 		#elif defined(PLATFORM_MACOS)
 			(!SocketValue_ICMP.SocketValueInit(AF_INET6, SOCK_DGRAM, IPPROTO_ICMPV6, 0, &Parameter.Target_Server_Alternate_IPv6.AddressData.IPv6.sin6_addr, &ErrorCode) || 
@@ -858,14 +860,14 @@ bool TestRequest_ICMP(
 			return false;
 		}
 
-	//Multiple list(IPv6)
+	//Multiple list
 		if (Parameter.Target_Server_IPv6_Multiple != nullptr)
 		{
 			for (const auto &DNS_ServerDataItem:*Parameter.Target_Server_IPv6_Multiple)
 			{
 				ErrorCode = 0;
 				if (
-				#if (defined(PLATFORM_WIN) || defined(PLATFORM_LINUX))
+				#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_WIN))
 					!SocketValue_ICMP.SocketValueInit(AF_INET6, SOCK_RAW, IPPROTO_ICMPV6, 0, &DNS_ServerDataItem.AddressData.IPv6.sin6_addr, &ErrorCode) || 
 				#elif defined(PLATFORM_MACOS)
 					!SocketValue_ICMP.SocketValueInit(AF_INET6, SOCK_DGRAM, IPPROTO_ICMPV6, 0, &DNS_ServerDataItem.AddressData.IPv6.sin6_addr, &ErrorCode) || 
@@ -894,7 +896,7 @@ bool TestRequest_ICMP(
 		ICMP_Header->ID = Parameter.ICMP_ID;
 		ICMP_Header->Sequence = Parameter.ICMP_Sequence;
 		memcpy_s(SendBuffer.get() + sizeof(icmp_hdr), Parameter.ICMP_PaddingLength, Parameter.ICMP_PaddingData, Parameter.ICMP_PaddingLength);
-		ICMP_Header->Checksum = GetChecksum_Internet(reinterpret_cast<uint16_t *>(SendBuffer.get()), DataLength);
+		ICMP_Header->Checksum = GetChecksum_Internet(reinterpret_cast<const uint16_t *>(SendBuffer.get()), DataLength);
 
 	//Socket initialization
 	//Windows: Use SOCK_RAW type with IPPROTO_ICMP.
@@ -903,7 +905,7 @@ bool TestRequest_ICMP(
 		ErrorCode = 0;
 		if (
 		//Main
-		#if (defined(PLATFORM_WIN) || defined(PLATFORM_LINUX))
+		#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_WIN))
 			!SocketValue_ICMP.SocketValueInit(AF_INET, SOCK_RAW, IPPROTO_ICMP, 0, &Parameter.Target_Server_Main_IPv4.AddressData.IPv4.sin_addr, &ErrorCode) || 
 		#elif defined(PLATFORM_MACOS)
 			!SocketValue_ICMP.SocketValueInit(AF_INET, SOCK_DGRAM, IPPROTO_ICMP, 0, &Parameter.Target_Server_Main_IPv4.AddressData.IPv4.sin_addr, &ErrorCode) || 
@@ -913,7 +915,7 @@ bool TestRequest_ICMP(
 			!SocketSetting(SocketValue_ICMP.ValueSet.back().Socket, SOCKET_SETTING_TYPE::DO_NOT_FRAGMENT, true, nullptr) || 
 		//Alternate
 			(Parameter.Target_Server_Alternate_IPv4.AddressData.Storage.ss_family != 0 && 
-		#if (defined(PLATFORM_WIN) || defined(PLATFORM_LINUX))
+		#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_WIN))
 			(!SocketValue_ICMP.SocketValueInit(AF_INET, SOCK_RAW, IPPROTO_ICMP, 0, &Parameter.Target_Server_Alternate_IPv4.AddressData.IPv4.sin_addr, &ErrorCode) || 
 		#elif defined(PLATFORM_MACOS)
 			(!SocketValue_ICMP.SocketValueInit(AF_INET, SOCK_DGRAM, IPPROTO_ICMP, 0, &Parameter.Target_Server_Alternate_IPv4.AddressData.IPv4.sin_addr, &ErrorCode) || 
@@ -926,14 +928,14 @@ bool TestRequest_ICMP(
 			return false;
 		}
 
-	//Multiple list(IPv4)
+	//Multiple list
 		if (Parameter.Target_Server_IPv4_Multiple != nullptr)
 		{
 			for (const auto &DNS_ServerDataItem:*Parameter.Target_Server_IPv4_Multiple)
 			{
 				ErrorCode = 0;
 				if (
-				#if (defined(PLATFORM_WIN) || defined(PLATFORM_LINUX))
+				#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_WIN))
 					!SocketValue_ICMP.SocketValueInit(AF_INET, SOCK_RAW, IPPROTO_ICMP, 0, &DNS_ServerDataItem.AddressData.IPv4.sin_addr, &ErrorCode) || 
 				#elif defined(PLATFORM_MACOS)
 					!SocketValue_ICMP.SocketValueInit(AF_INET, SOCK_DGRAM, IPPROTO_ICMP, 0, &DNS_ServerDataItem.AddressData.IPv4.sin_addr, &ErrorCode) || 
@@ -965,7 +967,7 @@ bool TestRequest_ICMP(
 #if defined(PLATFORM_WIN)
 	EventArgument_ICMP.SocketTimeout.tv_sec = Parameter.SocketTimeout_Unreliable_Once / SECOND_TO_MILLISECOND;
 	EventArgument_ICMP.SocketTimeout.tv_usec = Parameter.SocketTimeout_Unreliable_Once % SECOND_TO_MILLISECOND * MICROSECOND_TO_MILLISECOND;
-#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 	EventArgument_ICMP.SocketTimeout = Parameter.SocketTimeout_Unreliable_Once;
 #endif
 	EventArgument_ICMP.IntervalTimeout.tv_sec = SENDING_INTERVAL_TIME / SECOND_TO_MILLISECOND;
@@ -1048,7 +1050,7 @@ bool TestRequest_ICMP(
 
 //Event loop
 	EventArgument_ICMP.OnceTimes = 1U;
-	for (;;)
+	while (!GlobalRunningStatus.IsNeedExit)
 	{
 	//Start event loop.
 		event_base_dispatch(EventArgument_ICMP.EventBase);
@@ -1060,8 +1062,9 @@ bool TestRequest_ICMP(
 //Jump here to stop loop.
 StopLoop:
 
-//Monitor terminated
-	PrintError(LOG_LEVEL_TYPE::LEVEL_2, LOG_ERROR_TYPE::SYSTEM, L"ICMP Test module Monitor terminated", 0, nullptr, 0);
+//Loop terminated
+	if (!GlobalRunningStatus.IsNeedExit)
+		PrintError(LOG_LEVEL_TYPE::LEVEL_2, LOG_ERROR_TYPE::SYSTEM, L"ICMP Test module Monitor terminated", 0, nullptr, 0);
 	return true;
 }
 #endif
@@ -1180,8 +1183,11 @@ size_t UDP_RequestSingle(
 	const uint8_t * const OriginalSend, 
 	const size_t SendSize, 
 	const uint16_t QueryType, 
-	const SOCKET_DATA * const LocalSocketData, 
-	size_t *EDNS_Length)
+	const std::string * const DomainString_Original, 
+	const std::string * const DomainString_Request, 
+	const SOCKET_DATA * const LocalSocketData
+//	size_t *EDNS_Length
+)
 {
 //Initialization
 	std::vector<SOCKET_DATA> UDPSocketDataList(1U);
@@ -1217,7 +1223,7 @@ size_t UDP_RequestSingle(
 	}
 
 //Mark port to list.
-	RegisterPortToList(Protocol, LocalSocketData, UDPSocketDataList, EDNS_Length);
+	RegisterPortToList(Protocol, LocalSocketData, UDPSocketDataList, DomainString_Original, DomainString_Request /* , EDNS_Length */ );
 	return EXIT_SUCCESS;
 }
 
@@ -1229,8 +1235,11 @@ size_t UDP_RequestMultiple(
 	const uint8_t * const OriginalSend, 
 	const size_t SendSize, 
 	const uint16_t QueryType, 
-	const SOCKET_DATA * const LocalSocketData, 
-	size_t *EDNS_Length)
+	const std::string * const DomainString_Original, 
+	const std::string * const DomainString_Request, 
+	const SOCKET_DATA * const LocalSocketData
+//	size_t *EDNS_Length
+)
 {
 //Socket initialization
 	std::vector<SOCKET_DATA> UDPSocketDataList;
@@ -1248,7 +1257,7 @@ size_t UDP_RequestMultiple(
 	}
 
 //Mark port to list.
-	RegisterPortToList(Protocol_Transport, LocalSocketData, UDPSocketDataList, EDNS_Length);
+	RegisterPortToList(Protocol_Transport, LocalSocketData, UDPSocketDataList, DomainString_Original, DomainString_Request /* , EDNS_Length */ );
 	return EXIT_SUCCESS;
 }
 #endif

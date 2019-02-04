@@ -70,22 +70,13 @@ https://sourceforge.net/projects/pcap-dnsproxy
 
 
 有关 OpenSSL 库的特别说明：
+默认情况下 OpenSSL 库没有附带任何的可信任根证书库，首次使用时需要用户自行添加：
 
-* 安装新版本 OpenSSL 库后，在开启 TLS/SSL 功能进行编译时如果出现 undef: OPENSSL.. 错误：
-  * 原因是 macOS 自带的 OpenSSL 系列版本非常老旧(0.9.8)不支持新版本特性，链接器在链接时使用了系统自带库导致错误
-  * 此时先查看编译过程的记录，将 Found OpenSSL 指示的 CMake 找到的 OpenSSL 库文件目录记下，并确认所使用的版本
-    * 可编辑 Pcap_DNSProxy 目录下的 CMakeLists.txt 文件：
-    * 编辑时请务必注意引号的问题，必须使用 ASCII 的标准引号
-    * 寻找 find_package(OpenSSL REQUIRED) 语句，并另开一行
-    * 在新开的一行填入 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L刚才记下的目录") 优先指定链接器所查找的库文件
-    * 例如 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/usr/local/lib")
-    * 保存文件并重新运行 ./CMake_Build.sh 即可
-* 默认情况下 OpenSSL 库没有附带任何的可信任根证书库，首次使用时需要用户自行添加：
-  * 打开实用工具 - 钥匙串访问 - 系统根证书，选中列表中所有的证书以 cert.pem 的 PEM 格式导出到任何位置
-  * 打开终端，使用 sudo -i 获得 root 权限并进入刚才导出位置的目录内
-  * 使用 mv cert.pem 证书目标目录/cert.pem 移动该系统根证书储存文件到 OpenSSL 的证书目录中
-  * 此处的证书目标目录，位于上文提到的 Found OpenSSL 指示的 CMake 找到的 OpenSSL 库部署目录附近，该目录内应该存在名为 certs 的子目录
-  * 例如 mv cert.pem /usr/local/ssl
+* 打开实用工具 - 钥匙串访问 - 系统根证书，选中列表中所有的证书以 cert.pem 的 PEM 格式导出到任何位置
+* 打开终端，使用 sudo -i 获得 root 权限并进入刚才导出位置的目录内
+* 使用 mv cert.pem 证书目标目录/cert.pem 移动该系统根证书储存文件到 OpenSSL 的证书目录中
+* 此处的证书目标目录，位于上文提到的 Found OpenSSL 指示的 CMake 找到的 OpenSSL 库部署目录附近，该目录内应该存在名为 certs 的子目录
+* 例如 mv cert.pem /usr/local/ssl
 
 
 -------------------------------------------------------------------------------
@@ -98,12 +89,11 @@ https://sourceforge.net/projects/pcap-dnsproxy
 
 
 小更新的方法（需要以管理员身份进行，如果配置文件的 Version 有更新需要进行大更新）：
-1.打开终端，使用 sudo -i 获得 root 权限并进入 macOS 目录内
-2.使用 ./macOS_Uninstall.sh 执行服务卸载脚本
-3.备份所有配置文件，删除所有 Pcap_DNSProxy 相关文件
-  * 进行第 4 步前先将备份的配置文件还原到 macOS 目录内
-4.按照安装方法重新部署 Pcap_DNSProxy
-  * Config.conf 文件建议按照备份的配置文件重新设置，如直接覆盖可能会导致没有新功能的选项
+1.打开终端，使用 sudo -i 获得 root 权限并进入 /Library/LaunchDaemons 目录内
+2.使用 launchctl unload pcap_dnsproxy.service.plist 停止服务
+3.将 macOS 目录内的所有可执行文件删除
+4.将新版本的 Pcap_DNSProxy 的所有可执行文件解压到相同位置
+5.使用 launchctl load pcap_dnsproxy.service.plist 启动服务即可
 
 
 大更新的方法（需要以管理员身份进行，切勿直接覆盖，否则可能会造成不可预料的错误）：

@@ -1,6 +1,6 @@
 ﻿// This code is part of Pcap_DNSProxy
 // Pcap_DNSProxy, a local DNS server based on WinPcap and LibPcap
-// Copyright (C) 2012-2018 Chengr28
+// Copyright (C) 2012-2019 Chengr28
 // 
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -81,35 +81,35 @@ void MonitorLauncher(
 		Thread_CaptureInitialization.detach();
 	#endif
 
-	//Get Hop Limits with normal DNS request(IPv6).
+	//Get Hop Limits with normal DNS request.
+	//IPv6
 		if (Parameter.Target_Server_Main_IPv6.AddressData.Storage.ss_family != 0 && 
 			(Parameter.RequestMode_Network == REQUEST_MODE_NETWORK::BOTH || Parameter.RequestMode_Network == REQUEST_MODE_NETWORK::IPV6)) //IPv6
 		{
-			std::thread Thread_TestDoamin_IPv6(std::bind(TestRequest_Domain, static_cast<uint16_t>(AF_INET6)));
+			std::thread Thread_TestDoamin_IPv6(std::bind(TestRequest_Domain, static_cast<const uint16_t>(AF_INET6)));
 			Thread_TestDoamin_IPv6.detach();
 		}
-
-	//Get TTL with normal DNS request(IPv4).
+	//IPv4
 		if (Parameter.Target_Server_Main_IPv4.AddressData.Storage.ss_family != 0 && 
 			(Parameter.RequestMode_Network == REQUEST_MODE_NETWORK::BOTH || Parameter.RequestMode_Network == REQUEST_MODE_NETWORK::IPV4)) //IPv4
 		{
-			std::thread Thread_TestDoamin_IPv4(std::bind(TestRequest_Domain, static_cast<uint16_t>(AF_INET)));
+			std::thread Thread_TestDoamin_IPv4(std::bind(TestRequest_Domain, static_cast<const uint16_t>(AF_INET)));
 			Thread_TestDoamin_IPv4.detach();
 		}
 
-	//Get Hop Limits with ICMPv6 echo(IPv6).
+	//Get Hop Limits with ICMPv6 and ICMP echo.
+	//IPv6
 		if (Parameter.Target_Server_Main_IPv6.AddressData.Storage.ss_family != 0 && 
 			(Parameter.RequestMode_Network == REQUEST_MODE_NETWORK::BOTH || Parameter.RequestMode_Network == REQUEST_MODE_NETWORK::IPV6)) //IPv6
 		{
-			std::thread Thread_ICMPv6(std::bind(TestRequest_ICMP, static_cast<uint16_t>(AF_INET6)));
+			std::thread Thread_ICMPv6(std::bind(TestRequest_ICMP, static_cast<const uint16_t>(AF_INET6)));
 			Thread_ICMPv6.detach();
 		}
-
-	//Get TTL with ICMP echo(IPv4).
+	//IPv4
 		if (Parameter.Target_Server_Main_IPv4.AddressData.Storage.ss_family != 0 && 
 			(Parameter.RequestMode_Network == REQUEST_MODE_NETWORK::BOTH || Parameter.RequestMode_Network == REQUEST_MODE_NETWORK::IPV4)) //IPv4
 		{
-			std::thread Thread_ICMP(std::bind(TestRequest_ICMP, static_cast<uint16_t>(AF_INET)));
+			std::thread Thread_ICMP(std::bind(TestRequest_ICMP, static_cast<const uint16_t>(AF_INET)));
 			Thread_ICMP.detach();
 		}
 	}
@@ -130,15 +130,15 @@ void MonitorLauncher(
 		Thread_AlternateServerSwitcher.detach();
 	}
 
-//MailSlot and FIFO monitor
+//Mailslot and FIFO pipe listener
 	if (Parameter.IsProcessUnique)
 	{
 	#if defined(PLATFORM_WIN)
-		std::thread Thread_Flush_DNS_MailSlotMonitor(std::bind(Flush_DNS_MailSlotMonitor));
-		Thread_Flush_DNS_MailSlotMonitor.detach();
-	#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-		std::thread Thread_Flush_DNS_FIFO_Monitor(std::bind(Flush_DNS_FIFO_Monitor));
-		Thread_Flush_DNS_FIFO_Monitor.detach();
+		std::thread Thread_FlushDomainCache_MailslotListener(std::bind(FlushDomainCache_MailslotListener));
+		Thread_FlushDomainCache_MailslotListener.detach();
+	#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+		std::thread Thread_FlushDomainCache_PipeListener(std::bind(FlushDomainCache_PipeListener));
+		Thread_FlushDomainCache_PipeListener.detach();
 	#endif
 	}
 
@@ -174,7 +174,7 @@ bool MonitorInit(
 				LocalSocketData.SockAddr.ss_family = AF_INET6;
 				LocalSocketData.AddrLen = sizeof(sockaddr_in6);
 
-			//Listen Address available(IPv6)
+			//Listen Address available
 				if (Parameter.ListenAddress_IPv6 != nullptr)
 				{
 					for (const auto &ListenAddressItem:*Parameter.ListenAddress_IPv6)
@@ -276,7 +276,7 @@ bool MonitorInit(
 				LocalSocketData.SockAddr.ss_family = AF_INET6;
 				LocalSocketData.AddrLen = sizeof(sockaddr_in6);
 
-			//Listen Address available(IPv6)
+			//Listen Address available
 				if (Parameter.ListenAddress_IPv6 != nullptr)
 				{
 					for (const auto &ListenAddressItem:*Parameter.ListenAddress_IPv6)
@@ -381,7 +381,7 @@ bool MonitorInit(
 				LocalSocketData.SockAddr.ss_family = AF_INET;
 				LocalSocketData.AddrLen = sizeof(sockaddr_in);
 
-			//Listen Address available(IPv4)
+			//Listen Address available
 				if (Parameter.ListenAddress_IPv4 != nullptr)
 				{
 					for (const auto &ListenAddressItem:*Parameter.ListenAddress_IPv4)
@@ -424,7 +424,7 @@ bool MonitorInit(
 					{
 					//Proxy Mode
 						if (Parameter.OperationMode == LISTEN_MODE::PROXY)
-							reinterpret_cast<sockaddr_in *>(&LocalSocketData.SockAddr)->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+							reinterpret_cast<sockaddr_in *>(&LocalSocketData.SockAddr)->sin_addr.s_addr = hton32(INADDR_LOOPBACK);
 					//Server Mode, Priavte Mode and Custom Mode
 						else 
 							reinterpret_cast<sockaddr_in *>(&LocalSocketData.SockAddr)->sin_addr.s_addr = INADDR_ANY;
@@ -483,7 +483,7 @@ bool MonitorInit(
 				LocalSocketData.SockAddr.ss_family = AF_INET;
 				LocalSocketData.AddrLen = sizeof(sockaddr_in);
 
-			//Listen Address available(IPv4)
+			//Listen Address available
 				if (Parameter.ListenAddress_IPv4 != nullptr)
 				{
 					for (const auto &ListenAddressItem:*Parameter.ListenAddress_IPv4)
@@ -526,7 +526,7 @@ bool MonitorInit(
 					{
 					//Proxy Mode
 						if (Parameter.OperationMode == LISTEN_MODE::PROXY)
-							reinterpret_cast<sockaddr_in *>(&LocalSocketData.SockAddr)->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+							reinterpret_cast<sockaddr_in *>(&LocalSocketData.SockAddr)->sin_addr.s_addr = hton32(INADDR_LOOPBACK);
 					//Server Mode, Priavte Mode and Custom Mode
 						else 
 							reinterpret_cast<sockaddr_in *>(&LocalSocketData.SockAddr)->sin_addr.s_addr = INADDR_ANY;
@@ -674,10 +674,10 @@ bool ListenMonitor_BindSocket(
 		if (
 		#if defined(PLATFORM_WIN)
 			!SocketSetting(LocalSocketData.Socket, SOCKET_SETTING_TYPE::REUSE, true, nullptr) || 
-		#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+		#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 			(LocalSocketData.SockAddr.ss_family == AF_INET6 && !SocketSetting(LocalSocketData.Socket, SOCKET_SETTING_TYPE::REUSE, true, nullptr)) || 
 		#endif
-			!SocketSetting(LocalSocketData.Socket, SOCKET_SETTING_TYPE::TCP_FAST_OPEN, true, nullptr) || 
+			!SocketSetting(LocalSocketData.Socket, SOCKET_SETTING_TYPE::TCP_FAST_OPEN_NORMAL, true, nullptr) || 
 			!SocketSetting(LocalSocketData.Socket, SOCKET_SETTING_TYPE::NON_BLOCKING_MODE, true, nullptr))
 				return false;
 
@@ -707,7 +707,7 @@ bool ListenMonitor_BindSocket(
 	#if defined(PLATFORM_WIN)
 		!SocketSetting(LocalSocketData.Socket, SOCKET_SETTING_TYPE::UDP_BLOCK_RESET, true, nullptr) || 
 		!SocketSetting(LocalSocketData.Socket, SOCKET_SETTING_TYPE::REUSE, true, nullptr) || 
-	#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+	#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 		(LocalSocketData.SockAddr.ss_family == AF_INET6 && !SocketSetting(LocalSocketData.Socket, SOCKET_SETTING_TYPE::REUSE, true, nullptr)) || 
 	#endif
 		!SocketSetting(LocalSocketData.Socket, SOCKET_SETTING_TYPE::NON_BLOCKING_MODE, true, nullptr))
@@ -739,23 +739,25 @@ bool ListenMonitor_UDP(
 	memset(RecvBuffer.get(), 0, (PACKET_NORMAL_MAXSIZE + MEMORY_RESERVED_BYTES) * Parameter.ThreadPoolMaxNum);
 	memset(SendBuffer.get(), 0, PACKET_NORMAL_MAXSIZE + MEMORY_RESERVED_BYTES);
 	MONITOR_QUEUE_DATA MonitorQueryData;
-	MonitorQueryData.first.Buffer = nullptr;
-	MonitorQueryData.first.BufferSize = PACKET_NORMAL_MAXSIZE;
-	MonitorQueryData.first.Length = 0;
-	memset(&MonitorQueryData.first.LocalTarget, 0, sizeof(MonitorQueryData.first.LocalTarget));
-	MonitorQueryData.first.Protocol = IPPROTO_UDP;
-	MonitorQueryData.first.QueryType = 0;
-	MonitorQueryData.first.IsLocalRequest = false;
-	MonitorQueryData.first.IsLocalInWhite = false;
-	MonitorQueryData.first.Records_QuestionLen = 0;
-	MonitorQueryData.first.Records_AnswerCount = 0;
-	MonitorQueryData.first.Records_AuthorityCount = 0;
-	MonitorQueryData.first.Records_AdditionalCount = 0;
-	MonitorQueryData.first.EDNS_Location = 0;
-	MonitorQueryData.first.EDNS_Length = 0;
+	MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.Buffer = nullptr;
+	MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.BufferSize = PACKET_NORMAL_MAXSIZE;
+	MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.Length = 0;
+	memset(&MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.LocalTarget, 0, sizeof(MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.LocalTarget));
+	MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.Protocol = IPPROTO_UDP;
+	MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.QueryType = 0;
+	MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.IsLocalRequest = false;
+	MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.IsLocalInWhite = false;
+	MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.Records_QuestionLen = 0;
+	MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.Records_AnswerCount = 0;
+	MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.Records_AuthorityCount = 0;
+	MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.Records_AdditionalCount = 0;
+	MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.DomainString_Original.clear();
+	MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.DomainString_Request.clear();
+	MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.EDNS_Location = 0;
+	MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.EDNS_Length = 0;
 	fd_set ReadFDS;
 	memset(&ReadFDS, 0, sizeof(ReadFDS));
-	const auto SocketDataPointer = &MonitorQueryData.second;
+	const auto SocketDataPointer = &MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET;
 	uint64_t LastRegisterTime = 0, NowTime = 0;
 	if (Parameter.QueueResetTime > 0)
 		LastRegisterTime = GetCurrentSystemTime();
@@ -765,7 +767,7 @@ bool ListenMonitor_UDP(
 	socklen_t OptionSize = sizeof(OptionValue);
 
 //Listening module
-	for (;;)
+	while (!GlobalRunningStatus.IsNeedExit)
 	{
 	//Interval time between receive
 		if (Parameter.QueueResetTime > 0 && Index + 1U == Parameter.ThreadPoolMaxNum)
@@ -778,18 +780,18 @@ bool ListenMonitor_UDP(
 		}
 
 	//Reset parameters(Part 1).
-		MonitorQueryData.second = LocalSocketData;
+		MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET = LocalSocketData;
 
 	//Select file descriptor set size and maximum socket index check
 	//Windows: The variable FD_SETSIZE determines the maximum number of descriptors in a set.
 	//Windows: The default value of FD_SETSIZE is 64, which can be modified by defining FD_SETSIZE to another value before including Winsock2.h.
 	//Windows: Internally, socket handles in an fd_set structure are not represented as bit flags as in Berkeley Unix.
-	//Linux/macOS: Select nfds is the highest-numbered file descriptor in any of the three sets, plus 1.
-	//Linux/macOS: An fd_set is a fixed size buffer.
-	//Linux/macOS: Executing FD_CLR() or FD_SET() with a value of fd that is negative or is equal to or larger than FD_SETSIZE will result in undefined behavior.
-		if (!SocketSetting(MonitorQueryData.second.Socket, SOCKET_SETTING_TYPE::INVALID_CHECK, false, nullptr)
-		#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-			|| MonitorQueryData.second.Socket + 1U >= FD_SETSIZE
+	//Linux and macOS: Select nfds is the highest-numbered file descriptor in any of the three sets, plus 1.
+	//Linux and macOS: An fd_set is a fixed size buffer.
+	//Linux and macOS: Executing FD_CLR() or FD_SET() with a value of fd that is negative or is equal to or larger than FD_SETSIZE will result in undefined behavior.
+		if (!SocketSetting(MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.Socket, SOCKET_SETTING_TYPE::INVALID_CHECK, false, nullptr)
+		#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+			|| MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.Socket + 1U >= FD_SETSIZE
 		#endif
 			)
 				break;
@@ -798,23 +800,23 @@ bool ListenMonitor_UDP(
 		memset(RecvBuffer.get() + (PACKET_NORMAL_MAXSIZE + MEMORY_RESERVED_BYTES) * Index, 0, PACKET_NORMAL_MAXSIZE + MEMORY_RESERVED_BYTES);
 		memset(SendBuffer.get(), 0, PACKET_NORMAL_MAXSIZE + MEMORY_RESERVED_BYTES);
 		FD_ZERO(&ReadFDS);
-		FD_SET(MonitorQueryData.second.Socket, &ReadFDS);
+		FD_SET(MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.Socket, &ReadFDS);
 		OptionValue = 0;
 		OptionSize = sizeof(OptionValue);
 
 	//Wait for system calling.
 	#if defined(PLATFORM_WIN)
 		ssize_t SelectResult = select(0, &ReadFDS, nullptr, nullptr, nullptr);
-	#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-		ssize_t SelectResult = select(MonitorQueryData.second.Socket + 1U, &ReadFDS, nullptr, nullptr, nullptr);
+	#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+		ssize_t SelectResult = select(MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.Socket + 1U, &ReadFDS, nullptr, nullptr, nullptr);
 	#endif
 		if (SelectResult > 0)
 		{
-			if (FD_ISSET(MonitorQueryData.second.Socket, &ReadFDS) != 0)
+			if (FD_ISSET(MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.Socket, &ReadFDS) != 0)
 			{
 			//Socket option check
 			//Select will set both reading and writing sets and set SO_ERROR to error code when connection was failed.
-				if (getsockopt(MonitorQueryData.second.Socket, SOL_SOCKET, SO_ERROR, reinterpret_cast<char *>(&OptionValue), &OptionSize) == SOCKET_ERROR)
+				if (getsockopt(MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.Socket, SOL_SOCKET, SO_ERROR, reinterpret_cast<char *>(&OptionValue), &OptionSize) == SOCKET_ERROR)
 				{
 					PrintError(LOG_LEVEL_TYPE::LEVEL_2, LOG_ERROR_TYPE::NETWORK, L"UDP socket connecting error", WSAGetLastError(), nullptr, 0);
 					Sleep(LOOP_INTERVAL_TIME_DELAY);
@@ -830,29 +832,31 @@ bool ListenMonitor_UDP(
 				}
 
 			//Receive response and check DNS query data.
-				RecvLen = recvfrom(MonitorQueryData.second.Socket, reinterpret_cast<char *>(RecvBuffer.get() + (PACKET_NORMAL_MAXSIZE + MEMORY_RESERVED_BYTES) * Index), PACKET_NORMAL_MAXSIZE, 0, reinterpret_cast<sockaddr *>(&SocketDataPointer->SockAddr), reinterpret_cast<socklen_t *>(&SocketDataPointer->AddrLen));
-				if (RecvLen < static_cast<ssize_t>(DNS_PACKET_MINSIZE))
+				RecvLen = recvfrom(MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.Socket, reinterpret_cast<char *>(RecvBuffer.get() + (PACKET_NORMAL_MAXSIZE + MEMORY_RESERVED_BYTES) * Index), PACKET_NORMAL_MAXSIZE, 0, reinterpret_cast<sockaddr *>(&SocketDataPointer->SockAddr), reinterpret_cast<socklen_t *>(&SocketDataPointer->AddrLen));
+				if (RecvLen < static_cast<const ssize_t>(DNS_PACKET_MINSIZE))
 				{
 					continue;
 				}
 				else {
-					MonitorQueryData.first.Buffer = RecvBuffer.get() + (PACKET_NORMAL_MAXSIZE + MEMORY_RESERVED_BYTES) * Index;
-					MonitorQueryData.first.Length = RecvLen;
-					MonitorQueryData.first.QueryType = 0;
-					MonitorQueryData.first.IsLocalRequest = false;
-					MonitorQueryData.first.IsLocalInWhite = false;
-					memset(&MonitorQueryData.first.LocalTarget, 0, sizeof(MonitorQueryData.first.LocalTarget));
-					MonitorQueryData.first.Records_QuestionLen = 0;
-					MonitorQueryData.first.Records_AnswerCount = 0;
-					MonitorQueryData.first.Records_AuthorityCount = 0;
-					MonitorQueryData.first.Records_AdditionalCount = 0;
-					MonitorQueryData.first.Records_Location.clear();
-					MonitorQueryData.first.Records_Length.clear();
-					MonitorQueryData.first.EDNS_Location = 0;
-					MonitorQueryData.first.EDNS_Length = 0;
+					MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.Buffer = RecvBuffer.get() + (PACKET_NORMAL_MAXSIZE + MEMORY_RESERVED_BYTES) * Index;
+					MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.Length = RecvLen;
+					MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.QueryType = 0;
+					MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.IsLocalRequest = false;
+					MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.IsLocalInWhite = false;
+					memset(&MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.LocalTarget, 0, sizeof(MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.LocalTarget));
+					MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.Records_QuestionLen = 0;
+					MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.Records_AnswerCount = 0;
+					MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.Records_AuthorityCount = 0;
+					MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.Records_AdditionalCount = 0;
+					MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.Records_Location.clear();
+					MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.Records_Length.clear();
+					MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.DomainString_Original.clear();
+					MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.DomainString_Request.clear();
+					MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.EDNS_Location = 0;
+					MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.EDNS_Length = 0;
 
 				//Check DNS query data.
-					if (!CheckQueryData(&MonitorQueryData.first, SendBuffer.get(), PACKET_NORMAL_MAXSIZE, MonitorQueryData.second))
+					if (!CheckQueryData(&MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET, SendBuffer.get(), PACKET_NORMAL_MAXSIZE, MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET))
 						continue;
 				}
 
@@ -882,8 +886,8 @@ bool ListenMonitor_UDP(
 		//Block error messages when monitor is terminated.
 		#if defined(PLATFORM_WIN)
 			if (WSAGetLastError() != WSAENOTSOCK)
-		#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-			if (errno != WSAENOTSOCK && errno != EBADF)
+		#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+			if (errno != ENOTSOCK && errno != EBADF)
 		#endif
 				PrintError(LOG_LEVEL_TYPE::LEVEL_2, LOG_ERROR_TYPE::NETWORK, L"UDP Monitor socket initialization error", WSAGetLastError(), nullptr, 0);
 
@@ -892,9 +896,10 @@ bool ListenMonitor_UDP(
 		}
 	}
 
-//Monitor terminated
+//Loop terminated
 	SocketSetting(LocalSocketData.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
-	PrintError(LOG_LEVEL_TYPE::LEVEL_2, LOG_ERROR_TYPE::SYSTEM, L"UDP listening module Monitor terminated", 0, nullptr, 0);
+	if (!GlobalRunningStatus.IsNeedExit)
+		PrintError(LOG_LEVEL_TYPE::LEVEL_2, LOG_ERROR_TYPE::SYSTEM, L"UDP listening module Monitor terminated", 0, nullptr, 0);
 	return true;
 }
 
@@ -904,23 +909,25 @@ bool ListenMonitor_TCP(
 {
 //Initialization
 	MONITOR_QUEUE_DATA MonitorQueryData;
-	MonitorQueryData.first.Buffer = nullptr;
-	MonitorQueryData.first.BufferSize = Parameter.LargeBufferSize;
-	MonitorQueryData.first.Length = 0;
-	memset(&MonitorQueryData.first.LocalTarget, 0, sizeof(MonitorQueryData.first.LocalTarget));
-	MonitorQueryData.first.Protocol = IPPROTO_TCP;
-	MonitorQueryData.first.QueryType = 0;
-	MonitorQueryData.first.IsLocalRequest = false;
-	MonitorQueryData.first.IsLocalInWhite = false;
-	MonitorQueryData.first.Records_QuestionLen = 0;
-	MonitorQueryData.first.Records_AnswerCount = 0;
-	MonitorQueryData.first.Records_AuthorityCount = 0;
-	MonitorQueryData.first.Records_AdditionalCount = 0;
-	MonitorQueryData.first.EDNS_Location = 0;
-	MonitorQueryData.first.EDNS_Length = 0;
+	MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.Buffer = nullptr;
+	MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.BufferSize = Parameter.LargeBufferSize;
+	MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.Length = 0;
+	memset(&MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.LocalTarget, 0, sizeof(MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.LocalTarget));
+	MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.Protocol = IPPROTO_TCP;
+	MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.QueryType = 0;
+	MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.IsLocalRequest = false;
+	MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.IsLocalInWhite = false;
+	MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.Records_QuestionLen = 0;
+	MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.Records_AnswerCount = 0;
+	MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.Records_AuthorityCount = 0;
+	MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.Records_AdditionalCount = 0;
+	MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.DomainString_Original.clear();
+	MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.DomainString_Request.clear();
+	MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.EDNS_Location = 0;
+	MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.EDNS_Length = 0;
 	fd_set ReadFDS;
 	memset(&ReadFDS, 0, sizeof(ReadFDS));
-	const auto SocketDataPointer = &MonitorQueryData.second;
+	const auto SocketDataPointer = &MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET;
 	uint64_t LastRegisterTime = 0, NowTime = 0;
 	if (Parameter.QueueResetTime > 0)
 		LastRegisterTime = GetCurrentSystemTime();
@@ -929,7 +936,7 @@ bool ListenMonitor_TCP(
 	socklen_t OptionSize = sizeof(OptionValue);
 
 //Start listening Monitor.
-	for (;;)
+	while (!GlobalRunningStatus.IsNeedExit)
 	{
 	//Interval time between receive
 		if (Parameter.QueueResetTime > 0 && Index + 1U == Parameter.ThreadPoolMaxNum)
@@ -945,20 +952,20 @@ bool ListenMonitor_TCP(
 	//Windows: The variable FD_SETSIZE determines the maximum number of descriptors in a set.
 	//Windows: The default value of FD_SETSIZE is 64, which can be modified by defining FD_SETSIZE to another value before including Winsock2.h.
 	//Windows: Internally, socket handles in an fd_set structure are not represented as bit flags as in Berkeley Unix.
-	//Linux/macOS: Select nfds is the highest-numbered file descriptor in any of the three sets, plus 1.
-	//Linux/macOS: An fd_set is a fixed size buffer.
-	//Linux/macOS: Executing FD_CLR() or FD_SET() with a value of fd that is negative or is equal to or larger than FD_SETSIZE will result in undefined behavior.
+	//Linux and macOS: Select nfds is the highest-numbered file descriptor in any of the three sets, plus 1.
+	//Linux and macOS: An fd_set is a fixed size buffer.
+	//Linux and macOS: Executing FD_CLR() or FD_SET() with a value of fd that is negative or is equal to or larger than FD_SETSIZE will result in undefined behavior.
 		if (!SocketSetting(LocalSocketData.Socket, SOCKET_SETTING_TYPE::INVALID_CHECK, false, nullptr)
-		#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+		#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 			|| LocalSocketData.Socket + 1U >= FD_SETSIZE
 		#endif
 			)
 				break;
 
 	//Reset parameters.
-		memset(&MonitorQueryData.second.SockAddr, 0, sizeof(MonitorQueryData.second.SockAddr));
-		MonitorQueryData.second.AddrLen = LocalSocketData.AddrLen;
-		MonitorQueryData.second.SockAddr.ss_family = LocalSocketData.SockAddr.ss_family;
+		memset(&MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.SockAddr, 0, sizeof(MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.SockAddr));
+		MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.AddrLen = LocalSocketData.AddrLen;
+		MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.SockAddr.ss_family = LocalSocketData.SockAddr.ss_family;
 		FD_ZERO(&ReadFDS);
 		FD_SET(LocalSocketData.Socket, &ReadFDS);
 		OptionValue = 0;
@@ -967,7 +974,7 @@ bool ListenMonitor_TCP(
 	//Wait for system calling.
 	#if defined(PLATFORM_WIN)
 		ssize_t SelectResult = select(0, &ReadFDS, nullptr, nullptr, nullptr);
-	#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+	#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 		ssize_t SelectResult = select(LocalSocketData.Socket + 1U, &ReadFDS, nullptr, nullptr, nullptr);
 	#endif
 		if (SelectResult > 0)
@@ -992,15 +999,15 @@ bool ListenMonitor_TCP(
 				}
 
 			//Accept connection.
-				MonitorQueryData.second.Socket = accept(LocalSocketData.Socket, reinterpret_cast<sockaddr *>(&SocketDataPointer->SockAddr), &SocketDataPointer->AddrLen);
-				if (!SocketSetting(MonitorQueryData.second.Socket, SOCKET_SETTING_TYPE::INVALID_CHECK, false, nullptr))
+				MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.Socket = accept(LocalSocketData.Socket, reinterpret_cast<sockaddr *>(&SocketDataPointer->SockAddr), &SocketDataPointer->AddrLen);
+				if (!SocketSetting(MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.Socket, SOCKET_SETTING_TYPE::INVALID_CHECK, false, nullptr))
 				{
 					continue;
 				}
 			//Check request address.
-				else if (!CheckQueryData(nullptr, nullptr, 0, MonitorQueryData.second))
+				else if (!CheckQueryData(nullptr, nullptr, 0, MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET))
 				{
-					SocketSetting(MonitorQueryData.second.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
+					SocketSetting(MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
 					continue;
 				}
 
@@ -1030,8 +1037,8 @@ bool ListenMonitor_TCP(
 		//Block error messages when monitor is terminated.
 		#if defined(PLATFORM_WIN)
 			if (WSAGetLastError() != WSAENOTSOCK)
-		#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-			if (errno != WSAENOTSOCK && errno != EBADF)
+		#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+			if (errno != ENOTSOCK && errno != EBADF)
 		#endif
 				PrintError(LOG_LEVEL_TYPE::LEVEL_2, LOG_ERROR_TYPE::NETWORK, L"TCP Monitor socket initialization error", WSAGetLastError(), nullptr, 0);
 
@@ -1040,9 +1047,10 @@ bool ListenMonitor_TCP(
 		}
 	}
 
-//Monitor terminated
+//Loop terminated
 	SocketSetting(LocalSocketData.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
-	PrintError(LOG_LEVEL_TYPE::LEVEL_2, LOG_ERROR_TYPE::SYSTEM, L"TCP listening module Monitor terminated", 0, nullptr, 0);
+	if (!GlobalRunningStatus.IsNeedExit)
+		PrintError(LOG_LEVEL_TYPE::LEVEL_2, LOG_ERROR_TYPE::SYSTEM, L"TCP listening module Monitor terminated", 0, nullptr, 0);
 	return true;
 }
 
@@ -1056,16 +1064,16 @@ bool TCP_AcceptProcess(
 //Windows: The variable FD_SETSIZE determines the maximum number of descriptors in a set.
 //Windows: The default value of FD_SETSIZE is 64, which can be modified by defining FD_SETSIZE to another value before including Winsock2.h.
 //Windows: Internally, socket handles in an fd_set structure are not represented as bit flags as in Berkeley Unix.
-//Linux/macOS: Select nfds is the highest-numbered file descriptor in any of the three sets, plus 1.
-//Linux/macOS: An fd_set is a fixed size buffer.
-//Linux/macOS: Executing FD_CLR() or FD_SET() with a value of fd that is negative or is equal to or larger than FD_SETSIZE will result in undefined behavior.
-	if (!SocketSetting(MonitorQueryData.second.Socket, SOCKET_SETTING_TYPE::INVALID_CHECK, false, nullptr)
-	#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-		|| MonitorQueryData.second.Socket + 1U >= FD_SETSIZE
+//Linux and macOS: Select nfds is the highest-numbered file descriptor in any of the three sets, plus 1.
+//Linux and macOS: An fd_set is a fixed size buffer.
+//Linux and macOS: Executing FD_CLR() or FD_SET() with a value of fd that is negative or is equal to or larger than FD_SETSIZE will result in undefined behavior.
+	if (!SocketSetting(MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.Socket, SOCKET_SETTING_TYPE::INVALID_CHECK, false, nullptr)
+	#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+		|| MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.Socket + 1U >= FD_SETSIZE
 	#endif
 		)
 	{
-		SocketSetting(MonitorQueryData.second.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
+		SocketSetting(MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
 		return false;
 	}
 
@@ -1084,66 +1092,66 @@ bool TCP_AcceptProcess(
 #if defined(PLATFORM_WIN)
 	Timeout.tv_sec = Parameter.SocketTimeout_Reliable_Once / SECOND_TO_MILLISECOND;
 	Timeout.tv_usec = Parameter.SocketTimeout_Reliable_Once % SECOND_TO_MILLISECOND * MICROSECOND_TO_MILLISECOND;
-#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 	Timeout = Parameter.SocketTimeout_Reliable_Once;
 #endif
 	FD_ZERO(&ReadFDS);
-	FD_SET(MonitorQueryData.second.Socket, &ReadFDS);
+	FD_SET(MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.Socket, &ReadFDS);
 
 //Receive process
 //Only receive 2 times data sending operations from sender when accepting, reject all connections which have more than 2 times sending operations.
 #if defined(PLATFORM_WIN)
 	RecvLenFirst = select(0, &ReadFDS, nullptr, nullptr, &Timeout);
-#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-	RecvLenFirst = select(MonitorQueryData.second.Socket + 1U, &ReadFDS, nullptr, nullptr, &Timeout);
+#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+	RecvLenFirst = select(MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.Socket + 1U, &ReadFDS, nullptr, nullptr, &Timeout);
 #endif
 	if (RecvLenFirst > 0 && 
-		FD_ISSET(MonitorQueryData.second.Socket, &ReadFDS) != 0)
+		FD_ISSET(MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.Socket, &ReadFDS) != 0)
 	{
 	//Socket option check
 	//Select will set both reading and writing sets and set SO_ERROR to error code when connection was failed.
-		if (getsockopt(MonitorQueryData.second.Socket, SOL_SOCKET, SO_ERROR, reinterpret_cast<char *>(&OptionValue), &OptionSize) == SOCKET_ERROR)
+		if (getsockopt(MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.Socket, SOL_SOCKET, SO_ERROR, reinterpret_cast<char *>(&OptionValue), &OptionSize) == SOCKET_ERROR)
 		{
 //			PrintError(LOG_LEVEL_TYPE::LEVEL_2, LOG_ERROR_TYPE::NETWORK, L"TCP socket connecting error", WSAGetLastError(), nullptr, 0);
-			SocketSetting(MonitorQueryData.second.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
+			SocketSetting(MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
 
 			return false;
 		}
 		else if (OptionValue > 0)
 		{
 //			PrintError(LOG_LEVEL_TYPE::LEVEL_2, LOG_ERROR_TYPE::NETWORK, L"TCP socket connecting error", OptionValue, nullptr, 0);
-			SocketSetting(MonitorQueryData.second.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
+			SocketSetting(MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
 
 			return false;
 		}
 
 	//Receive data.
-		RecvLenFirst = recv(MonitorQueryData.second.Socket, reinterpret_cast<char *>(RecvBuffer.get()), static_cast<int>(Parameter.LargeBufferSize), 0);
+		RecvLenFirst = recv(MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.Socket, reinterpret_cast<char *>(RecvBuffer.get()), static_cast<const int>(Parameter.LargeBufferSize), 0);
 
 	//Connection closed or SOCKET_ERROR
-		if (RecvLenFirst < static_cast<ssize_t>(sizeof(uint16_t))) //Sender must send packet length value(16 bits) at first.
+		if (RecvLenFirst < static_cast<const ssize_t>(sizeof(uint16_t))) //Sender must send packet length value(16 bits) at first.
 		{
-			SocketSetting(MonitorQueryData.second.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
+			SocketSetting(MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
 			return false;
 		}
 	}
 //Timeout or SOCKET_ERROR
 	else {
-		SocketSetting(MonitorQueryData.second.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
+		SocketSetting(MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
 		return false;
 	}
 
 //Connection closed or SOCKET_ERROR
-	if (RecvLenFirst < static_cast<ssize_t>(DNS_PACKET_MINSIZE))
+	if (RecvLenFirst < static_cast<const ssize_t>(DNS_PACKET_MINSIZE))
 	{
 	//Select file descriptor set size and maximum socket index check(Part 2)
-		if (!SocketSetting(MonitorQueryData.second.Socket, SOCKET_SETTING_TYPE::INVALID_CHECK, false, nullptr)
-		#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-			|| MonitorQueryData.second.Socket + 1U >= FD_SETSIZE
+		if (!SocketSetting(MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.Socket, SOCKET_SETTING_TYPE::INVALID_CHECK, false, nullptr)
+		#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+			|| MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.Socket + 1U >= FD_SETSIZE
 		#endif
 			)
 		{
-			SocketSetting(MonitorQueryData.second.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
+			SocketSetting(MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
 			return false;
 		}
 
@@ -1153,84 +1161,86 @@ bool TCP_AcceptProcess(
 	#if defined(PLATFORM_WIN)
 		Timeout.tv_sec = Parameter.SocketTimeout_Reliable_Once / SECOND_TO_MILLISECOND;
 		Timeout.tv_usec = Parameter.SocketTimeout_Reliable_Once % SECOND_TO_MILLISECOND * MICROSECOND_TO_MILLISECOND;
-	#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+	#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 		Timeout = Parameter.SocketTimeout_Reliable_Once;
 	#endif
 		FD_ZERO(&ReadFDS);
-		FD_SET(MonitorQueryData.second.Socket, &ReadFDS);
+		FD_SET(MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.Socket, &ReadFDS);
 		OptionValue = 0;
 		OptionSize = sizeof(OptionValue);
 
 	//Wait for system calling.
 	#if defined(PLATFORM_WIN)
 		RecvLenSecond = select(0, &ReadFDS, nullptr, nullptr, &Timeout);
-	#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-		RecvLenSecond = select(MonitorQueryData.second.Socket + 1U, &ReadFDS, nullptr, nullptr, &Timeout);
+	#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+		RecvLenSecond = select(MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.Socket + 1U, &ReadFDS, nullptr, nullptr, &Timeout);
 	#endif
 		if (RecvLenSecond > 0 && 
-			FD_ISSET(MonitorQueryData.second.Socket, &ReadFDS) != 0)
+			FD_ISSET(MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.Socket, &ReadFDS) != 0)
 		{
 		//Socket option check
 		//Select will set both reading and writing sets and set SO_ERROR to error code when connection was failed.
-			if (getsockopt(MonitorQueryData.second.Socket, SOL_SOCKET, SO_ERROR, reinterpret_cast<char *>(&OptionValue), &OptionSize) == SOCKET_ERROR)
+			if (getsockopt(MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.Socket, SOL_SOCKET, SO_ERROR, reinterpret_cast<char *>(&OptionValue), &OptionSize) == SOCKET_ERROR)
 			{
 //				PrintError(LOG_LEVEL_TYPE::LEVEL_2, LOG_ERROR_TYPE::NETWORK, L"TCP socket connecting error", WSAGetLastError(), nullptr, 0);
-				SocketSetting(MonitorQueryData.second.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
+				SocketSetting(MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
 
 				return false;
 			}
 			else if (OptionValue > 0)
 			{
 //				PrintError(LOG_LEVEL_TYPE::LEVEL_2, LOG_ERROR_TYPE::NETWORK, L"TCP socket connecting error", OptionValue, nullptr, 0);
-				SocketSetting(MonitorQueryData.second.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
+				SocketSetting(MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
 
 				return false;
 			}
 
 		//Receive data.
-			RecvLenSecond = recv(MonitorQueryData.second.Socket, reinterpret_cast<char *>(RecvBuffer.get() + RecvLenFirst), static_cast<int>(Parameter.LargeBufferSize - RecvLenFirst), 0);
+			RecvLenSecond = recv(MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.Socket, reinterpret_cast<char *>(RecvBuffer.get() + RecvLenFirst), static_cast<const int>(Parameter.LargeBufferSize - RecvLenFirst), 0);
 
 		//Connection closed or SOCKET_ERROR
 			if (RecvLenSecond <= 0)
 			{
-				SocketSetting(MonitorQueryData.second.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
+				SocketSetting(MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
 				return false;
 			}
 		}
 	//Timeout or SOCKET_ERROR
 		else {
-			SocketSetting(MonitorQueryData.second.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
+			SocketSetting(MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
 			return false;
 		}
 	}
 
 //Length check
-	const auto LengthValue = ntohs(reinterpret_cast<uint16_t *>(RecvBuffer.get())[0]);
+	const auto LengthValue = ntoh16(reinterpret_cast<const uint16_t *>(RecvBuffer.get())[0]);
 	if (LengthValue >= DNS_PACKET_MINSIZE && LengthValue + sizeof(uint16_t) < Parameter.LargeBufferSize && 
-		((RecvLenFirst < static_cast<ssize_t>(DNS_PACKET_MINSIZE) && RecvLenFirst + RecvLenSecond >= static_cast<ssize_t>(LengthValue + sizeof(uint16_t))) || 
-		(RecvLenFirst >= static_cast<ssize_t>(DNS_PACKET_MINSIZE) && RecvLenFirst >= static_cast<ssize_t>(LengthValue + sizeof(uint16_t)))))
+		((RecvLenFirst < static_cast<const ssize_t>(DNS_PACKET_MINSIZE) && RecvLenFirst + RecvLenSecond >= static_cast<const ssize_t>(LengthValue + sizeof(uint16_t))) || 
+		(RecvLenFirst >= static_cast<const ssize_t>(DNS_PACKET_MINSIZE) && RecvLenFirst >= static_cast<const ssize_t>(LengthValue + sizeof(uint16_t)))))
 	{
-		MonitorQueryData.first.Buffer = RecvBuffer.get() + sizeof(uint16_t);
-		MonitorQueryData.first.Length = LengthValue;
-		MonitorQueryData.first.QueryType = 0;
-		MonitorQueryData.first.IsLocalRequest = false;
-		MonitorQueryData.first.IsLocalInWhite = false;
-		memset(&MonitorQueryData.first.LocalTarget, 0, sizeof(MonitorQueryData.first.LocalTarget));
-		MonitorQueryData.first.Records_QuestionLen = 0;
-		MonitorQueryData.first.Records_AnswerCount = 0;
-		MonitorQueryData.first.Records_AuthorityCount = 0;
-		MonitorQueryData.first.Records_AdditionalCount = 0;
-		MonitorQueryData.first.Records_Location.clear();
-		MonitorQueryData.first.Records_Length.clear();
-		MonitorQueryData.first.EDNS_Location = 0;
-		MonitorQueryData.first.EDNS_Length = 0;
+		MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.Buffer = RecvBuffer.get() + sizeof(uint16_t);
+		MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.Length = LengthValue;
+		MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.QueryType = 0;
+		MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.IsLocalRequest = false;
+		MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.IsLocalInWhite = false;
+		memset(&MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.LocalTarget, 0, sizeof(MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.LocalTarget));
+		MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.Records_QuestionLen = 0;
+		MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.Records_AnswerCount = 0;
+		MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.Records_AuthorityCount = 0;
+		MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.Records_AdditionalCount = 0;
+		MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.Records_Location.clear();
+		MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.Records_Length.clear();
+		MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.DomainString_Original.clear();
+		MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.DomainString_Request.clear();
+		MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.EDNS_Location = 0;
+		MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET.EDNS_Length = 0;
 
 	//Check DNS query data.
 		auto SendBuffer = std::make_unique<uint8_t[]>(Parameter.LargeBufferSize + MEMORY_RESERVED_BYTES);
 		memset(SendBuffer.get(), 0, Parameter.LargeBufferSize + MEMORY_RESERVED_BYTES);
-		if (!CheckQueryData(&MonitorQueryData.first, SendBuffer.get(), Parameter.LargeBufferSize, MonitorQueryData.second))
+		if (!CheckQueryData(&MonitorQueryData.MONITOR_QUEUE_DATA_DNS_PACKET, SendBuffer.get(), Parameter.LargeBufferSize, MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET))
 		{
-			SocketSetting(MonitorQueryData.second.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
+			SocketSetting(MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
 			return false;
 		}
 		else {
@@ -1241,18 +1251,18 @@ bool TCP_AcceptProcess(
 		EnterRequestProcess(MonitorQueryData, OriginalRecv, RecvSize);
 	}
 	else {
-		SocketSetting(MonitorQueryData.second.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
+		SocketSetting(MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
 		return false;
 	}
 
 //Block Port Unreachable messages of system.
-	shutdown(MonitorQueryData.second.Socket, SD_SEND);
+	shutdown(MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.Socket, SD_SEND);
 #if defined(PLATFORM_WIN)
 	Sleep(Parameter.SocketTimeout_Reliable_Once);
-#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 	usleep(Parameter.SocketTimeout_Reliable_Once.tv_sec * SECOND_TO_MILLISECOND * MICROSECOND_TO_MILLISECOND + Parameter.SocketTimeout_Reliable_Once.tv_usec);
 #endif
-	SocketSetting(MonitorQueryData.second.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
+	SocketSetting(MonitorQueryData.MONITOR_QUEUE_DATA_SOCKET.Socket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
 
 	return true;
 }
@@ -1266,7 +1276,7 @@ void AlternateServerSwitcher(
 	std::array<uint64_t, ALTERNATE_SERVER_NUM> RangeTimer{}, SwapTimer{};
 
 //Start Switcher.
-	for (;;)
+	while (!GlobalRunningStatus.IsNeedExit)
 	{
 	//Complete request process check
 		for (Index = 0;Index < ALTERNATE_SERVER_NUM;++Index)
@@ -1304,8 +1314,9 @@ void AlternateServerSwitcher(
 		Sleep(Parameter.FileRefreshTime);
 	}
 
-//Monitor terminated
-	PrintError(LOG_LEVEL_TYPE::LEVEL_2, LOG_ERROR_TYPE::SYSTEM, L"Alternate Server module Monitor terminated", 0, nullptr, 0);
+//Loop terminated
+	if (!GlobalRunningStatus.IsNeedExit)
+		PrintError(LOG_LEVEL_TYPE::LEVEL_2, LOG_ERROR_TYPE::SYSTEM, L"Alternate Server module Monitor terminated", 0, nullptr, 0);
 	return;
 }
 
@@ -1343,7 +1354,7 @@ addrinfo *GetLocalAddressList(
 	return AddrResult;
 }
 
-#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 //Get address from best network interface
 bool GetBestInterfaceAddress(
 	const uint16_t Protocol, 
@@ -1379,7 +1390,7 @@ bool GetBestInterfaceAddress(
 		if (connect(InterfaceSocket, reinterpret_cast<const sockaddr *>(&SockAddr), sizeof(sockaddr_in6)) == SOCKET_ERROR || 
 			getsockname(InterfaceSocket, reinterpret_cast<sockaddr *>(&SockAddr), &AddrLen) == SOCKET_ERROR || 
 			SockAddr.ss_family != AF_INET6 || AddrLen != sizeof(sockaddr_in6) || 
-			CheckEmptyBuffer(&reinterpret_cast<sockaddr_in6 *>(&SockAddr)->sin6_addr, sizeof(reinterpret_cast<sockaddr_in6 *>(&SockAddr)->sin6_addr)))
+			CheckEmptyBuffer(&reinterpret_cast<const sockaddr_in6 *>(&SockAddr)->sin6_addr, sizeof(reinterpret_cast<const sockaddr_in6 *>(&SockAddr)->sin6_addr)))
 		{
 			SocketSetting(InterfaceSocket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
 			GlobalRunningStatus.GatewayAvailable_IPv6 = false;
@@ -1397,7 +1408,7 @@ bool GetBestInterfaceAddress(
 		if (connect(InterfaceSocket, reinterpret_cast<const sockaddr *>(&SockAddr), sizeof(sockaddr_in)) == SOCKET_ERROR || 
 			getsockname(InterfaceSocket, reinterpret_cast<sockaddr *>(&SockAddr), &AddrLen) == SOCKET_ERROR || 
 			SockAddr.ss_family != AF_INET || AddrLen != sizeof(sockaddr_in) || 
-			CheckEmptyBuffer(&reinterpret_cast<sockaddr_in *>(&SockAddr)->sin_addr, sizeof(reinterpret_cast<sockaddr_in *>(&SockAddr)->sin_addr)))
+			CheckEmptyBuffer(&reinterpret_cast<const sockaddr_in *>(&SockAddr)->sin_addr, sizeof(reinterpret_cast<const sockaddr_in *>(&SockAddr)->sin_addr)))
 		{
 			SocketSetting(InterfaceSocket, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
 			GlobalRunningStatus.GatewayAvailable_IPv4 = false;
@@ -1419,6 +1430,7 @@ bool GetBestInterfaceAddress(
 void GetGatewayInformation(
 	const uint16_t Protocol)
 {
+//IPv6
 	if (Protocol == AF_INET6)
 	{
 	//Gateway status from configure.
@@ -1471,7 +1483,7 @@ void GetGatewayInformation(
 			return;
 		}
 
-	//Multiple list(IPv6)
+	//Multiple list
 		if (Parameter.Target_Server_IPv6_Multiple != nullptr)
 		{
 			for (const auto &DNS_ServerDataItem:*Parameter.Target_Server_IPv6_Multiple)
@@ -1485,7 +1497,7 @@ void GetGatewayInformation(
 				}
 			}
 		}
-	#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+	#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 	//Gateway status from system network stack.
 		if ((Parameter.Target_Server_Main_IPv6.AddressData.Storage.ss_family != 0 && 
 			!GetBestInterfaceAddress(AF_INET6, &Parameter.Target_Server_Main_IPv6.AddressData.Storage)) || 
@@ -1507,7 +1519,7 @@ void GetGatewayInformation(
 			return;
 		}
 
-	//Multiple list(IPv6)
+	//Multiple list
 		if (Parameter.Target_Server_IPv6_Multiple != nullptr)
 		{
 			for (const auto &DNS_ServerDataItem:*Parameter.Target_Server_IPv6_Multiple)
@@ -1523,6 +1535,7 @@ void GetGatewayInformation(
 
 		GlobalRunningStatus.GatewayAvailable_IPv6 = true;
 	}
+//IPv4
 	else if (Protocol == AF_INET)
 	{
 	//Gateway status from configure.
@@ -1575,7 +1588,7 @@ void GetGatewayInformation(
 			return;
 		}
 
-	//Multiple list(IPv4)
+	//Multiple list
 		if (Parameter.Target_Server_IPv4_Multiple != nullptr)
 		{
 			for (const auto &DNS_ServerDataItem:*Parameter.Target_Server_IPv4_Multiple)
@@ -1589,7 +1602,7 @@ void GetGatewayInformation(
 				}
 			}
 		}
-	#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+	#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 	//Gateway status from system network stack.
 		if ((Parameter.Target_Server_Main_IPv4.AddressData.Storage.ss_family != 0 && 
 			!GetBestInterfaceAddress(AF_INET, &Parameter.Target_Server_Main_IPv4.AddressData.Storage)) || 
@@ -1611,7 +1624,7 @@ void GetGatewayInformation(
 			return;
 		}
 
-	//Multiple list(IPv4)
+	//Multiple list
 		if (Parameter.Target_Server_IPv4_Multiple != nullptr)
 		{
 			for (const auto &DNS_ServerDataItem:*Parameter.Target_Server_IPv4_Multiple)
@@ -1636,13 +1649,13 @@ void NetworkInformationMonitor(
 	void)
 {
 //Initialization
-#if (defined(PLATFORM_WIN) || defined(PLATFORM_LINUX))
+#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_WIN))
 	std::array<uint8_t, ADDRESS_STRING_MAXSIZE + MEMORY_RESERVED_BYTES> AddrBuffer{};
 	std::string DomainString;
 #if defined(PLATFORM_WIN)
 	std::array<uint8_t, DOMAIN_MAXSIZE + MEMORY_RESERVED_BYTES> HostName{};
 	addrinfo *LocalAddressList = nullptr, *LocalAddressItem = nullptr;
-#elif defined(PLATFORM_LINUX)
+#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX))
 	ifaddrs *InterfaceAddressList = nullptr, *InterfaceAddressItem = nullptr;
 	auto IsErrorFirstPrint = true;
 #endif
@@ -1656,21 +1669,22 @@ void NetworkInformationMonitor(
 	std::unique_lock<std::mutex> LocalAddressMutexIPv6(LocalAddressLock.at(NETWORK_LAYER_TYPE_IPV6), std::defer_lock), LocalAddressMutexIPv4(LocalAddressLock.at(NETWORK_LAYER_TYPE_IPV4), std::defer_lock), SocketRegisterMutex(SocketRegisterLock, std::defer_lock);
 
 //Start listening Monitor.
-	for (;;)
+	while (!GlobalRunningStatus.IsNeedExit)
 	{
-	//Get local machine addresses(IPv6).
+	//Get local machine addresses.
+	//IPv6
 		if (Parameter.ListenProtocol_Network == LISTEN_PROTOCOL_NETWORK::BOTH || Parameter.ListenProtocol_Network == LISTEN_PROTOCOL_NETWORK::IPV6)
 		{
 		#if defined(PLATFORM_WIN)
 			HostName.fill(0);
 			LocalAddressList = GetLocalAddressList(AF_INET6, HostName.data());
 			if (LocalAddressList == nullptr)
-		#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+		#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 			errno = 0;
 			if (getifaddrs(&InterfaceAddressList) != 0 || InterfaceAddressList == nullptr)
 		#endif
 			{
-			#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+			#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 				PrintError(LOG_LEVEL_TYPE::LEVEL_3, LOG_ERROR_TYPE::NETWORK, L"Get local machine address error", errno, nullptr, 0);
 				if (InterfaceAddressList != nullptr)
 				{
@@ -1685,21 +1699,21 @@ void NetworkInformationMonitor(
 				LocalAddressMutexIPv6.lock();
 				memset(GlobalRunningStatus.LocalAddress_Response[NETWORK_LAYER_TYPE_IPV6], 0, PACKET_NORMAL_MAXSIZE + MEMORY_RESERVED_BYTES);
 				GlobalRunningStatus.LocalAddress_Length[NETWORK_LAYER_TYPE_IPV6] = 0;
-			#if (defined(PLATFORM_WIN) || defined(PLATFORM_LINUX))
+			#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_WIN))
 				GlobalRunningStatus.LocalAddress_PointerResponse[NETWORK_LAYER_TYPE_IPV6]->clear();
 				GlobalRunningStatus.LocalAddress_PointerResponse[NETWORK_LAYER_TYPE_IPV6]->shrink_to_fit();
 			#endif
 
 			//Mark local addresses(A part).
 				DNS_Header = reinterpret_cast<dns_hdr *>(GlobalRunningStatus.LocalAddress_Response[NETWORK_LAYER_TYPE_IPV6]);
-				DNS_Header->Flags = htons(DNS_FLAG_SQR_NEA);
-				DNS_Header->Question = htons(UINT16_NUM_ONE);
+				DNS_Header->Flags = hton16(DNS_FLAG_SQR_NEA);
+				DNS_Header->Question = hton16(UINT16_NUM_ONE);
 				GlobalRunningStatus.LocalAddress_Length[NETWORK_LAYER_TYPE_IPV6] += sizeof(dns_hdr);
 				memcpy_s(GlobalRunningStatus.LocalAddress_Response[NETWORK_LAYER_TYPE_IPV6] + GlobalRunningStatus.LocalAddress_Length[NETWORK_LAYER_TYPE_IPV6], PACKET_NORMAL_MAXSIZE - GlobalRunningStatus.LocalAddress_Length[NETWORK_LAYER_TYPE_IPV6], Parameter.Local_FQDN_Response, Parameter.Local_FQDN_Length);
 				GlobalRunningStatus.LocalAddress_Length[NETWORK_LAYER_TYPE_IPV6] += Parameter.Local_FQDN_Length;
 				DNS_Query = reinterpret_cast<dns_qry *>(GlobalRunningStatus.LocalAddress_Response[NETWORK_LAYER_TYPE_IPV6] + GlobalRunningStatus.LocalAddress_Length[NETWORK_LAYER_TYPE_IPV6]);
-				DNS_Query->Type = htons(DNS_TYPE_AAAA);
-				DNS_Query->Classes = htons(DNS_CLASS_INTERNET);
+				DNS_Query->Type = hton16(DNS_TYPE_AAAA);
+				DNS_Query->Classes = hton16(DNS_CLASS_INTERNET);
 				GlobalRunningStatus.LocalAddress_Length[NETWORK_LAYER_TYPE_IPV6] += sizeof(dns_qry);
 
 			//Read addresses list and convert to Fully Qualified Domain Name/FQDN PTR record.
@@ -1708,7 +1722,7 @@ void NetworkInformationMonitor(
 				{
 					if (LocalAddressItem->ai_family == AF_INET6 && LocalAddressItem->ai_addrlen == sizeof(sockaddr_in6) && 
 						LocalAddressItem->ai_addr->sa_family == AF_INET6)
-			#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+			#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 				for (InterfaceAddressItem = InterfaceAddressList;InterfaceAddressItem != nullptr;InterfaceAddressItem = InterfaceAddressItem->ifa_next)
 				{
 					if (InterfaceAddressItem->ifa_addr != nullptr && InterfaceAddressItem->ifa_addr->sa_family == AF_INET6)
@@ -1718,24 +1732,24 @@ void NetworkInformationMonitor(
 						if (GlobalRunningStatus.LocalAddress_Length[NETWORK_LAYER_TYPE_IPV6] <= PACKET_NORMAL_MAXSIZE - sizeof(dns_record_aaaa))
 						{
 							DNS_Record = reinterpret_cast<dns_record_aaaa *>(GlobalRunningStatus.LocalAddress_Response[NETWORK_LAYER_TYPE_IPV6] + GlobalRunningStatus.LocalAddress_Length[NETWORK_LAYER_TYPE_IPV6]);
-							reinterpret_cast<dns_record_aaaa *>(DNS_Record)->Name = htons(DNS_POINTER_QUERY);
-							reinterpret_cast<dns_record_aaaa *>(DNS_Record)->Classes = htons(DNS_CLASS_INTERNET);
+							reinterpret_cast<dns_record_aaaa *>(DNS_Record)->Name = hton16(DNS_POINTER_QUERY);
+							reinterpret_cast<dns_record_aaaa *>(DNS_Record)->Classes = hton16(DNS_CLASS_INTERNET);
 							if (Parameter.HostsDefaultTTL > 0)
-								reinterpret_cast<dns_record_aaaa *>(DNS_Record)->TTL = htonl(Parameter.HostsDefaultTTL);
+								reinterpret_cast<dns_record_aaaa *>(DNS_Record)->TTL = hton32(Parameter.HostsDefaultTTL);
 							else 
-								reinterpret_cast<dns_record_aaaa *>(DNS_Record)->TTL = htonl(DEFAULT_HOSTS_TTL);
-							reinterpret_cast<dns_record_aaaa *>(DNS_Record)->Type = htons(DNS_TYPE_AAAA);
-							reinterpret_cast<dns_record_aaaa *>(DNS_Record)->Length = htons(sizeof(reinterpret_cast<dns_record_aaaa *>(DNS_Record)->Address));
+								reinterpret_cast<dns_record_aaaa *>(DNS_Record)->TTL = hton32(DEFAULT_HOSTS_TTL);
+							reinterpret_cast<dns_record_aaaa *>(DNS_Record)->Type = hton16(DNS_TYPE_AAAA);
+							reinterpret_cast<dns_record_aaaa *>(DNS_Record)->Length = hton16(sizeof(reinterpret_cast<const dns_record_aaaa *>(DNS_Record)->Address));
 						#if defined(PLATFORM_WIN)
-							reinterpret_cast<dns_record_aaaa *>(DNS_Record)->Address = reinterpret_cast<sockaddr_in6 *>(LocalAddressItem->ai_addr)->sin6_addr;
-						#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-							reinterpret_cast<dns_record_aaaa *>(DNS_Record)->Address = reinterpret_cast<sockaddr_in6 *>(InterfaceAddressItem->ifa_addr)->sin6_addr;
+							reinterpret_cast<dns_record_aaaa *>(DNS_Record)->Address = reinterpret_cast<const sockaddr_in6 *>(LocalAddressItem->ai_addr)->sin6_addr;
+						#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+							reinterpret_cast<dns_record_aaaa *>(DNS_Record)->Address = reinterpret_cast<const sockaddr_in6 *>(InterfaceAddressItem->ifa_addr)->sin6_addr;
 						#endif
 							GlobalRunningStatus.LocalAddress_Length[NETWORK_LAYER_TYPE_IPV6] += sizeof(dns_record_aaaa);
 							++DNS_Header->Answer;
 						}
 
-					#if (defined(PLATFORM_WIN) || defined(PLATFORM_LINUX))
+					#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_WIN))
 					//Convert from binary to string.
 						DomainString.clear();
 						for (ssize_t Index = sizeof(in6_addr) / sizeof(uint8_t) - 1U;Index >= 0;--Index)
@@ -1743,23 +1757,23 @@ void NetworkInformationMonitor(
 							AddrBuffer.fill(0);
 
 						#if defined(PLATFORM_WIN)
-							if (reinterpret_cast<sockaddr_in6 *>(LocalAddressItem->ai_addr)->sin6_addr.s6_addr[Index] == 0)
-						#elif defined(PLATFORM_LINUX)
-							if (reinterpret_cast<sockaddr_in6 *>(InterfaceAddressItem->ifa_addr)->sin6_addr.s6_addr[Index] == 0)
+							if (reinterpret_cast<const sockaddr_in6 *>(LocalAddressItem->ai_addr)->sin6_addr.s6_addr[Index] == 0)
+						#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX))
+							if (reinterpret_cast<const sockaddr_in6 *>(InterfaceAddressItem->ifa_addr)->sin6_addr.s6_addr[Index] == 0)
 						#endif
 							{
 								DomainString.append("0.0.");
 							}
 						#if defined(PLATFORM_WIN)
-							else if (reinterpret_cast<sockaddr_in6 *>(LocalAddressItem->ai_addr)->sin6_addr.s6_addr[Index] < 0x10)
-						#elif defined(PLATFORM_LINUX)
-							else if (reinterpret_cast<sockaddr_in6 *>(InterfaceAddressItem->ifa_addr)->sin6_addr.s6_addr[Index] < 0x10)
+							else if (reinterpret_cast<const sockaddr_in6 *>(LocalAddressItem->ai_addr)->sin6_addr.s6_addr[Index] < 0x10)
+						#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX))
+							else if (reinterpret_cast<const sockaddr_in6 *>(InterfaceAddressItem->ifa_addr)->sin6_addr.s6_addr[Index] < 0x10)
 						#endif
 							{
 							#if defined(PLATFORM_WIN)
-								if (snprintf(reinterpret_cast<char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE, "%x", reinterpret_cast<sockaddr_in6 *>(LocalAddressItem->ai_addr)->sin6_addr.s6_addr[Index]) < 0 || 
-							#elif defined(PLATFORM_LINUX)
-								if (snprintf(reinterpret_cast<char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE, "%x", reinterpret_cast<sockaddr_in6 *>(InterfaceAddressItem->ifa_addr)->sin6_addr.s6_addr[Index]) < 0 || 
+								if (snprintf(reinterpret_cast<char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE, "%x", reinterpret_cast<const sockaddr_in6 *>(LocalAddressItem->ai_addr)->sin6_addr.s6_addr[Index]) < 0 || 
+							#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX))
+								if (snprintf(reinterpret_cast<char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE, "%x", reinterpret_cast<const sockaddr_in6 *>(InterfaceAddressItem->ifa_addr)->sin6_addr.s6_addr[Index]) < 0 || 
 							#endif
 									strnlen_s(reinterpret_cast<const char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE) != 1U)
 								{
@@ -1772,9 +1786,9 @@ void NetworkInformationMonitor(
 							}
 							else {
 							#if defined(PLATFORM_WIN)
-								if (snprintf(reinterpret_cast<char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE, "%x", reinterpret_cast<sockaddr_in6 *>(LocalAddressItem->ai_addr)->sin6_addr.s6_addr[Index]) < 0 || 
-							#elif defined(PLATFORM_LINUX)
-								if (snprintf(reinterpret_cast<char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE, "%x", reinterpret_cast<sockaddr_in6 *>(InterfaceAddressItem->ifa_addr)->sin6_addr.s6_addr[Index]) < 0 || 
+								if (snprintf(reinterpret_cast<char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE, "%x", reinterpret_cast<const sockaddr_in6 *>(LocalAddressItem->ai_addr)->sin6_addr.s6_addr[Index]) < 0 || 
+							#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX))
+								if (snprintf(reinterpret_cast<char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE, "%x", reinterpret_cast<const sockaddr_in6 *>(InterfaceAddressItem->ifa_addr)->sin6_addr.s6_addr[Index]) < 0 || 
 							#endif
 									strnlen_s(reinterpret_cast<const char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE) != 2U)
 								{
@@ -1806,7 +1820,7 @@ void NetworkInformationMonitor(
 					GlobalRunningStatus.LocalAddress_Length[NETWORK_LAYER_TYPE_IPV6] = 0;
 				}
 				else {
-					DNS_Header->Answer = htons(DNS_Header->Answer);
+					DNS_Header->Answer = hton16(DNS_Header->Answer);
 				}
 
 			//Free all lists.
@@ -1814,26 +1828,25 @@ void NetworkInformationMonitor(
 			#if defined(PLATFORM_WIN)
 				freeaddrinfo(LocalAddressList);
 				LocalAddressList = nullptr;
-			#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+			#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 				freeifaddrs(InterfaceAddressList);
 				InterfaceAddressList = nullptr;
 			#endif
 			}
 		}
-
-	//Get local machine addresses(IPv4).
+	//IPv4
 		if (Parameter.ListenProtocol_Network == LISTEN_PROTOCOL_NETWORK::BOTH || Parameter.ListenProtocol_Network == LISTEN_PROTOCOL_NETWORK::IPV4)
 		{
 		#if defined(PLATFORM_WIN)
 			HostName.fill(0);
 			LocalAddressList = GetLocalAddressList(AF_INET, HostName.data());
 			if (LocalAddressList == nullptr)
-		#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+		#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 			errno = 0;
 			if (getifaddrs(&InterfaceAddressList) != 0 || InterfaceAddressList == nullptr)
 		#endif
 			{
-			#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+			#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 				PrintError(LOG_LEVEL_TYPE::LEVEL_3, LOG_ERROR_TYPE::NETWORK, L"Get local machine address error", errno, nullptr, 0);
 				if (InterfaceAddressList != nullptr)
 				{
@@ -1848,21 +1861,21 @@ void NetworkInformationMonitor(
 				LocalAddressMutexIPv4.lock();
 				memset(GlobalRunningStatus.LocalAddress_Response[NETWORK_LAYER_TYPE_IPV4], 0, PACKET_NORMAL_MAXSIZE + MEMORY_RESERVED_BYTES);
 				GlobalRunningStatus.LocalAddress_Length[NETWORK_LAYER_TYPE_IPV4] = 0;
-			#if (defined(PLATFORM_WIN) || defined(PLATFORM_LINUX))
+			#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_WIN))
 				GlobalRunningStatus.LocalAddress_PointerResponse[NETWORK_LAYER_TYPE_IPV4]->clear();
 				GlobalRunningStatus.LocalAddress_PointerResponse[NETWORK_LAYER_TYPE_IPV4]->shrink_to_fit();
 			#endif
 
 			//Mark local addresses(A part).
 				DNS_Header = reinterpret_cast<dns_hdr *>(GlobalRunningStatus.LocalAddress_Response[NETWORK_LAYER_TYPE_IPV4]);
-				DNS_Header->Flags = htons(DNS_FLAG_SQR_NEA);
-				DNS_Header->Question = htons(UINT16_NUM_ONE);
+				DNS_Header->Flags = hton16(DNS_FLAG_SQR_NEA);
+				DNS_Header->Question = hton16(UINT16_NUM_ONE);
 				GlobalRunningStatus.LocalAddress_Length[NETWORK_LAYER_TYPE_IPV4] += sizeof(dns_hdr);
 				memcpy_s(GlobalRunningStatus.LocalAddress_Response[NETWORK_LAYER_TYPE_IPV4] + GlobalRunningStatus.LocalAddress_Length[NETWORK_LAYER_TYPE_IPV4], PACKET_NORMAL_MAXSIZE - GlobalRunningStatus.LocalAddress_Length[NETWORK_LAYER_TYPE_IPV4], Parameter.Local_FQDN_Response, Parameter.Local_FQDN_Length);
 				GlobalRunningStatus.LocalAddress_Length[NETWORK_LAYER_TYPE_IPV4] += Parameter.Local_FQDN_Length;
 				DNS_Query = reinterpret_cast<dns_qry *>(GlobalRunningStatus.LocalAddress_Response[NETWORK_LAYER_TYPE_IPV4] + GlobalRunningStatus.LocalAddress_Length[NETWORK_LAYER_TYPE_IPV4]);
-				DNS_Query->Type = htons(DNS_TYPE_AAAA);
-				DNS_Query->Classes = htons(DNS_CLASS_INTERNET);
+				DNS_Query->Type = hton16(DNS_TYPE_AAAA);
+				DNS_Query->Classes = hton16(DNS_CLASS_INTERNET);
 				GlobalRunningStatus.LocalAddress_Length[NETWORK_LAYER_TYPE_IPV4] += sizeof(dns_qry);
 
 			//Read addresses list and convert to Fully Qualified Domain Name/FQDN PTR record.
@@ -1871,7 +1884,7 @@ void NetworkInformationMonitor(
 				{
 					if (LocalAddressItem->ai_family == AF_INET && LocalAddressItem->ai_addrlen == sizeof(sockaddr_in) && 
 						LocalAddressItem->ai_addr->sa_family == AF_INET)
-			#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+			#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 				for (InterfaceAddressItem = InterfaceAddressList;InterfaceAddressItem != nullptr;InterfaceAddressItem = InterfaceAddressItem->ifa_next)
 				{
 					if (InterfaceAddressItem->ifa_addr != nullptr && InterfaceAddressItem->ifa_addr->sa_family == AF_INET)
@@ -1881,55 +1894,55 @@ void NetworkInformationMonitor(
 						if (GlobalRunningStatus.LocalAddress_Length[NETWORK_LAYER_TYPE_IPV4] <= PACKET_NORMAL_MAXSIZE - sizeof(dns_record_a))
 						{
 							DNS_Record = reinterpret_cast<dns_record_a *>(GlobalRunningStatus.LocalAddress_Response[NETWORK_LAYER_TYPE_IPV4] + GlobalRunningStatus.LocalAddress_Length[NETWORK_LAYER_TYPE_IPV4]);
-							reinterpret_cast<dns_record_a *>(DNS_Record)->Name = htons(DNS_POINTER_QUERY);
-							reinterpret_cast<dns_record_a *>(DNS_Record)->Classes = htons(DNS_CLASS_INTERNET);
+							reinterpret_cast<dns_record_a *>(DNS_Record)->Name = hton16(DNS_POINTER_QUERY);
+							reinterpret_cast<dns_record_a *>(DNS_Record)->Classes = hton16(DNS_CLASS_INTERNET);
 							if (Parameter.HostsDefaultTTL > 0)
-								reinterpret_cast<dns_record_a *>(DNS_Record)->TTL = htonl(Parameter.HostsDefaultTTL);
+								reinterpret_cast<dns_record_a *>(DNS_Record)->TTL = hton32(Parameter.HostsDefaultTTL);
 							else 
-								reinterpret_cast<dns_record_a *>(DNS_Record)->TTL = htonl(DEFAULT_HOSTS_TTL);
-							reinterpret_cast<dns_record_a *>(DNS_Record)->Type = htons(DNS_TYPE_A);
-							reinterpret_cast<dns_record_a *>(DNS_Record)->Length = htons(sizeof(reinterpret_cast<dns_record_a *>(DNS_Record)->Address));
+								reinterpret_cast<dns_record_a *>(DNS_Record)->TTL = hton32(DEFAULT_HOSTS_TTL);
+							reinterpret_cast<dns_record_a *>(DNS_Record)->Type = hton16(DNS_TYPE_A);
+							reinterpret_cast<dns_record_a *>(DNS_Record)->Length = hton16(sizeof(reinterpret_cast<const dns_record_a *>(DNS_Record)->Address));
 						#if defined(PLATFORM_WIN)
-							reinterpret_cast<dns_record_a *>(DNS_Record)->Address = reinterpret_cast<sockaddr_in *>(LocalAddressItem->ai_addr)->sin_addr;
-						#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-							reinterpret_cast<dns_record_a *>(DNS_Record)->Address = reinterpret_cast<sockaddr_in *>(InterfaceAddressItem->ifa_addr)->sin_addr;
+							reinterpret_cast<dns_record_a *>(DNS_Record)->Address = reinterpret_cast<const sockaddr_in *>(LocalAddressItem->ai_addr)->sin_addr;
+						#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+							reinterpret_cast<dns_record_a *>(DNS_Record)->Address = reinterpret_cast<const sockaddr_in *>(InterfaceAddressItem->ifa_addr)->sin_addr;
 						#endif
 							GlobalRunningStatus.LocalAddress_Length[NETWORK_LAYER_TYPE_IPV4] += sizeof(dns_record_a);
 							++DNS_Header->Answer;
 						}
 
-					#if (defined(PLATFORM_WIN) || defined(PLATFORM_LINUX))
+					#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_WIN))
 					//Convert from binary to DNS PTR response.
 						AddrBuffer.fill(0);
 						DomainString.clear();
 					#if defined(PLATFORM_WIN)
-						snprintf(reinterpret_cast<char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE, "%u", *((reinterpret_cast<uint8_t *>(&reinterpret_cast<sockaddr_in *>(LocalAddressItem->ai_addr)->sin_addr)) + sizeof(uint8_t) * 3U));
-					#elif defined(PLATFORM_LINUX)
-						snprintf(reinterpret_cast<char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE, "%u", *((reinterpret_cast<uint8_t *>(&reinterpret_cast<sockaddr_in *>(InterfaceAddressItem->ifa_addr)->sin_addr)) + sizeof(uint8_t) * 3U));
+						snprintf(reinterpret_cast<char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE, "%u", *((reinterpret_cast<const uint8_t *>(&reinterpret_cast<const sockaddr_in *>(LocalAddressItem->ai_addr)->sin_addr)) + sizeof(uint8_t) * 3U));
+					#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX))
+						snprintf(reinterpret_cast<char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE, "%u", *((reinterpret_cast<const uint8_t *>(&reinterpret_cast<const sockaddr_in *>(InterfaceAddressItem->ifa_addr)->sin_addr)) + sizeof(uint8_t) * 3U));
 					#endif
 						DomainString.append(reinterpret_cast<const char *>(AddrBuffer.data()));
 						AddrBuffer.fill(0);
 						DomainString.append(".");
 					#if defined(PLATFORM_WIN)
-						snprintf(reinterpret_cast<char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE, "%u", *((reinterpret_cast<uint8_t *>(&reinterpret_cast<sockaddr_in *>(LocalAddressItem->ai_addr)->sin_addr)) + sizeof(uint8_t) * 2U));
-					#elif defined(PLATFORM_LINUX)
-						snprintf(reinterpret_cast<char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE, "%u", *((reinterpret_cast<uint8_t *>(&reinterpret_cast<sockaddr_in *>(InterfaceAddressItem->ifa_addr)->sin_addr)) + sizeof(uint8_t) * 2U));
+						snprintf(reinterpret_cast<char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE, "%u", *((reinterpret_cast<const uint8_t *>(&reinterpret_cast<const sockaddr_in *>(LocalAddressItem->ai_addr)->sin_addr)) + sizeof(uint8_t) * 2U));
+					#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX))
+						snprintf(reinterpret_cast<char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE, "%u", *((reinterpret_cast<const uint8_t *>(&reinterpret_cast<const sockaddr_in *>(InterfaceAddressItem->ifa_addr)->sin_addr)) + sizeof(uint8_t) * 2U));
 					#endif
 						DomainString.append(reinterpret_cast<const char *>(AddrBuffer.data()));
 						AddrBuffer.fill(0);
 						DomainString.append(".");
 					#if defined(PLATFORM_WIN)
-						snprintf(reinterpret_cast<char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE, "%u", *((reinterpret_cast<uint8_t *>(&reinterpret_cast<sockaddr_in *>(LocalAddressItem->ai_addr)->sin_addr)) + sizeof(uint8_t)));
-					#elif defined(PLATFORM_LINUX)
-						snprintf(reinterpret_cast<char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE, "%u", *((reinterpret_cast<uint8_t *>(&reinterpret_cast<sockaddr_in *>(InterfaceAddressItem->ifa_addr)->sin_addr)) + sizeof(uint8_t)));
+						snprintf(reinterpret_cast<char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE, "%u", *((reinterpret_cast<const uint8_t *>(&reinterpret_cast<const sockaddr_in *>(LocalAddressItem->ai_addr)->sin_addr)) + sizeof(uint8_t)));
+					#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX))
+						snprintf(reinterpret_cast<char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE, "%u", *((reinterpret_cast<const uint8_t *>(&reinterpret_cast<const sockaddr_in *>(InterfaceAddressItem->ifa_addr)->sin_addr)) + sizeof(uint8_t)));
 					#endif
 						DomainString.append(reinterpret_cast<const char *>(AddrBuffer.data()));
 						AddrBuffer.fill(0);
 						DomainString.append(".");
 					#if defined(PLATFORM_WIN)
-						snprintf(reinterpret_cast<char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE, "%u", *(reinterpret_cast<uint8_t *>(&reinterpret_cast<sockaddr_in *>(LocalAddressItem->ai_addr)->sin_addr)));
-					#elif defined(PLATFORM_LINUX)
-						snprintf(reinterpret_cast<char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE, "%u", *(reinterpret_cast<uint8_t *>(&reinterpret_cast<sockaddr_in *>(InterfaceAddressItem->ifa_addr)->sin_addr)));
+						snprintf(reinterpret_cast<char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE, "%u", *(reinterpret_cast<const uint8_t *>(&reinterpret_cast<const sockaddr_in *>(LocalAddressItem->ai_addr)->sin_addr)));
+					#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX))
+						snprintf(reinterpret_cast<char *>(AddrBuffer.data()), ADDRESS_STRING_MAXSIZE, "%u", *(reinterpret_cast<const uint8_t *>(&reinterpret_cast<const sockaddr_in *>(InterfaceAddressItem->ifa_addr)->sin_addr)));
 					#endif
 						DomainString.append(reinterpret_cast<const char *>(AddrBuffer.data()));
 						AddrBuffer.fill(0);
@@ -1948,7 +1961,7 @@ void NetworkInformationMonitor(
 					GlobalRunningStatus.LocalAddress_Length[NETWORK_LAYER_TYPE_IPV4] = 0;
 				}
 				else {
-					DNS_Header->Answer = htons(DNS_Header->Answer);
+					DNS_Header->Answer = hton16(DNS_Header->Answer);
 				}
 
 			//Free all lists.
@@ -1956,7 +1969,7 @@ void NetworkInformationMonitor(
 			#if defined(PLATFORM_WIN)
 				freeaddrinfo(LocalAddressList);
 				LocalAddressList = nullptr;
-			#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+			#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 				freeifaddrs(InterfaceAddressList);
 				InterfaceAddressList = nullptr;
 			#endif
@@ -1970,12 +1983,12 @@ void NetworkInformationMonitor(
 		{
 		#if defined(PLATFORM_WIN)
 			if (!GlobalRunningStatus.GatewayAvailable_IPv6)
-		#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+		#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 			if (!(IsErrorFirstPrint || GlobalRunningStatus.GatewayAvailable_IPv6))
 		#endif
 				PrintError(LOG_LEVEL_TYPE::LEVEL_3, LOG_ERROR_TYPE::NETWORK, L"No any available gateways to external network", 0, nullptr, 0);
 
-		#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+		#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 			IsErrorFirstPrint = false;
 		#endif
 		}
@@ -1990,7 +2003,7 @@ void NetworkInformationMonitor(
 			freeaddrinfo(LocalAddressList);
 			LocalAddressList = nullptr;
 		}
-	#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+	#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 		if (InterfaceAddressList != nullptr)
 		{
 			freeifaddrs(InterfaceAddressList);
@@ -2000,9 +2013,9 @@ void NetworkInformationMonitor(
 
 	//Close all socket registers.
 		SocketRegisterMutex.lock();
-		while (!SocketRegisterList.empty() && SocketRegisterList.front().second <= GetCurrentSystemTime())
+		while (!SocketRegisterList.empty() && SocketRegisterList.front().SOCKET_REGISTER_DATA_TIME <= GetCurrentSystemTime())
 		{
-			SocketSetting(SocketRegisterList.front().first, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
+			SocketSetting(SocketRegisterList.front().SOCKET_REGISTER_DATA_SOCKET, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
 			SocketRegisterList.pop_front();
 		}
 		SocketRegisterMutex.unlock();
@@ -2011,7 +2024,8 @@ void NetworkInformationMonitor(
 		Sleep(Parameter.FileRefreshTime);
 	}
 
-//Monitor terminated
-	PrintError(LOG_LEVEL_TYPE::LEVEL_2, LOG_ERROR_TYPE::SYSTEM, L"Get Local Address Information module Monitor terminated", 0, nullptr, 0);
+//Loop terminated
+	if (!GlobalRunningStatus.IsNeedExit)
+		PrintError(LOG_LEVEL_TYPE::LEVEL_2, LOG_ERROR_TYPE::SYSTEM, L"Get Local Address Information module Monitor terminated", 0, nullptr, 0);
 	return;
 }

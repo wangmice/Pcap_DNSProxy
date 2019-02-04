@@ -68,57 +68,46 @@ Installation method (compile binary executable file):
 
 
 Special notes about the OpenSSL library:
+By default, the OpenSSL library does not contain any trusted root certificate library, the first time you need to use the user to add:
 
-* After installing the new version of the OpenSSL library for the system, undef: OPENSSL .. error when compiling TLS/SSL functionality:
-  * The reason is that macOS comes with the OpenSSL series version is very old (0.9.8) does not support the new version of the feature, the link in the link using the system comes with the library error
-  * At this point, look at the records of the compilation process, write down the OpenSSL library directory found by CMake, which Found OpenSSL indicates, and confirm that the version
-  * You can edit the CMakeLists.txt file in the Pcap_DNSProxy directory:
-    * Please be sure to pay attention to the issue of quotation marks, you must use the ASCII standard quotation marks
-    * Find the find_package (OpenSSL REQUIRED) statement and open another line
-    * Fill in the new line in the set (CMAKE_EXE_LINKER_FLAGS "$ {CMAKE_EXE_LINK_ERAG_US) - L just recorded directory") priority to specify the link found by the library
-    * For example set (CMAKE_EXE_LINKER_FLAGS "$ {CMAKE_EXE_LINKER_FLAGS} -L/usr/local/lib")
-    * Save the file and re-run ./CMake_Build.sh can
-* By default, the OpenSSL library does not contain any trusted root certificate library, the first time you need to use the user to add:
-  * Open the utility - keychain access - system root certificate, select all the certificates in the list to cert.pem the PEM format to export to any location
-  * Open the terminal, use sudo-i to get the root permission and enter the directory just exported location
-  * Use the mv cert.pem certificate target directory /cert.pem to move the system root certificate to the archive to OpenSSL's certificate directory
-  * The certificate destination directory here is located near the OpenSSL library deployment directory found by CMake as described above for the Found OpenSSL directive. There should be a subdirectory named certs in the directory
-  * For example mv cert.pem /usr/local/ssl
+* Open the utility - keychain access - system root certificate, select all the certificates in the list to cert.pem the PEM format to export to any location
+* Open the terminal, use sudo-i to get the root permission and enter the directory just exported location
+* Use the mv cert.pem certificate target directory /cert.pem to move the system root certificate to the archive to OpenSSL's certificate directory
+* The certificate destination directory here is located near the OpenSSL library deployment directory found by CMake as described above for the Found OpenSSL directive. There should be a subdirectory named certs in the directory
+* For example mv cert.pem /usr/local/ssl
 
 
 -------------------------------------------------------------------------------
 
 
-Reboot service method:
-1. Open the terminal, use sudo -i to get the root permission and go to the/Library/LaunchDaemons directory
-2. Use the launchctl unload pcap_dnsproxy.service.plist to stop the service, wait a while
-3. Use launchctl load pcap_dnsproxy.service.plist to start the service
+Restart service method:
+1. Open the terminal, use "sudo -i" to get the root permission and go to /Library/LaunchDaemons directory.
+2. Use "launchctl unload pcap_dnsproxy.service.plist" to stop the service, and wait a moment.
+3. Use "launchctl load pcap_dnsproxy.service.plist" to start the service.
 
 
 How to update if configuration version not changed:
-1. Open the terminal, use sudo -i to obtain root permissions and enter the macOS directory
-2. Execute the service uninstall script using ./macOS_Uninstall.sh
-3. Back up all profiles and delete all Pcap_DNSProxy dependencies
-  * Restore the backup configuration files to the macOS directory before proceeding to step 4
-4. Redeploy Pcap_DNSProxy by installation method
-  * Config.conf file is recommended to be reset according to the backup profile, such as direct coverage may lead to no new features
+1. Open the terminal, use "sudo -i" to get the root permission and go to /Library/LaunchDaemons directory.
+2. Remove all executable files in the macOS folder.
+3. Decompress all executable files of latest Pcap_DNSProxy to the same folder.
+4. Use "launchctl load pcap_dnsproxy.service.plist" to start the service.
 
 
 How to update if configuration version changed:
-1. Open the terminal, use sudo -i to obtain root permissions and enter the macOS directory
-2. Execute the service uninstall script using ./macOS_Uninstall.sh
-3. Back up all profiles and delete all Pcap_DNSProxy dependencies
-  * Restore the backup configuration files to the macOS directory before proceeding to step 4
-4. Redeploy Pcap_DNSProxy by installation method
-  * Config.conf file is recommended to be reset according to the backup profile, such as direct coverage may lead to no new features
+1. Open the terminal, use "sudo -i" to get root permission and enter macOS directory.
+2. Run "./macOS_Uninstall.sh"
+3. Do BACKUP all profiles and delete all Pcap_DNSProxy files.
+  * Restore the backup configuration files to the macOS directory before proceeding to step 4.
+4. Redeploy Pcap_DNSProxy via installation method.
+  * Config.conf file is recommended to be reset according to the backup profiles.
 
 
 Uninstall method:
-1. Restore the system network settings
-2. Open the terminal, use sudo -i to obtain root permissions and enter the macOS directory
-3. Execute the service uninstall script using ./macOS_Uninstall.sh
-  * What the script does: stop and uninstall the daemon service, remove the plist profile
-4. Remove all Pcap_DNSProxy dependencies
+1. Restore the system network settings.
+2. Open the terminal, use "sudo -i" to get root permissions and enter macOS directory.
+3. Run "./macOS_Uninstall.sh"
+  * This script: Stop, uninstall daemon service, and remove plist profile.
+4. Remove all Pcap_DNSProxy files.
 
 
 -------------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 ﻿// This code is part of Pcap_DNSProxy
 // Pcap_DNSProxy, a local DNS server based on WinPcap and LibPcap
-// Copyright (C) 2012-2018 Chengr28
+// Copyright (C) 2012-2019 Chengr28
 // 
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -58,7 +58,7 @@ size_t DNSCurve_PaddingData(
 	else if (IsSetPadding && BufferSize > Length)
 	{
 	//Padding starts with a byte valued 0x80
-		Buffer[Length] = static_cast<uint8_t>(DNSCRYPT_PADDING_SIGN_STRING);
+		Buffer[Length] = static_cast<const uint8_t>(DNSCRYPT_PADDING_SIGN_STRING);
 
 	//Set NULL bytes in padding data.
 		for (size_t Index = Length + 1U;Index < BufferSize;++Index)
@@ -100,7 +100,7 @@ bool DNSCurve_VerifyKeypair(
 //Make DNSCurve test nonce, 0x00 - 0x23(ASCII).
 	DNSCURVE_HEAP_BUFFER_TABLE<uint8_t> Nonce(crypto_box_NONCEBYTES);
 	for (size_t Index = 0;Index < crypto_box_NONCEBYTES;++Index)
-		*(Nonce.Buffer + Index) = static_cast<uint8_t>(Index);
+		*(Nonce.Buffer + Index) = static_cast<const uint8_t>(Index);
 
 //Verify keys
 	if (crypto_box(
@@ -374,7 +374,7 @@ void DNSCurve_SocketPrecomputation(
 
 		//Socket attribute settings
 			if (!SocketSetting(SocketDataTemp.Socket, SOCKET_SETTING_TYPE::INVALID_CHECK, true, nullptr) || 
-				(TransportSpecific == IPPROTO_TCP && !SocketSetting(SocketDataTemp.Socket, SOCKET_SETTING_TYPE::TCP_FAST_OPEN, true, nullptr)) || 
+				(TransportSpecific == IPPROTO_TCP && !SocketSetting(SocketDataTemp.Socket, SOCKET_SETTING_TYPE::TCP_FAST_OPEN_NORMAL, true, nullptr)) || 
 				!SocketSetting(SocketDataTemp.Socket, SOCKET_SETTING_TYPE::NON_BLOCKING_MODE, true, nullptr) || 
 				(NetworkSpecific == AF_INET6 && !SocketSetting(SocketDataTemp.Socket, SOCKET_SETTING_TYPE::HOP_LIMITS_IPV6, true, nullptr)) || 
 				(NetworkSpecific == AF_INET && (!SocketSetting(SocketDataTemp.Socket, SOCKET_SETTING_TYPE::HOP_LIMITS_IPV4, true, nullptr) || 
@@ -538,7 +538,7 @@ SkipProcess_Main:
 
 		//Socket attribute settings
 			if (!SocketSetting(SocketDataTemp.Socket, SOCKET_SETTING_TYPE::INVALID_CHECK, true, nullptr) || 
-				(Protocol == IPPROTO_TCP && !SocketSetting(SocketDataTemp.Socket, SOCKET_SETTING_TYPE::TCP_FAST_OPEN, true, nullptr)) || 
+				(Protocol == IPPROTO_TCP && !SocketSetting(SocketDataTemp.Socket, SOCKET_SETTING_TYPE::TCP_FAST_OPEN_NORMAL, true, nullptr)) || 
 				!SocketSetting(SocketDataTemp.Socket, SOCKET_SETTING_TYPE::NON_BLOCKING_MODE, true, nullptr) || 
 				(NetworkSpecific == AF_INET6 && !SocketSetting(SocketDataTemp.Socket, SOCKET_SETTING_TYPE::HOP_LIMITS_IPV6, true, nullptr)) || 
 				(NetworkSpecific == AF_INET && (!SocketSetting(SocketDataTemp.Socket, SOCKET_SETTING_TYPE::HOP_LIMITS_IPV4, true, nullptr) || 
@@ -717,7 +717,7 @@ size_t DNSCurve_PacketEncryption(
 			memcpy_s(SendBuffer + sizeof(uint16_t) + DNSCURVE_MAGIC_QUERY_LEN + crypto_box_PUBLICKEYBYTES, SendSize - sizeof(uint16_t) - DNSCURVE_MAGIC_QUERY_LEN - crypto_box_PUBLICKEYBYTES, Nonce.Buffer, crypto_box_HALF_NONCEBYTES);
 
 		//Add length of request packet.
-			*reinterpret_cast<uint16_t *>(SendBuffer) = htons(static_cast<uint16_t>(DNSCurveParameter.DNSCurvePayloadSize - sizeof(uint16_t)));
+			*reinterpret_cast<uint16_t *>(SendBuffer) = hton16(static_cast<const uint16_t>(DNSCurveParameter.DNSCurvePayloadSize - sizeof(uint16_t)));
 		}
 		else if (Protocol == IPPROTO_UDP)
 		{
@@ -773,7 +773,7 @@ ssize_t DNSCurve_PacketDecryption(
 		if (crypto_box_open_afternm(
 				reinterpret_cast<unsigned char *>(OriginalRecv), 
 				reinterpret_cast<unsigned char *>(OriginalRecv), 
-				Length + static_cast<ssize_t>(crypto_box_BOXZEROBYTES) - static_cast<ssize_t>(DNSCURVE_MAGIC_QUERY_LEN + crypto_box_NONCEBYTES), 
+				Length + static_cast<const ssize_t>(crypto_box_BOXZEROBYTES) - static_cast<const ssize_t>(DNSCURVE_MAGIC_QUERY_LEN + crypto_box_NONCEBYTES), 
 				WholeNonce.Buffer, 
 				PrecomputationKey) != 0)
 					return EXIT_FAILURE;
@@ -782,7 +782,7 @@ ssize_t DNSCurve_PacketDecryption(
 
 	//Check padding data and responses check.
 		DataLength = DNSCurve_PaddingData(false, OriginalRecv, Length, RecvSize);
-		if (DataLength < static_cast<ssize_t>(DNS_PACKET_MINSIZE))
+		if (DataLength < static_cast<const ssize_t>(DNS_PACKET_MINSIZE))
 			return EXIT_FAILURE;
 	}
 
@@ -794,7 +794,7 @@ ssize_t DNSCurve_PacketDecryption(
 		RecvSize, 
 		nullptr, 
 		nullptr);
-	if (DataLength < static_cast<ssize_t>(DNS_PACKET_MINSIZE))
+	if (DataLength < static_cast<const ssize_t>(DNS_PACKET_MINSIZE))
 		return EXIT_FAILURE;
 
 	return DataLength;
@@ -805,13 +805,13 @@ bool DNSCruve_GetSignatureData(
 	const uint8_t * const Buffer, 
 	const DNSCURVE_SERVER_TYPE ServerType)
 {
-	if (ntohs(reinterpret_cast<const dns_record_txt *>(Buffer)->Name) == DNS_POINTER_QUERY && 
-		ntohs(reinterpret_cast<const dns_record_txt *>(Buffer)->Length) == reinterpret_cast<const dns_record_txt *>(Buffer)->TXT_Length + NULL_TERMINATE_LENGTH && 
+	if (ntoh16(reinterpret_cast<const dns_record_txt *>(Buffer)->Name) == DNS_POINTER_QUERY && 
+		ntoh16(reinterpret_cast<const dns_record_txt *>(Buffer)->Length) == reinterpret_cast<const dns_record_txt *>(Buffer)->TXT_Length + NULL_TERMINATE_LENGTH && 
 		reinterpret_cast<const dns_record_txt *>(Buffer)->TXT_Length == DNSCRYPT_RECORD_TXT_LEN && 
 		memcmp(&reinterpret_cast<const dnscurve_txt_hdr *>(Buffer + sizeof(dns_record_txt))->CertMagicNumber, DNSCRYPT_CERT_MAGIC, sizeof(uint16_t)) == 0 && 
-		ntohs(reinterpret_cast<const dnscurve_txt_hdr *>(Buffer + sizeof(dns_record_txt))->MinorVersion) == DNSCURVE_VERSION_MINOR)
+		ntoh16(reinterpret_cast<const dnscurve_txt_hdr *>(Buffer + sizeof(dns_record_txt))->MinorVersion) == DNSCURVE_VERSION_MINOR)
 	{
-		if (ntohs(reinterpret_cast<const dnscurve_txt_hdr *>(Buffer + sizeof(dns_record_txt))->MajorVersion) == DNSCURVE_ES_X25519_XSALSA20_POLY1305) //DNSCurve X25519-XSalsa20Poly1305
+		if (ntoh16(reinterpret_cast<const dnscurve_txt_hdr *>(Buffer + sizeof(dns_record_txt))->MajorVersion) == DNSCURVE_ES_X25519_XSALSA20_POLY1305) //DNSCurve X25519-XSalsa20Poly1305
 		{
 		//Get Send Magic Number, Server Fingerprint and Precomputation Key.
 			DNSCURVE_SERVER_DATA *PacketTarget = nullptr;
@@ -846,8 +846,8 @@ bool DNSCruve_GetSignatureData(
 		//Signature available time check
 			const auto TimeValues = time(nullptr);
 			if (TimeValues > 0 && PacketTarget->ServerFingerprint != nullptr && 
-				TimeValues >= static_cast<time_t>(ntohl(reinterpret_cast<dnscurve_txt_signature *>(DecryptBuffer.Buffer)->CertTime_Begin)) && 
-				TimeValues <= static_cast<time_t>(ntohl(reinterpret_cast<dnscurve_txt_signature *>(DecryptBuffer.Buffer)->CertTime_End)))
+				TimeValues >= static_cast<const time_t>(ntoh32(reinterpret_cast<const dnscurve_txt_signature *>(DecryptBuffer.Buffer)->CertTime_Begin)) && 
+				TimeValues <= static_cast<const time_t>(ntoh32(reinterpret_cast<const dnscurve_txt_signature *>(DecryptBuffer.Buffer)->CertTime_End)))
 			{
 				memcpy_s(PacketTarget->SendMagicNumber, DNSCURVE_MAGIC_QUERY_LEN, reinterpret_cast<dnscurve_txt_signature *>(DecryptBuffer.Buffer)->MagicNumber, DNSCURVE_MAGIC_QUERY_LEN);
 				memcpy_s(PacketTarget->ServerFingerprint, crypto_box_PUBLICKEYBYTES, reinterpret_cast<dnscurve_txt_signature *>(DecryptBuffer.Buffer)->PublicKey, crypto_box_PUBLICKEYBYTES);

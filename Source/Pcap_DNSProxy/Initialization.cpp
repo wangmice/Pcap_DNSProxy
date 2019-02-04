@@ -1,6 +1,6 @@
 ﻿// This code is part of Pcap_DNSProxy
 // Pcap_DNSProxy, a local DNS server based on WinPcap and LibPcap
-// Copyright (C) 2012-2018 Chengr28
+// Copyright (C) 2012-2019 Chengr28
 // 
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -108,7 +108,7 @@ ConfigurationTable::ConfigurationTable(
 	#endif
 		Local_FQDN_String = new std::string();
 		Local_FQDN_Response = new uint8_t[DOMAIN_MAXSIZE]();
-	#if (defined(PLATFORM_WIN) || defined(PLATFORM_LINUX))
+	#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_WIN))
 		LocalServer_Response = new uint8_t[PACKET_NORMAL_MAXSIZE + MEMORY_RESERVED_BYTES]();
 	#endif
 
@@ -124,7 +124,7 @@ ConfigurationTable::ConfigurationTable(
 	#if defined(ENABLE_TLS)
 		HTTP_CONNECT_TLS_SNI = new std::wstring();
 		HTTP_CONNECT_TLS_SNI_MBS = new std::string();
-	#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+	#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 		HTTP_CONNECT_TLS_AddressString_IPv6 = new std::string();
 		HTTP_CONNECT_TLS_AddressString_IPv4 = new std::string();
 	#endif
@@ -174,7 +174,7 @@ ConfigurationTable::ConfigurationTable(
 		delete[] Local_FQDN_Response;
 		Local_FQDN_String = nullptr;
 		Local_FQDN_Response = nullptr;
-	#if (defined(PLATFORM_WIN) || defined(PLATFORM_LINUX))
+	#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_WIN))
 		delete[] LocalServer_Response;
 		LocalServer_Response = nullptr;
 	#endif
@@ -191,7 +191,7 @@ ConfigurationTable::ConfigurationTable(
 	#if defined(ENABLE_TLS)
 		delete HTTP_CONNECT_TLS_SNI;
 		delete HTTP_CONNECT_TLS_SNI_MBS;
-	#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+	#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 		delete HTTP_CONNECT_TLS_AddressString_IPv6;
 		delete HTTP_CONNECT_TLS_AddressString_IPv4;
 	#endif
@@ -209,7 +209,7 @@ ConfigurationTable::ConfigurationTable(
 	#if defined(ENABLE_TLS)
 		HTTP_CONNECT_TLS_SNI = nullptr;
 		HTTP_CONNECT_TLS_SNI_MBS = nullptr;
-	#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+	#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 		HTTP_CONNECT_TLS_AddressString_IPv6 = nullptr;
 		HTTP_CONNECT_TLS_AddressString_IPv4 = nullptr;
 	#endif
@@ -238,7 +238,7 @@ void ConfigurationTableSetting(
 	memset(ConfigurationParameter->DomainTest_Data, 0, DOMAIN_MAXSIZE);
 #endif
 	memset(ConfigurationParameter->Local_FQDN_Response, 0, DOMAIN_MAXSIZE);
-#if (defined(PLATFORM_WIN) || defined(PLATFORM_LINUX))
+#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_WIN))
 	memset(ConfigurationParameter->LocalServer_Response, 0, PACKET_NORMAL_MAXSIZE + MEMORY_RESERVED_BYTES);
 #endif
 #if defined(ENABLE_LIBSODIUM)
@@ -274,7 +274,7 @@ void ConfigurationTableSetting(
 	ConfigurationParameter->RequestMode_Transport = REQUEST_MODE_TRANSPORT::UDP;
 	ConfigurationParameter->DirectRequest_Protocol = REQUEST_MODE_DIRECT::NONE;
 	ConfigurationParameter->DNS_CacheType = DNS_CACHE_TYPE::BOTH;
-	ConfigurationParameter->DNS_CacheParameter = DEFAULT_DNS_CACHE_PARAMETER;
+	ConfigurationParameter->DNS_CacheParameter = DEFAULT_DOMAIN_CACHE_PARAMETER;
 	ConfigurationParameter->HostsDefaultTTL = DEFAULT_HOSTS_TTL;
 
 	//[Local DNS] block
@@ -290,7 +290,7 @@ void ConfigurationTableSetting(
 	ConfigurationParameter->SocketTimeout_Reliable_Serial = DEFAULT_RELIABLE_SERIAL_SOCKET_TIMEOUT;
 	ConfigurationParameter->SocketTimeout_Unreliable_Once = DEFAULT_UNRELIABLE_ONCE_SOCKET_TIMEOUT;
 	ConfigurationParameter->SocketTimeout_Unreliable_Serial = DEFAULT_UNRELIABLE_SERIAL_SOCKET_TIMEOUT;
-#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 	ConfigurationParameter->SocketTimeout_Reliable_Once.tv_sec = DEFAULT_RELIABLE_ONCE_SOCKET_TIMEOUT / SECOND_TO_MILLISECOND;
 	ConfigurationParameter->SocketTimeout_Reliable_Once.tv_usec = DEFAULT_RELIABLE_ONCE_SOCKET_TIMEOUT % SECOND_TO_MILLISECOND * MICROSECOND_TO_MILLISECOND;
 	ConfigurationParameter->SocketTimeout_Reliable_Serial.tv_sec = DEFAULT_RELIABLE_SERIAL_SOCKET_TIMEOUT / SECOND_TO_MILLISECOND;
@@ -312,16 +312,19 @@ void ConfigurationTableSetting(
 	//[Data] block
 #if defined(ENABLE_PCAP)
 #if defined(PLATFORM_WIN)
+	//Windows: Load default padding data.
 	ConfigurationParameter->ICMP_PaddingLength = strlen(DEFAULT_ICMP_PADDING_DATA);
-	memcpy_s(ConfigurationParameter->ICMP_PaddingData, ICMP_PADDING_MAXSIZE, DEFAULT_ICMP_PADDING_DATA, ConfigurationParameter->ICMP_PaddingLength); //Load default padding data(Windows).
+	memcpy_s(ConfigurationParameter->ICMP_PaddingData, ICMP_PADDING_MAXSIZE, DEFAULT_ICMP_PADDING_DATA, ConfigurationParameter->ICMP_PaddingLength);
 #elif defined(PLATFORM_LINUX)
+	//Linux: Load default padding data.
 	for (size_t Index = 0, CharData = ICMP_STRING_START_NUM_LINUX;Index < ICMP_PADDING_LENGTH_LINUX;++Index, ++CharData)
 		ConfigurationParameter->ICMP_PaddingData[Index] = CharData;
-	ConfigurationParameter->ICMP_PaddingLength = strlen(reinterpret_cast<const char *>(ConfigurationParameter->ICMP_PaddingData)); //Load default padding data(Linux).
-#elif defined(PLATFORM_MACOS)
+	ConfigurationParameter->ICMP_PaddingLength = strlen(reinterpret_cast<const char *>(ConfigurationParameter->ICMP_PaddingData));
+	//macOS: Load default padding data.
+#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_MACOS))
 	for (size_t Index = 0, CharData = ICMP_STRING_START_NUM_MACOS;Index < ICMP_PADDING_LENGTH_MACOS;++Index, ++CharData)
 		ConfigurationParameter->ICMP_PaddingData[Index] = CharData;
-	ConfigurationParameter->ICMP_PaddingLength = strlen(reinterpret_cast<const char *>(ConfigurationParameter->ICMP_PaddingData)); //Load default padding data(macOS).
+	ConfigurationParameter->ICMP_PaddingLength = strlen(reinterpret_cast<const char *>(ConfigurationParameter->ICMP_PaddingData)); 
 #endif
 #endif
 
@@ -374,7 +377,7 @@ ConfigurationTable::~ConfigurationTable(
 	delete[] Local_FQDN_Response;
 	Local_FQDN_String = nullptr;
 	Local_FQDN_Response = nullptr;
-#if (defined(PLATFORM_WIN) || defined(PLATFORM_LINUX))
+#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_WIN))
 	delete[] LocalServer_Response;
 	LocalServer_Response = nullptr;
 #endif
@@ -391,7 +394,7 @@ ConfigurationTable::~ConfigurationTable(
 #if defined(ENABLE_TLS)
 	delete HTTP_CONNECT_TLS_SNI;
 	delete HTTP_CONNECT_TLS_SNI_MBS;
-#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 	delete HTTP_CONNECT_TLS_AddressString_IPv6;
 	delete HTTP_CONNECT_TLS_AddressString_IPv4;
 #endif
@@ -409,7 +412,7 @@ ConfigurationTable::~ConfigurationTable(
 #if defined(ENABLE_TLS)
 	HTTP_CONNECT_TLS_SNI = nullptr;
 	HTTP_CONNECT_TLS_SNI_MBS = nullptr;
-#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 	HTTP_CONNECT_TLS_AddressString_IPv6 = nullptr;
 	HTTP_CONNECT_TLS_AddressString_IPv4 = nullptr;
 #endif
@@ -458,7 +461,7 @@ void ConfigurationTable::SetToMonitorItem(
 	delete[] Local_FQDN_Response;
 	Local_FQDN_String = nullptr;
 	Local_FQDN_Response = nullptr;
-#if (defined(PLATFORM_WIN) || defined(PLATFORM_LINUX))
+#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_WIN))
 	delete[] LocalServer_Response;
 	LocalServer_Response = nullptr;
 #endif
@@ -655,7 +658,7 @@ void ConfigurationTable::MonitorItemReset(
 	SocketTimeout_Reliable_Serial = DEFAULT_RELIABLE_SERIAL_SOCKET_TIMEOUT;
 	SocketTimeout_Unreliable_Once = DEFAULT_UNRELIABLE_ONCE_SOCKET_TIMEOUT;
 	SocketTimeout_Unreliable_Serial = DEFAULT_UNRELIABLE_SERIAL_SOCKET_TIMEOUT;
-#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 	SocketTimeout_Reliable_Once.tv_sec = DEFAULT_RELIABLE_ONCE_SOCKET_TIMEOUT / SECOND_TO_MILLISECOND;
 	SocketTimeout_Reliable_Once.tv_usec = DEFAULT_RELIABLE_ONCE_SOCKET_TIMEOUT % SECOND_TO_MILLISECOND * MICROSECOND_TO_MILLISECOND;
 	SocketTimeout_Reliable_Serial.tv_sec = DEFAULT_RELIABLE_SERIAL_SOCKET_TIMEOUT / SECOND_TO_MILLISECOND;
@@ -734,7 +737,7 @@ GlobalStatus::GlobalStatus(
 		Path_ErrorLog = new std::wstring();
 		FileList_Hosts = new std::vector<std::wstring>();
 		FileList_IPFilter = new std::vector<std::wstring>();
-	#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+	#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 		Path_Global_MBS = new std::vector<std::string>();
 		Path_ErrorLog_MBS = new std::string();
 		FileList_Hosts_MBS = new std::vector<std::string>();
@@ -742,7 +745,7 @@ GlobalStatus::GlobalStatus(
 	#endif
 		LocalAddress_Response[NETWORK_LAYER_TYPE_IPV6] = new uint8_t[PACKET_NORMAL_MAXSIZE + MEMORY_RESERVED_BYTES]();
 		LocalAddress_Response[NETWORK_LAYER_TYPE_IPV4] = new uint8_t[PACKET_NORMAL_MAXSIZE + MEMORY_RESERVED_BYTES]();
-	#if (defined(PLATFORM_WIN) || defined(PLATFORM_LINUX))
+	#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_WIN))
 		LocalAddress_PointerResponse[NETWORK_LAYER_TYPE_IPV6] = new std::vector<std::string>();
 		LocalAddress_PointerResponse[NETWORK_LAYER_TYPE_IPV4] = new std::vector<std::string>();
 	#endif
@@ -765,7 +768,7 @@ GlobalStatus::GlobalStatus(
 		Path_ErrorLog = nullptr;
 		FileList_Hosts = nullptr;
 		FileList_IPFilter = nullptr;
-	#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+	#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 		delete Path_Global_MBS;
 		delete Path_ErrorLog_MBS;
 		delete FileList_Hosts_MBS;
@@ -779,7 +782,7 @@ GlobalStatus::GlobalStatus(
 		delete[] LocalAddress_Response[NETWORK_LAYER_TYPE_IPV4];
 		LocalAddress_Response[NETWORK_LAYER_TYPE_IPV6] = nullptr;
 		LocalAddress_Response[NETWORK_LAYER_TYPE_IPV4] = nullptr;
-	#if (defined(PLATFORM_WIN) || defined(PLATFORM_LINUX))
+	#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_WIN))
 		delete LocalAddress_PointerResponse[NETWORK_LAYER_TYPE_IPV6];
 		delete LocalAddress_PointerResponse[NETWORK_LAYER_TYPE_IPV4];
 		LocalAddress_PointerResponse[NETWORK_LAYER_TYPE_IPV6] = nullptr;
@@ -795,7 +798,7 @@ GlobalStatus::GlobalStatus(
 	GlobalStatusSetting(this);
 
 //Libraries initialization
-#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 #if defined(ENABLE_TLS)
 //OpenSSL main initialization
 	if (!GlobalRunningStatus.IsInitialized_OpenSSL)
@@ -813,17 +816,17 @@ GlobalStatus::GlobalStatus(
 void GlobalStatusSetting(
 	GLOBAL_STATUS * const GlobalRunningStatusParameter)
 {
-#if defined(PLATFORM_LINUX)
+#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX))
 	GlobalRunningStatusParameter->IsDaemon = true;
 #endif
-	std::random_device RandomDevice;
-	GlobalRunningStatusParameter->RandomEngine->seed(RandomDevice());
 	GlobalRunningStatusParameter->DomainTable_Normal = const_cast<uint8_t *>(DomainTable_Normal);
 	GlobalRunningStatusParameter->DomainTable_Upper = const_cast<uint8_t *>(DomainTable_Upper);
 #if !defined(ENABLE_LIBSODIUM)
 	GlobalRunningStatusParameter->Base64_EncodeTable = const_cast<uint8_t *>(Base64_EncodeTable_Initialization);
 	GlobalRunningStatusParameter->Base64_DecodeTable = const_cast<int8_t *>(Base64_DecodeTable_Initialization);
 #endif
+	std::random_device RandomDevice;
+	GlobalRunningStatusParameter->RandomEngine->seed(RandomDevice());
 	GlobalRunningStatusParameter->GatewayAvailable_IPv4 = true;
 	memset(GlobalRunningStatusParameter->LocalAddress_Response[NETWORK_LAYER_TYPE_IPV6], 0, PACKET_NORMAL_MAXSIZE + MEMORY_RESERVED_BYTES);
 	memset(GlobalRunningStatusParameter->LocalAddress_Response[NETWORK_LAYER_TYPE_IPV4], 0, PACKET_NORMAL_MAXSIZE + MEMORY_RESERVED_BYTES);
@@ -835,11 +838,24 @@ void GlobalStatusSetting(
 GlobalStatus::~GlobalStatus(
 	void)
 {
+//Set need exit signal.
+	IsNeedExit = true;
+
 //Close all sockets.
 	for (auto &SocketItem:*LocalListeningSocket)
 		SocketSetting(SocketItem, SOCKET_SETTING_TYPE::CLOSE, false, nullptr);
 
 #if defined(PLATFORM_WIN)
+//Mutex handle cleanup
+	if (Initialized_MutexHandle != nullptr)
+	{
+		ReleaseMutex(
+			Initialized_MutexHandle);
+		CloseHandle(
+			Initialized_MutexHandle);
+		Initialized_MutexHandle = nullptr;
+	}
+
 //WinSock cleanup
 	if (IsInitialized_WinSock)
 	{
@@ -847,17 +863,9 @@ GlobalStatus::~GlobalStatus(
 		IsInitialized_WinSock = false;
 	}
 
-//Mutex handle cleanup
-	if (Initialized_MutexHandle != nullptr)
-	{
-		ReleaseMutex(Initialized_MutexHandle);
-		CloseHandle(Initialized_MutexHandle);
-		Initialized_MutexHandle = nullptr;
-	}
-
 //Close all file handles.
 	_fcloseall();
-#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 //Mutex handle cleanup
 	if (Initialized_MutexHandle != 0 && Initialized_MutexHandle != RETURN_ERROR)
 	{
@@ -876,7 +884,7 @@ GlobalStatus::~GlobalStatus(
 #endif
 
 //Close all file handles.
-#if (defined(PLATFORM_LINUX) && !defined(PLATFORM_OPENWRT))
+#if (defined(PLATFORM_FREEBSD) || (defined(PLATFORM_LINUX) && !defined(PLATFORM_OPENWRT)))
 	fcloseall();
 #endif
 #endif
@@ -894,7 +902,7 @@ GlobalStatus::~GlobalStatus(
 	Path_ErrorLog = nullptr;
 	FileList_Hosts = nullptr;
 	FileList_IPFilter = nullptr;
-#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 	delete Path_Global_MBS;
 	delete Path_ErrorLog_MBS;
 	delete FileList_Hosts_MBS;
@@ -908,13 +916,15 @@ GlobalStatus::~GlobalStatus(
 	delete[] LocalAddress_Response[NETWORK_LAYER_TYPE_IPV4];
 	LocalAddress_Response[NETWORK_LAYER_TYPE_IPV6] = nullptr;
 	LocalAddress_Response[NETWORK_LAYER_TYPE_IPV4] = nullptr;
-#if (defined(PLATFORM_WIN) || defined(PLATFORM_LINUX))
+#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_WIN))
 	delete LocalAddress_PointerResponse[NETWORK_LAYER_TYPE_IPV6];
 	delete LocalAddress_PointerResponse[NETWORK_LAYER_TYPE_IPV4];
 	LocalAddress_PointerResponse[NETWORK_LAYER_TYPE_IPV6] = nullptr;
 	LocalAddress_PointerResponse[NETWORK_LAYER_TYPE_IPV4] = nullptr;
 #endif
 
+//Exit process.
+	Sleep(STANDARD_THREAD_TIMEOUT);
 	return;
 }
 
@@ -997,9 +1007,9 @@ bool SocketValueTable::SocketValueInit(
 		else {
 			ValueItem.AddrLen = sizeof(sockaddr_in6);
 			ValueItem.SockAddr.ss_family = AF_INET6;
-			reinterpret_cast<sockaddr_in6 *>(&ValueItem.SockAddr)->sin6_port = htons(SocketPort);
+			reinterpret_cast<sockaddr_in6 *>(&ValueItem.SockAddr)->sin6_port = hton16(SocketPort);
 			if (SocketAddress != nullptr)
-				memcpy_s(&reinterpret_cast<sockaddr_in6 *>(&ValueItem.SockAddr)->sin6_addr, sizeof(reinterpret_cast<sockaddr_in6 *>(&ValueItem.SockAddr)->sin6_addr), SocketAddress, sizeof(in6_addr));
+				memcpy_s(&reinterpret_cast<sockaddr_in6 *>(&ValueItem.SockAddr)->sin6_addr, sizeof(reinterpret_cast<const sockaddr_in6 *>(&ValueItem.SockAddr)->sin6_addr), SocketAddress, sizeof(in6_addr));
 
 		//Add item to list.
 			ValueSet.push_back(ValueItem);
@@ -1018,9 +1028,9 @@ bool SocketValueTable::SocketValueInit(
 		else {
 			ValueItem.AddrLen = sizeof(sockaddr_in);
 			ValueItem.SockAddr.ss_family = AF_INET;
-			reinterpret_cast<sockaddr_in *>(&ValueItem.SockAddr)->sin_port = htons(SocketPort);
+			reinterpret_cast<sockaddr_in *>(&ValueItem.SockAddr)->sin_port = hton16(SocketPort);
 			if (SocketAddress != nullptr)
-				memcpy_s(&reinterpret_cast<sockaddr_in *>(&ValueItem.SockAddr)->sin_addr, sizeof(reinterpret_cast<sockaddr_in *>(&ValueItem.SockAddr)->sin_addr), SocketAddress, sizeof(in_addr));
+				memcpy_s(&reinterpret_cast<sockaddr_in *>(&ValueItem.SockAddr)->sin_addr, sizeof(reinterpret_cast<const sockaddr_in *>(&ValueItem.SockAddr)->sin_addr), SocketAddress, sizeof(in_addr));
 
 		//Add item to list.
 			ValueSet.push_back(ValueItem);
@@ -1231,7 +1241,7 @@ OutputPacketTable::OutputPacketTable(
 	Protocol_Network = 0;
 	Protocol_Transport = 0;
 	ClearPortTime = 0;
-	EDNS_Length = 0;
+//	EDNS_Length = 0;
 
 	return;
 }
@@ -1247,7 +1257,7 @@ DNSCurveConfigurationTable::DNSCurveConfigurationTable(
 	try {
 	//[DNSCurve Database] block
 		DatabaseName = new std::wstring();
-	#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+	#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 		DatabaseName_MBS = new std::string();
 	#endif
 		Database_Target_Server_Main_IPv6 = new std::string();
@@ -1293,7 +1303,7 @@ DNSCurveConfigurationTable::DNSCurveConfigurationTable(
 	//[DNSCurve Database] block
 		delete DatabaseName;
 		DatabaseName = nullptr;
-	#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+	#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 		delete DatabaseName_MBS;
 		DatabaseName_MBS = nullptr;
 	#endif
@@ -1420,7 +1430,7 @@ void DNSCurveConfigurationTableSetting(
 #if defined(PLATFORM_WIN)
 	DNSCurveConfigurationParameter->DNSCurve_SocketTimeout_Reliable = DNSCURVE_DEFAULT_RELIABLE_SOCKET_TIMEOUT;
 	DNSCurveConfigurationParameter->DNSCurve_SocketTimeout_Unreliable = DNSCURVE_DEFAULT_UNRELIABLE_SOCKET_TIMEOUT;
-#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 	DNSCurveConfigurationParameter->DNSCurve_SocketTimeout_Reliable.tv_sec = DNSCURVE_DEFAULT_RELIABLE_SOCKET_TIMEOUT;
 	DNSCurveConfigurationParameter->DNSCurve_SocketTimeout_Unreliable.tv_sec = DNSCURVE_DEFAULT_UNRELIABLE_SOCKET_TIMEOUT;
 #endif
@@ -1436,7 +1446,7 @@ DNSCurveConfigurationTable::~DNSCurveConfigurationTable(
 //[DNSCurve Database] block
 	delete DatabaseName;
 	DatabaseName = nullptr;
-#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 	delete DatabaseName_MBS;
 	DatabaseName_MBS = nullptr;
 #endif
@@ -1519,7 +1529,7 @@ void DNSCurveConfigurationTable::SetToMonitorItem(
 //Delete and reset pointers.
 	delete DatabaseName;
 	DatabaseName = nullptr;
-#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 	delete DatabaseName_MBS;
 	DatabaseName_MBS = nullptr;
 #endif
@@ -1637,7 +1647,7 @@ void DNSCurveConfigurationTable::MonitorItemReset(
 #if defined(PLATFORM_WIN)
 	DNSCurve_SocketTimeout_Reliable = DNSCURVE_DEFAULT_RELIABLE_SOCKET_TIMEOUT;
 	DNSCurve_SocketTimeout_Unreliable = DNSCURVE_DEFAULT_UNRELIABLE_SOCKET_TIMEOUT;
-#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 	DNSCurve_SocketTimeout_Reliable.tv_sec = DNSCURVE_DEFAULT_RELIABLE_SOCKET_TIMEOUT;
 	DNSCurve_SocketTimeout_Reliable.tv_usec = 0;
 	DNSCurve_SocketTimeout_Unreliable.tv_sec = DNSCURVE_DEFAULT_UNRELIABLE_SOCKET_TIMEOUT;
@@ -1743,7 +1753,7 @@ SSPIHandleTable::~SSPIHandleTable(
 
 	return;
 }
-#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 //SSPIHandleTable class constructor
 OpenSSLContextTable::OpenSSLContextTable(
 	void)

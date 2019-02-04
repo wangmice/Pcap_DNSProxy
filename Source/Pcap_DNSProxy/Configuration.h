@@ -1,6 +1,6 @@
 ﻿// This code is part of Pcap_DNSProxy
 // Pcap_DNSProxy, a local DNS server based on WinPcap and LibPcap
-// Copyright (C) 2012-2018 Chengr28
+// Copyright (C) 2012-2019 Chengr28
 // 
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -224,7 +224,7 @@ bool ReadSupport_PathFileName(
 	const size_t DataOffset, 
 	const bool IsPath, 
 	std::vector<std::wstring> * const ListData, 
-#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 	std::vector<std::string> * const ListData_MBS, 
 #endif
 	const size_t FileIndex, 
@@ -253,6 +253,14 @@ bool ReadSupport_HopLimitsData(
 	const size_t FileIndex, 
 	const size_t Line);
 #endif
+bool ReadSupport_AddressPrefixData(
+	const uint16_t Protocol, 
+	std::string OriginalData, 
+	const size_t DataOffset, 
+	ADDRESS_PREFIX_BLOCK * const AddressPrefix, 
+	const std::vector<FILE_DATA> &FileList, 
+	const size_t FileIndex, 
+	const size_t Line);
 #if defined(ENABLE_LIBSODIUM)
 void ReadSupport_DNSCurveDatabaseData(
 	std::string Data, 
@@ -296,14 +304,6 @@ bool ReadIPFilter_BlacklistData(
 	const size_t Line);
 bool ReadIPFilter_LocalRoutingData(
 	std::string Data, 
-	const size_t FileIndex, 
-	const size_t Line);
-bool ReadIPFilter_AddressPrefixData(
-	const uint16_t Protocol, 
-	std::string OriginalData, 
-	const size_t DataOffset, 
-	ADDRESS_PREFIX_BLOCK * const AddressPrefix, 
-	const std::vector<FILE_DATA> &FileList, 
 	const size_t FileIndex, 
 	const size_t Line);
 bool ReadIPFilter_MainData(

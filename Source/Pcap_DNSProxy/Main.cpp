@@ -1,6 +1,6 @@
 ﻿// This code is part of Pcap_DNSProxy
 // Pcap_DNSProxy, a local DNS server based on WinPcap and LibPcap
-// Copyright (C) 2012-2018 Chengr28
+// Copyright (C) 2012-2019 Chengr28
 // 
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -24,14 +24,17 @@
 int wmain(
 	int argc, 
 	wchar_t *argv[])
-#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 int main(
 	int argc, 
 	char *argv[])
 #endif
 {
-//Get commands.
-	if (argc < COMMAND_COUNT_MIN)
+//Libraries version check
+	if (!CheckLibraryVersion())
+		return EXIT_FAILURE;
+//Command check
+	else if (argc < COMMAND_COUNT_MIN)
 		return EXIT_FAILURE;
 //Read commands.
 	else if (!ReadCommand(argc, argv))
@@ -52,7 +55,7 @@ int main(
 		PrintError(LOG_LEVEL_TYPE::LEVEL_1, LOG_ERROR_TYPE::SYSTEM, L"Set console control handler error", GetLastError(), nullptr, 0);
 		return EXIT_FAILURE;
 	}
-#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 	errno = 0;
 	if (signal(SIGHUP, SignalHandler) == SIG_ERR || 
 		signal(SIGINT, SignalHandler) == SIG_ERR || 
@@ -74,13 +77,13 @@ int main(
 
 //Launch all monitors and wait for multiple threads to work.
 	MonitorLauncher();
-	Sleep(STANDARD_TIMEOUT);
+	Sleep(STANDARD_THREAD_TIMEOUT);
 
 //Main process initialization
 #if defined(PLATFORM_WIN)
 	std::array<SERVICE_TABLE_ENTRYW, SERVICE_TABLE_ENTRY_NUM> ServiceTable{};
-	ServiceTable.at(0).lpServiceName = const_cast<LPWSTR>(SYSTEM_SERVICE_NAME);
-	ServiceTable.at(0).lpServiceProc = reinterpret_cast<LPSERVICE_MAIN_FUNCTIONW>(ServiceMain);
+	ServiceTable.at(0).lpServiceName = const_cast<const LPWSTR>(SYSTEM_SERVICE_NAME);
+	ServiceTable.at(0).lpServiceProc = reinterpret_cast<const LPSERVICE_MAIN_FUNCTIONW>(ServiceMain);
 	ServiceTable.at(1U).lpServiceName = nullptr;
 	ServiceTable.at(1U).lpServiceProc = nullptr;
 	if (StartServiceCtrlDispatcherW(ServiceTable.data()) == 0)
@@ -108,7 +111,7 @@ int main(
 		if (!MonitorInit())
 			return EXIT_FAILURE;
 	}
-#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 	if (!MonitorInit())
 		return EXIT_FAILURE;
 #endif

@@ -44,7 +44,6 @@ The installation process is relatively long and more complex operation, please g
     * The included Linux_Install.Systemd.sh script applies to systems that use Systemd Init by default
       * Linux Debian 8.x official release and updated version of the system content, the test can be used directly
     * The included Linux_Install.SysV.sh script applies to systems that are preset to use System V Init
-      * Linux Debian 6.x - 7.x official release version of the system content, the test can be used directly
     * For more details, see the description of the other Linux distributions below, and the official instructions for the Linux distributions used
   * When using Systemd Init:
     * Into the Release directory and edit the Pcap_DNSProxy.service file, save after editing:
@@ -62,38 +61,6 @@ The installation process is relatively long and more complex operation, please g
       * The PATH entry is the absolute path of the program
     * Under the root permission ./Linux_Install.SysV.sh Execute the service installation script, the script's actions:
       * Set the service control script to basically read and write executable permissions
-      * Install the service control script into the /etc/init.d directory
-      * Try to start the PcapDNSProxyService service and display the status of the service after the operation is performed
-      * Each time the system starts each time it will automatically run the script to start the service
-    * Can be directly input sh PcapDNSProxyService without parameters query usage
-      * Start - start the service
-      * Stop - stop service
-      * Force-reload/restart - restart service
-      * Status - service status, if the PID is empty, the service is not started
-
-3. Configure the system daemon service
-  * Due to the different Linux distributions, the system services and daemons are handled differently. This step is for reference only.
-    * The included Linux_Install.Systemd.sh script applies to systems that use Systemd Init by default
-      * Linux Debian 8.x official release and the updated version of the system environment, the test can be used directly
-    * The included Linux_Install.SysV.sh script applies to systems that use System V Init by default
-      * Linux Debian 6.x - 7.x official release system environment, the test can be used directly
-    * For more details, see the description of other Linux distributions below, and the official instructions for the Linux distributions
-  * When using Systemd Init:
-    * Into the Release directory and edit the Pcap_DNSProxy.service file, save after editing:
-      * WorkingDirectory= item is the absolute path to the directory where the program is located
-      * ExecStart= item is the absolute path of the directory where the program is located and the name of the program is added at the end
-    * Under the root privileges ./Linux_Install.Systemd.sh Execute the service installation script, the operation of the script:
-      * Change the owner of the Pcap_DNSProxy.service service control script to root
-      * Install the service control script into the/etc/systemd/system directory
-      * Try to start the Pcap_DNSProxy service and display the status of the service after the operation is performed
-      * Each time the system starts will automatically start the service
-    * For more information on Systemd service control, see the documentation for the official Linux documentation
-  * When using System V Init:
-    * Into the Release directory and edit the PcapDNSProxyService file, save after editing:
-      The NAME entry is the name of the program
-      * The PATH entry is the absolute path to the program
-    * Under the root privileges. /Linux_Install.SysV.sh Execute the service installation script, the script's actions:
-      * Change the owner of the PcapDNSProxyService service control script to root
       * Install the service control script into the /etc/init.d directory
       * Try to start the PcapDNSProxyService service and display the status of the service after the operation is performed
       * Each time the system starts each time it will automatically run the script to start the service
@@ -135,56 +102,54 @@ The installation process is relatively long and more complex operation, please g
 -------------------------------------------------------------------------------
 
 
-Reboot service method:
-* Systemd section:
-  1. Open the terminal and use su to get the root permission
-  2. Use systemctl restart Pcap_DNSProxy to restart the service directly
-  3. Can also be the first systemctl stop Pcap_DNSProxy stop service, wait a while and then systemctl start Pcap_DNSProxy start service
-* SysV section:
-  1. Open the terminal and use su to get the root permission
-  2. Use service PcapDNSProxyService restart to restart the service directly
-  3. You can also service PcapDNSProxyService stop stop service, wait for some time and then service PcapDNSProxyService start start service
+Restart service method:
+* Systemd:
+  1. Open the terminal and use "su" to get root permission.
+  2. Use "systemctl restart Pcap_DNSProxy" to restart the service.
+  3. Another way: Use "systemctl stop Pcap_DNSProxy" to stop service, wait a moment and then use "systemctl start Pcap_DNSProxy" to start service.
+* SysV:
+  1. Open the terminal and use "su" to get root permission.
+  2. Use "service PcapDNSProxyService restart" to restart the service.
+  3. Another way: Use "service PcapDNSProxyService stop" to stop service, wait a moment and then use "service PcapDNSProxyService start" to start service.
 
 
 How to update if configuration version not changed:
-* Systemd section:
-  1. Open the terminal, use su to get the root permission and enter the Release directory
-  2. Execute the service uninstall script using ./Linux_Uninstall.Systemd.sh
-  3. Back up all profiles and delete all Pcap_DNSProxy dependencies
-  4. Redeploy Pcap_DNSProxy by installation method
-    * Restore the backup configuration file to the Release directory before proceeding to step 4
-    * Config.conf file is recommended to be reset once in accordance with the backup profile, such as direct coverage may lead to no new features
-* SysV section:
-  1. Open the terminal, use su to get the root permission and enter the Release directory
-  2. Execute the service uninstall script using ./Linux_Uninstall.SysV.sh
-  3. Back up all profiles and delete all Pcap_DNSProxy dependencies
-  4. Redeploy Pcap_DNSProxy by installation method
-    * Restore the backup configuration file to the Release directory before proceeding to step 4
-    * Config.conf file is recommended to be reset once in accordance with the backup profile, such as direct coverage may lead to no new features
+* Systemd:
+  1. Open the terminal and use "su" to get root permission and enter the Release directory.
+  2. Use "systemctl stop Pcap_DNSProxy" to stop service.
+  3. Remove all executable files in the folder.
+  4. Decompress all executable files of latest Pcap_DNSProxy to the same folder.
+  5. Use "systemctl start Pcap_DNSProxy" to start service.
+* SysV:
+  1. Open the terminal and use "su" to get root permission and enter the Release directory.
+  2. Use "service PcapDNSProxyService stop" to stop service.
+  3. Remove all executable files in the folder.
+  4. Decompress all executable files of latest Pcap_DNSProxy to the same folder.
+  5. Use "service PcapDNSProxyService start" to start service.
 
 
 How to update if configuration version changed:
-* Systemd section:
-  1. Open the terminal, use su to get the root permission and enter the Release directory
-  2. Execute the service uninstall script using ./Linux_Uninstall.Systemd.sh
-  3. Back up all profiles and delete all Pcap_DNSProxy dependencies
-  4. Redeploy Pcap_DNSProxy by installation method
-    * Restore the backup configuration file to the Release directory before proceeding to step 4
-    * Config.conf file is recommended to be reset once in accordance with the backup profile, such as direct coverage may lead to no new features
-* SysV section:
-  1. Open the terminal, use su to get the root permission and enter the Release directory
-  2. Execute the service uninstall script using ./Linux_Uninstall.SysV.sh
-  3. Back up all profiles and delete all Pcap_DNSProxy dependencies
-  4. Redeploy Pcap_DNSProxy by installation method
-    * Restore the backup configuration file to the Release directory before proceeding to step 4
-    * Config.conf file is recommended to be reset once in accordance with the backup profile, such as direct coverage may lead to no new features
+* Systemd:
+  1. Open the terminal and use "su" to get root permission and enter the Release directory.
+  2. Run "./Linux_Uninstall.Systemd.sh".
+  3. Do BACKUP to profiles and delete all Pcap_DNSProxy files.
+  4. Redeploy Pcap_DNSProxy via installation method.
+    * Restore backup file to Release directory before proceeding to step 4.
+    * Config.conf file is recommended to be reset once in accordance with the backup profile.
+* SysV:
+  1. Open the terminal and use "su" to get root permission and enter the Release directory.
+  2. Run "./Linux_Uninstall.SysV.sh".
+  3. Do BACKUP to profiles and delete all Pcap_DNSProxy files.
+  4. Redeploy Pcap_DNSProxy via installation method.
+    * Restore backup file to Release directory before proceeding to step 4.
+    * Config.conf file is recommended to be reset once in accordance with the backup profile.
 
 
 Uninstall method:
-* This is for reference only if different Linux distributions are handled differently for system services and daemons
-1. Restore the system network settings
-2. Go to the Release directory as root and execute ./Linux_Uninstall.Systemd.sh or ./Linux_Uninstall.SysV.sh
-3. Delete all Pcap_DNSProxy related files
+* Different Linux distributions are handled differently for system services and daemons, please read their documents.
+1. Restore system network settings.
+2. Go to Release directory as root and run "./Linux_Uninstall.Systemd.sh" or "./Linux_Uninstall.SysV.sh".
+3. Delete all Pcap_DNSProxy files.
 
 
 -------------------------------------------------------------------------------
@@ -224,7 +189,6 @@ Description of other Linux distributions:
 
 * Linux Debian series:
   * Official release version 8.x and later versions require the use of Systemd to manage system services
-  * The official release version 6.x - 7.x version requires the use of the insserv management system service
 * Linux Red Hat and openSUSE series:
   * Use chkconfig to manage system services
   * See https://access.redhat.com/site/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Deployment_Guide/s2-services-chkconfig.html

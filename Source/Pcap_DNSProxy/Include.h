@@ -1,6 +1,6 @@
 ﻿// This code is part of Pcap_DNSProxy
 // Pcap_DNSProxy, a local DNS server based on WinPcap and LibPcap
-// Copyright (C) 2012-2018 Chengr28
+// Copyright (C) 2012-2019 Chengr28
 // 
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -26,6 +26,8 @@
 // Main functions
 // 
 //Base.cpp
+bool CheckLibraryVersion(
+	void);
 bool CheckEmptyBuffer(
 	const void * const Buffer, 
 	const size_t Length);
@@ -88,7 +90,7 @@ void GenerateRandomBuffer(
 	const void *Distribution, 
 	const uint64_t Lower, 
 	const uint64_t Upper);
-#if (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+#if (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 uint64_t IncreaseMillisecondTime(
 	const uint64_t CurrentTime, 
 	const timeval IncreaseTime);
@@ -291,7 +293,10 @@ void RegisterPortToList(
 	const uint16_t Protocol, 
 	const SOCKET_DATA * const LocalSocketData, 
 	std::vector<SOCKET_DATA> &SocketDataList, 
-	size_t *EDNS_Length);
+	const std::string * const DomainString_Original, 
+	const std::string * const DomainString_Request
+//	size_t *EDNS_Length
+);
 
 //PacketData.h
 uint16_t GetChecksum_Internet(
@@ -313,9 +318,11 @@ size_t AddLengthDataToHeader(
 	const size_t BufferSize);
 size_t StringToPacketQuery(
 	const uint8_t * const FName, 
-	uint8_t * const TName);
+	uint8_t * const TName, 
+	const size_t BufferSize);
 size_t PacketQueryToString(
 	const uint8_t * const TName, 
+	const size_t BufferSize, 
 	std::string &FName);
 size_t MarkWholePacketQuery(
 	const uint8_t * const WholePacket, 
@@ -324,9 +331,11 @@ size_t MarkWholePacketQuery(
 	const size_t TNameIndex, 
 	std::string &FName);
 void GenerateRandomDomain(
-	uint8_t * const Buffer);
+	uint8_t * const Buffer, 
+	const size_t BufferSize);
 void MakeDomainCaseConversion(
-	uint8_t * const Buffer);
+	uint8_t * const Buffer, 
+	const size_t BufferSize);
 bool Move_EDNS_LabelToEnd(
 	DNS_PACKET_DATA * const PacketStructure);
 size_t Add_EDNS_LabelToPacket(
@@ -348,7 +357,7 @@ bool MarkDomainCache(
 	const size_t Length, 
 	const SOCKET_DATA * const LocalSocketData);
 size_t CheckDomainCache(
-	uint8_t * const Result, 
+	uint8_t * const ResultBuffer, 
 	const size_t ResultSize, 
 	const std::string &Domain, 
 	const uint16_t QueryType, 
@@ -401,7 +410,7 @@ size_t CheckWhiteBannedHostsProcess(
 	const uint16_t QueryType);
 size_t CheckHostsProcess(
 	DNS_PACKET_DATA * const PacketStructure, 
-	uint8_t * const Result, 
+	uint8_t * const ResultBuffer, 
 	const size_t ResultSize, 
 	const SOCKET_DATA &LocalSocketData);
 bool SendToRequester(
@@ -409,6 +418,8 @@ bool SendToRequester(
 	uint8_t * const RecvBuffer, 
 	const size_t RecvSize, 
 	const size_t BufferSize, 
+	const std::string * const DomainString_Original, 
+	const std::string * const DomainString_Request, 
 	SOCKET_DATA &LocalSocketData);
 
 //Protocol.h
@@ -420,9 +431,14 @@ bool AddressStringToBinary(
 bool BinaryToAddressString(
 	const uint16_t Protocol, 
 	const void * const OriginalAddr, 
-	void * const AddressString, 
+	void * const AddrString, 
 	const size_t StringSize, 
 	ssize_t * const ErrorCode);
+bool AddressPrefixReplacing(
+	const uint16_t Protocol, 
+	const void * const SourceAddr, 
+	void * const DestinationAddr, 
+	const size_t Prefix);
 ADDRESS_COMPARE_TYPE AddressesComparing(
 	const uint16_t Protocol, 
 	const void * const OriginalAddrBegin, 
@@ -437,7 +453,8 @@ bool OperationModeFilter(
 	const void * const OriginalAddr, 
 	const LISTEN_MODE OperationMode);
 size_t CheckQueryNameLength(
-	const uint8_t * const Buffer);
+	const uint8_t * const Buffer, 
+	const size_t BufferSize);
 bool CheckQueryData(
 	DNS_PACKET_DATA * const PacketStructure, 
 	uint8_t * const SendBuffer, 
@@ -517,8 +534,11 @@ size_t UDP_RequestSingle(
 	const uint8_t * const OriginalSend, 
 	const size_t SendSize, 
 	const uint16_t QueryType, 
-	const SOCKET_DATA * const LocalSocketData, 
-	size_t *EDNS_Length);
+	const std::string * const DomainString_Original, 
+	const std::string * const DomainString_Request, 
+	const SOCKET_DATA * const LocalSocketData
+//	size_t *EDNS_Length
+);
 size_t UDP_RequestMultiple(
 	const REQUEST_PROCESS_TYPE RequestType, 
 	const uint16_t Protocol_Network, 
@@ -526,8 +546,11 @@ size_t UDP_RequestMultiple(
 	const uint8_t * const OriginalSend, 
 	const size_t SendSize, 
 	const uint16_t QueryType, 
-	const SOCKET_DATA * const LocalSocketData, 
-	size_t *EDNS_Length);
+	const std::string * const DomainString_Original, 
+	const std::string * const DomainString_Request, 
+	const SOCKET_DATA * const LocalSocketData
+//	size_t *EDNS_Length
+);
 #endif
 size_t UDP_CompleteRequestSingle(
 	const REQUEST_PROCESS_TYPE RequestType, 
@@ -556,19 +579,19 @@ BOOL WINAPI SignalHandler(
 VOID WINAPI ServiceMain(
 	DWORD argc, 
 	LPTSTR *argv);
-bool Flush_DNS_MailSlotMonitor(
+bool FlushDomainCache_MailslotListener(
 	void);
-bool WINAPI Flush_DNS_MailSlotSender(
+bool WINAPI FlushDomainCache_MailslotSender(
 	const wchar_t * const Domain);
-#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 void SignalHandler(
 	const int Signal);
-bool Flush_DNS_FIFO_Monitor(
+bool FlushDomainCache_PipeListener(
 	void);
-bool Flush_DNS_FIFO_Sender(
+bool FlushDomainCache_PipeSender(
 	const uint8_t * const Domain);
 #endif
-void Flush_DNS_Cache(
+void FlushDomainCache_Main(
 	const uint8_t * const Domain);
 
 //TransportSecurity.h
@@ -592,7 +615,7 @@ bool SSPI_ShutdownConnection(
 	SSPI_HANDLE_TABLE &SSPI_Handle, 
 	std::vector<SOCKET_DATA> &SocketDataList, 
 	std::vector<ssize_t> &ErrorCodeList);
-#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 void OpenSSL_LibraryInit(
 	bool IsLoad);
 bool OpenSSL_CTX_Initializtion(

@@ -1,6 +1,6 @@
 ﻿// This code is part of Pcap_DNSProxy
 // Pcap_DNSProxy, a local DNS server based on WinPcap and LibPcap
-// Copyright (C) 2012-2018 Chengr28
+// Copyright (C) 2012-2019 Chengr28
 // 
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -77,7 +77,7 @@ bool PrintError(
 			else 
 				ErrorMessage.append(L"[Network Error] ");
 		}break;
-	//WinPcap/LibPcap Error
+	//WinPcap and LibPcap Error
 	//About WinPcap/LibPcap error codes, please visit https://www.winpcap.org/docs/docs_40_2/html/group__wpcapfunc.html.
 	#if defined(ENABLE_PCAP)
 		case LOG_ERROR_TYPE::PCAP:
@@ -178,11 +178,13 @@ bool WriteMessageToStream(
 		const auto TimeValue = time(nullptr);
 		tm TimeStructure;
 		memset(&TimeStructure, 0, sizeof(TimeStructure));
-	#if defined(PLATFORM_WIN)
-		if (TimeValue <= 0 || localtime_s(&TimeStructure, &TimeValue) != 0)
-	#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
-		if (TimeValue <= 0 || localtime_r(&TimeValue, &TimeStructure) == nullptr)
-	#endif
+		if (TimeValue <= 0
+		#if defined(PLATFORM_WIN)
+			|| localtime_s(&TimeStructure, &TimeValue) != 0
+		#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+			|| localtime_r(&TimeValue, &TimeStructure) == nullptr
+		#endif
+		)
 			return false;
 
 	//Convert time structure to string.
@@ -218,7 +220,7 @@ bool WriteMessageToStream(
 		memset(&TimeStructure, 0, sizeof(TimeStructure));
 	#if defined(PLATFORM_WIN)
 		if (localtime_s(&TimeStructure, &TimeValue) != 0)
-	#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+	#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 		if (localtime_r(&TimeValue, &TimeStructure) == nullptr)
 	#endif
 			return false;
@@ -281,7 +283,7 @@ bool WriteMessageToStream(
 	if (*GlobalRunningStatus.Path_ErrorLog == L"stderr" || *GlobalRunningStatus.Path_ErrorLog == L"stdout"
 	#if defined(PLATFORM_WIN)
 		|| GlobalRunningStatus.IsConsole
-	#elif defined(PLATFORM_LINUX)
+	#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX))
 		|| !GlobalRunningStatus.IsDaemon
 	#endif
 		)
@@ -321,7 +323,7 @@ bool WriteMessageToStream(
 		memset(&ErrorFileSize, 0, sizeof(ErrorFileSize));
 		ErrorFileSize.HighPart = FileAttributeData.nFileSizeHigh;
 		ErrorFileSize.LowPart = FileAttributeData.nFileSizeLow;
-		if (ErrorFileSize.QuadPart > 0 && static_cast<uint64_t>(ErrorFileSize.QuadPart) >= Parameter.LogMaxSize)
+		if (ErrorFileSize.QuadPart > 0 && static_cast<const uint64_t>(ErrorFileSize.QuadPart) >= Parameter.LogMaxSize)
 		{
 			if (DeleteFileW(
 				GlobalRunningStatus.Path_ErrorLog->c_str()) != 0)
@@ -330,11 +332,11 @@ bool WriteMessageToStream(
 				return false;
 		}
 	}
-#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 	struct stat FileStatData;
 	memset(&FileStatData, 0, sizeof(FileStatData));
 	std::lock_guard<std::mutex> ErrorLogMutex(ErrorLogLock);
-	if (stat(GlobalRunningStatus.Path_ErrorLog_MBS->c_str(), &FileStatData) == 0 && FileStatData.st_size >= static_cast<off_t>(Parameter.LogMaxSize))
+	if (stat(GlobalRunningStatus.Path_ErrorLog_MBS->c_str(), &FileStatData) == 0 && FileStatData.st_size >= static_cast<const off_t>(Parameter.LogMaxSize))
 	{
 		if (remove(GlobalRunningStatus.Path_ErrorLog_MBS->c_str()) == 0)
 			IsFileDeleted = true;
@@ -347,7 +349,7 @@ bool WriteMessageToStream(
 #if defined(PLATFORM_WIN)
 	FILE *FileHandle = nullptr;
 	if (_wfopen_s(&FileHandle, GlobalRunningStatus.Path_ErrorLog->c_str(), L"a,ccs=UTF-8") == 0 && FileHandle != nullptr)
-#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 	auto FileHandle = fopen(GlobalRunningStatus.Path_ErrorLog_MBS->c_str(), "a");
 	if (FileHandle != nullptr)
 #endif
@@ -424,7 +426,7 @@ void ErrorCodeToMessage(
 	if (FormatMessageW(
 		FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_MAX_WIDTH_MASK, 
 		nullptr, 
-		static_cast<DWORD>(ErrorCode), 
+		static_cast<const DWORD>(ErrorCode), 
 		MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), 
 		reinterpret_cast<LPWSTR>(&InnerMessage), 
 		0, 
@@ -471,9 +473,9 @@ void ErrorCodeToMessage(
 	//Free pointer.
 		LocalFree(InnerMessage);
 	}
-#elif (defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
+#elif (defined(PLATFORM_FREEBSD) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS))
 	std::wstring InnerMessage;
-	const auto ErrorMessage = strerror(static_cast<int>(ErrorCode));
+	const auto ErrorMessage = strerror(static_cast<const int>(ErrorCode));
 	if (ErrorMessage == nullptr || !MBS_To_WCS_String(reinterpret_cast<const uint8_t *>(ErrorMessage), strnlen(ErrorMessage, FILE_BUFFER_SIZE), InnerMessage))
 	{
 		Message.append(L"%d");
@@ -610,13 +612,13 @@ void PrintLog_DNSCurve(
 		{
 			Message = L"IPv6 Main Server ";
 		}break;
-		case DNSCURVE_SERVER_TYPE::MAIN_IPV4:
-		{
-			Message = L"IPv4 Main Server ";
-		}break;
 		case DNSCURVE_SERVER_TYPE::ALTERNATE_IPV6:
 		{
 			Message = L"IPv6 Alternate Server ";
+		}break;
+		case DNSCURVE_SERVER_TYPE::MAIN_IPV4:
+		{
+			Message = L"IPv4 Main Server ";
 		}break;
 		case DNSCURVE_SERVER_TYPE::ALTERNATE_IPV4:
 		{
